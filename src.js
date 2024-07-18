@@ -3,6 +3,9 @@ const chartjs = require("chart.js/auto");
 const papa = require("papaparse");
 const chartJsPtLabels = require("chartjs-plugin-datalabels");
 
+//Global variable to store the reference to the created chart
+let CHART = null;
+
 /**
  * @typedef {Object} Sample
  * @property {string} name - The name of the sample
@@ -13,6 +16,7 @@ const chartJsPtLabels = require("chartjs-plugin-datalabels");
  * @property {string} units - The units of x i.e ug/mL, ng/mL, ug/uL, etc.
  * @property {string[]} wellPositions - The wells the sample was loaded in i.e A1, B1, C1, etc.
  * @property {number} averageY - The average of y if sample was loaded in replicates 
+ * @property {Function} getData - Function that returns a list of important data for the same that can be used to display in a table
  * 
 */
 
@@ -65,10 +69,10 @@ async function merge(rawdataFile, templateFile){
                 if(parsedSample.has("units")){
                     const units = parsedSample.get("units");
                     const x = parsedSample.get("x");
-                    samples.set(name, {name, type, units, wellPositions:[wellPosition], x, ys:[y]})
+                    samples.set(name, {name, type, units, wellPositions:[wellPosition], x, ys:[y], getData:function(){return [this.name, this.type, this.averageY, this.interpolatedX]}})
                 }
                 else{
-                    samples.set(name, {name, type, wellPositions:[wellPosition], ys:[y]})
+                    samples.set(name, {name, type, wellPositions:[wellPosition], ys:[y], getData:function(){return [this.name, this.type, this.averageY, this.interpolatedX]}})
                 }
             }
         }
@@ -77,9 +81,10 @@ async function merge(rawdataFile, templateFile){
     samples.forEach((v,k, m) => v.averageY = ss.average(v.ys));
 
     //Provide the filename so that it can be used to create the results xlsx file
-    samples.set("filename", filename);
+    // samples.set("filename", filename);
     return samples;
 }
+
 /**
  * @param {string} sampleName
  * @returns {Map<string,string|number>}
@@ -87,7 +92,6 @@ async function merge(rawdataFile, templateFile){
 function parseSampleName(sampleName){
     const parsed = new Map();
     let [type,name] = sampleName.split("-");
-    console.log(type, name)
     switch (type.toLowerCase()){
         case "standard":
             const units = name.slice(-5);
@@ -113,6 +117,8 @@ function handleClick(e){
     const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
     const chartCanvas = document.getElementById("regression-chart");
+    const tableContainer = document.getElementById("table-container");
+    if(CHART !== null) CHART.destroy()
     if(!rawdataFile || !templateFile) return;
     merge(rawdataFile, templateFile)
     .then(samples =>{
@@ -125,7 +131,7 @@ function handleClick(e){
         //Iterpolate the concentration of all the samples using the regression model generated
         for(let sample of samples.values()) sample.interpolatedX = invEq(sample.averageY);
 
-        new chartjs.Chart(chartCanvas, {
+        CHART = new chartjs.Chart(chartCanvas, {
             type:"scatter",
             data:{
                 labels:[],
@@ -171,9 +177,56 @@ function handleClick(e){
                     },                   
                 }
             }
-        })
+        })  
+        // console.log(samples)
+        deleteTable(tableContainer);
+        createTable(Array.from(samples.values()), tableContainer);
     })
 
+}
+/**
+ * @param {HTMLDivElement} container  - The container that contains the table
+ * @returns {null}
+ */
+function deleteTable(container){
+    const table = document.getElementById("results-table");
+    if(table) container.removeChild(table);  
+    
+    return null;
+}
+
+/**
+ * @param {Sample[]} samples - A list of sample objects to display in the table
+ * @param {Element} container - The element to append the table element to as a child
+ * @returns {null}
+ */
+function createTable(samples, container){
+    const table = document.createElement("table");
+    table.id = "results-table";
+    const headerContainer = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    const headers = ["Sample Name", "Sample Type", "Average Y","Interpolated Protein Concentration"];
+    for(let header of headers){
+        const row = document.createElement("th");
+        row.textContent = header;
+        headerRow.appendChild(row);
+    }
+
+
+    const body = document.createElement("tbody");
+    headerContainer.appendChild(headerRow);
+    for(let sample of samples){        
+        const row = document.createElement("tr");
+        for (let data of sample.getData()){
+            const td =document.createElement("td");
+            td.textContent = data;
+            row.appendChild(td);
+        }
+        body.appendChild(row);
+    }
+    table.appendChild(headerContainer);
+    table.appendChild(body);
+    container.appendChild(table);
 }
 
 /**

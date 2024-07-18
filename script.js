@@ -15026,6 +15026,1504 @@ exports.valueOrDefault = valueOrDefault;
 
 
 },{"@kurkle/color":1}],5:[function(require,module,exports){
+/*!
+ * Chart.js v4.4.3
+ * https://www.chartjs.org
+ * (c) 2024 Chart.js Contributors
+ * Released under the MIT License
+ */
+'use strict';
+
+var helpers_segment = require('./chunks/helpers.segment.cjs');
+require('@kurkle/color');
+
+
+
+exports.HALF_PI = helpers_segment.HALF_PI;
+exports.INFINITY = helpers_segment.INFINITY;
+exports.PI = helpers_segment.PI;
+exports.PITAU = helpers_segment.PITAU;
+exports.QUARTER_PI = helpers_segment.QUARTER_PI;
+exports.RAD_PER_DEG = helpers_segment.RAD_PER_DEG;
+exports.TAU = helpers_segment.TAU;
+exports.TWO_THIRDS_PI = helpers_segment.TWO_THIRDS_PI;
+exports._addGrace = helpers_segment._addGrace;
+exports._alignPixel = helpers_segment._alignPixel;
+exports._alignStartEnd = helpers_segment._alignStartEnd;
+exports._angleBetween = helpers_segment._angleBetween;
+exports._angleDiff = helpers_segment._angleDiff;
+exports._arrayUnique = helpers_segment._arrayUnique;
+exports._attachContext = helpers_segment._attachContext;
+exports._bezierCurveTo = helpers_segment._bezierCurveTo;
+exports._bezierInterpolation = helpers_segment._bezierInterpolation;
+exports._boundSegment = helpers_segment._boundSegment;
+exports._boundSegments = helpers_segment._boundSegments;
+exports._capitalize = helpers_segment._capitalize;
+exports._computeSegments = helpers_segment._computeSegments;
+exports._createResolver = helpers_segment._createResolver;
+exports._decimalPlaces = helpers_segment._decimalPlaces;
+exports._deprecated = helpers_segment._deprecated;
+exports._descriptors = helpers_segment._descriptors;
+exports._elementsEqual = helpers_segment._elementsEqual;
+exports._factorize = helpers_segment._factorize;
+exports._filterBetween = helpers_segment._filterBetween;
+exports._getParentNode = helpers_segment._getParentNode;
+exports._getStartAndCountOfVisiblePoints = helpers_segment._getStartAndCountOfVisiblePoints;
+exports._int16Range = helpers_segment._int16Range;
+exports._isBetween = helpers_segment._isBetween;
+exports._isClickEvent = helpers_segment._isClickEvent;
+exports._isDomSupported = helpers_segment._isDomSupported;
+exports._isPointInArea = helpers_segment._isPointInArea;
+exports._limitValue = helpers_segment._limitValue;
+exports._longestText = helpers_segment._longestText;
+exports._lookup = helpers_segment._lookup;
+exports._lookupByKey = helpers_segment._lookupByKey;
+exports._measureText = helpers_segment._measureText;
+exports._merger = helpers_segment._merger;
+exports._mergerIf = helpers_segment._mergerIf;
+exports._normalizeAngle = helpers_segment._normalizeAngle;
+exports._parseObjectDataRadialScale = helpers_segment._parseObjectDataRadialScale;
+exports._pointInLine = helpers_segment._pointInLine;
+exports._readValueToProps = helpers_segment._readValueToProps;
+exports._rlookupByKey = helpers_segment._rlookupByKey;
+exports._scaleRangesChanged = helpers_segment._scaleRangesChanged;
+exports._setMinAndMaxByKey = helpers_segment._setMinAndMaxByKey;
+exports._splitKey = helpers_segment._splitKey;
+exports._steppedInterpolation = helpers_segment._steppedInterpolation;
+exports._steppedLineTo = helpers_segment._steppedLineTo;
+exports._textX = helpers_segment._textX;
+exports._toLeftRightCenter = helpers_segment._toLeftRightCenter;
+exports._updateBezierControlPoints = helpers_segment._updateBezierControlPoints;
+exports.addRoundedRectPath = helpers_segment.addRoundedRectPath;
+exports.almostEquals = helpers_segment.almostEquals;
+exports.almostWhole = helpers_segment.almostWhole;
+exports.callback = helpers_segment.callback;
+exports.clearCanvas = helpers_segment.clearCanvas;
+exports.clipArea = helpers_segment.clipArea;
+exports.clone = helpers_segment.clone;
+exports.color = helpers_segment.color;
+exports.createContext = helpers_segment.createContext;
+exports.debounce = helpers_segment.debounce;
+exports.defined = helpers_segment.defined;
+exports.distanceBetweenPoints = helpers_segment.distanceBetweenPoints;
+exports.drawPoint = helpers_segment.drawPoint;
+exports.drawPointLegend = helpers_segment.drawPointLegend;
+exports.each = helpers_segment.each;
+exports.easingEffects = helpers_segment.effects;
+exports.finiteOrDefault = helpers_segment.finiteOrDefault;
+exports.fontString = helpers_segment.fontString;
+exports.formatNumber = helpers_segment.formatNumber;
+exports.getAngleFromPoint = helpers_segment.getAngleFromPoint;
+exports.getHoverColor = helpers_segment.getHoverColor;
+exports.getMaximumSize = helpers_segment.getMaximumSize;
+exports.getRelativePosition = helpers_segment.getRelativePosition;
+exports.getRtlAdapter = helpers_segment.getRtlAdapter;
+exports.getStyle = helpers_segment.getStyle;
+exports.isArray = helpers_segment.isArray;
+exports.isFinite = helpers_segment.isNumberFinite;
+exports.isFunction = helpers_segment.isFunction;
+exports.isNullOrUndef = helpers_segment.isNullOrUndef;
+exports.isNumber = helpers_segment.isNumber;
+exports.isObject = helpers_segment.isObject;
+exports.isPatternOrGradient = helpers_segment.isPatternOrGradient;
+exports.listenArrayEvents = helpers_segment.listenArrayEvents;
+exports.log10 = helpers_segment.log10;
+exports.merge = helpers_segment.merge;
+exports.mergeIf = helpers_segment.mergeIf;
+exports.niceNum = helpers_segment.niceNum;
+exports.noop = helpers_segment.noop;
+exports.overrideTextDirection = helpers_segment.overrideTextDirection;
+exports.readUsedSize = helpers_segment.readUsedSize;
+exports.renderText = helpers_segment.renderText;
+exports.requestAnimFrame = helpers_segment.requestAnimFrame;
+exports.resolve = helpers_segment.resolve;
+exports.resolveObjectKey = helpers_segment.resolveObjectKey;
+exports.restoreTextDirection = helpers_segment.restoreTextDirection;
+exports.retinaScale = helpers_segment.retinaScale;
+exports.setsEqual = helpers_segment.setsEqual;
+exports.sign = helpers_segment.sign;
+exports.splineCurve = helpers_segment.splineCurve;
+exports.splineCurveMonotone = helpers_segment.splineCurveMonotone;
+exports.supportsEventListenerOptions = helpers_segment.supportsEventListenerOptions;
+exports.throttled = helpers_segment.throttled;
+exports.toDegrees = helpers_segment.toDegrees;
+exports.toDimension = helpers_segment.toDimension;
+exports.toFont = helpers_segment.toFont;
+exports.toFontString = helpers_segment.toFontString;
+exports.toLineHeight = helpers_segment.toLineHeight;
+exports.toPadding = helpers_segment.toPadding;
+exports.toPercentage = helpers_segment.toPercentage;
+exports.toRadians = helpers_segment.toRadians;
+exports.toTRBL = helpers_segment.toTRBL;
+exports.toTRBLCorners = helpers_segment.toTRBLCorners;
+exports.uid = helpers_segment.uid;
+exports.unclipArea = helpers_segment.unclipArea;
+exports.unlistenArrayEvents = helpers_segment.unlistenArrayEvents;
+exports.valueOrDefault = helpers_segment.valueOrDefault;
+
+
+},{"./chunks/helpers.segment.cjs":4,"@kurkle/color":1}],6:[function(require,module,exports){
+module.exports = require('../dist/helpers.cjs');
+
+},{"../dist/helpers.cjs":5}],7:[function(require,module,exports){
+/*!
+ * chartjs-plugin-datalabels v2.2.0
+ * https://chartjs-plugin-datalabels.netlify.app
+ * (c) 2017-2022 chartjs-plugin-datalabels contributors
+ * Released under the MIT license
+ */
+(function (global, factory) {
+typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('chart.js/helpers'), require('chart.js')) :
+typeof define === 'function' && define.amd ? define(['chart.js/helpers', 'chart.js'], factory) :
+(global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.ChartDataLabels = factory(global.Chart.helpers, global.Chart));
+})(this, (function (helpers, chart_js) { 'use strict';
+
+var devicePixelRatio = (function() {
+  if (typeof window !== 'undefined') {
+    if (window.devicePixelRatio) {
+      return window.devicePixelRatio;
+    }
+
+    // devicePixelRatio is undefined on IE10
+    // https://stackoverflow.com/a/20204180/8837887
+    // https://github.com/chartjs/chartjs-plugin-datalabels/issues/85
+    var screen = window.screen;
+    if (screen) {
+      return (screen.deviceXDPI || 1) / (screen.logicalXDPI || 1);
+    }
+  }
+
+  return 1;
+}());
+
+var utils = {
+  // @todo move this in Chart.helpers.toTextLines
+  toTextLines: function(inputs) {
+    var lines = [];
+    var input;
+
+    inputs = [].concat(inputs);
+    while (inputs.length) {
+      input = inputs.pop();
+      if (typeof input === 'string') {
+        lines.unshift.apply(lines, input.split('\n'));
+      } else if (Array.isArray(input)) {
+        inputs.push.apply(inputs, input);
+      } else if (!helpers.isNullOrUndef(inputs)) {
+        lines.unshift('' + input);
+      }
+    }
+
+    return lines;
+  },
+
+  // @todo move this in Chart.helpers.canvas.textSize
+  // @todo cache calls of measureText if font doesn't change?!
+  textSize: function(ctx, lines, font) {
+    var items = [].concat(lines);
+    var ilen = items.length;
+    var prev = ctx.font;
+    var width = 0;
+    var i;
+
+    ctx.font = font.string;
+
+    for (i = 0; i < ilen; ++i) {
+      width = Math.max(ctx.measureText(items[i]).width, width);
+    }
+
+    ctx.font = prev;
+
+    return {
+      height: ilen * font.lineHeight,
+      width: width
+    };
+  },
+
+  /**
+   * Returns value bounded by min and max. This is equivalent to max(min, min(value, max)).
+   * @todo move this method in Chart.helpers.bound
+   * https://doc.qt.io/qt-5/qtglobal.html#qBound
+   */
+  bound: function(min, value, max) {
+    return Math.max(min, Math.min(value, max));
+  },
+
+  /**
+   * Returns an array of pair [value, state] where state is:
+   * * -1: value is only in a0 (removed)
+   * *  1: value is only in a1 (added)
+   */
+  arrayDiff: function(a0, a1) {
+    var prev = a0.slice();
+    var updates = [];
+    var i, j, ilen, v;
+
+    for (i = 0, ilen = a1.length; i < ilen; ++i) {
+      v = a1[i];
+      j = prev.indexOf(v);
+
+      if (j === -1) {
+        updates.push([v, 1]);
+      } else {
+        prev.splice(j, 1);
+      }
+    }
+
+    for (i = 0, ilen = prev.length; i < ilen; ++i) {
+      updates.push([prev[i], -1]);
+    }
+
+    return updates;
+  },
+
+  /**
+   * https://github.com/chartjs/chartjs-plugin-datalabels/issues/70
+   */
+  rasterize: function(v) {
+    return Math.round(v * devicePixelRatio) / devicePixelRatio;
+  }
+};
+
+function orient(point, origin) {
+  var x0 = origin.x;
+  var y0 = origin.y;
+
+  if (x0 === null) {
+    return {x: 0, y: -1};
+  }
+  if (y0 === null) {
+    return {x: 1, y: 0};
+  }
+
+  var dx = point.x - x0;
+  var dy = point.y - y0;
+  var ln = Math.sqrt(dx * dx + dy * dy);
+
+  return {
+    x: ln ? dx / ln : 0,
+    y: ln ? dy / ln : -1
+  };
+}
+
+function aligned(x, y, vx, vy, align) {
+  switch (align) {
+  case 'center':
+    vx = vy = 0;
+    break;
+  case 'bottom':
+    vx = 0;
+    vy = 1;
+    break;
+  case 'right':
+    vx = 1;
+    vy = 0;
+    break;
+  case 'left':
+    vx = -1;
+    vy = 0;
+    break;
+  case 'top':
+    vx = 0;
+    vy = -1;
+    break;
+  case 'start':
+    vx = -vx;
+    vy = -vy;
+    break;
+  case 'end':
+    // keep natural orientation
+    break;
+  default:
+    // clockwise rotation (in degree)
+    align *= (Math.PI / 180);
+    vx = Math.cos(align);
+    vy = Math.sin(align);
+    break;
+  }
+
+  return {
+    x: x,
+    y: y,
+    vx: vx,
+    vy: vy
+  };
+}
+
+// Line clipping (Cohen–Sutherland algorithm)
+// https://en.wikipedia.org/wiki/Cohen–Sutherland_algorithm
+
+var R_INSIDE = 0;
+var R_LEFT = 1;
+var R_RIGHT = 2;
+var R_BOTTOM = 4;
+var R_TOP = 8;
+
+function region(x, y, rect) {
+  var res = R_INSIDE;
+
+  if (x < rect.left) {
+    res |= R_LEFT;
+  } else if (x > rect.right) {
+    res |= R_RIGHT;
+  }
+  if (y < rect.top) {
+    res |= R_TOP;
+  } else if (y > rect.bottom) {
+    res |= R_BOTTOM;
+  }
+
+  return res;
+}
+
+function clipped(segment, area) {
+  var x0 = segment.x0;
+  var y0 = segment.y0;
+  var x1 = segment.x1;
+  var y1 = segment.y1;
+  var r0 = region(x0, y0, area);
+  var r1 = region(x1, y1, area);
+  var r, x, y;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    if (!(r0 | r1) || (r0 & r1)) {
+      // both points inside or on the same side: no clipping
+      break;
+    }
+
+    // at least one point is outside
+    r = r0 || r1;
+
+    if (r & R_TOP) {
+      x = x0 + (x1 - x0) * (area.top - y0) / (y1 - y0);
+      y = area.top;
+    } else if (r & R_BOTTOM) {
+      x = x0 + (x1 - x0) * (area.bottom - y0) / (y1 - y0);
+      y = area.bottom;
+    } else if (r & R_RIGHT) {
+      y = y0 + (y1 - y0) * (area.right - x0) / (x1 - x0);
+      x = area.right;
+    } else if (r & R_LEFT) {
+      y = y0 + (y1 - y0) * (area.left - x0) / (x1 - x0);
+      x = area.left;
+    }
+
+    if (r === r0) {
+      x0 = x;
+      y0 = y;
+      r0 = region(x0, y0, area);
+    } else {
+      x1 = x;
+      y1 = y;
+      r1 = region(x1, y1, area);
+    }
+  }
+
+  return {
+    x0: x0,
+    x1: x1,
+    y0: y0,
+    y1: y1
+  };
+}
+
+function compute$1(range, config) {
+  var anchor = config.anchor;
+  var segment = range;
+  var x, y;
+
+  if (config.clamp) {
+    segment = clipped(segment, config.area);
+  }
+
+  if (anchor === 'start') {
+    x = segment.x0;
+    y = segment.y0;
+  } else if (anchor === 'end') {
+    x = segment.x1;
+    y = segment.y1;
+  } else {
+    x = (segment.x0 + segment.x1) / 2;
+    y = (segment.y0 + segment.y1) / 2;
+  }
+
+  return aligned(x, y, range.vx, range.vy, config.align);
+}
+
+var positioners = {
+  arc: function(el, config) {
+    var angle = (el.startAngle + el.endAngle) / 2;
+    var vx = Math.cos(angle);
+    var vy = Math.sin(angle);
+    var r0 = el.innerRadius;
+    var r1 = el.outerRadius;
+
+    return compute$1({
+      x0: el.x + vx * r0,
+      y0: el.y + vy * r0,
+      x1: el.x + vx * r1,
+      y1: el.y + vy * r1,
+      vx: vx,
+      vy: vy
+    }, config);
+  },
+
+  point: function(el, config) {
+    var v = orient(el, config.origin);
+    var rx = v.x * el.options.radius;
+    var ry = v.y * el.options.radius;
+
+    return compute$1({
+      x0: el.x - rx,
+      y0: el.y - ry,
+      x1: el.x + rx,
+      y1: el.y + ry,
+      vx: v.x,
+      vy: v.y
+    }, config);
+  },
+
+  bar: function(el, config) {
+    var v = orient(el, config.origin);
+    var x = el.x;
+    var y = el.y;
+    var sx = 0;
+    var sy = 0;
+
+    if (el.horizontal) {
+      x = Math.min(el.x, el.base);
+      sx = Math.abs(el.base - el.x);
+    } else {
+      y = Math.min(el.y, el.base);
+      sy = Math.abs(el.base - el.y);
+    }
+
+    return compute$1({
+      x0: x,
+      y0: y + sy,
+      x1: x + sx,
+      y1: y,
+      vx: v.x,
+      vy: v.y
+    }, config);
+  },
+
+  fallback: function(el, config) {
+    var v = orient(el, config.origin);
+
+    return compute$1({
+      x0: el.x,
+      y0: el.y,
+      x1: el.x + (el.width || 0),
+      y1: el.y + (el.height || 0),
+      vx: v.x,
+      vy: v.y
+    }, config);
+  }
+};
+
+var rasterize = utils.rasterize;
+
+function boundingRects(model) {
+  var borderWidth = model.borderWidth || 0;
+  var padding = model.padding;
+  var th = model.size.height;
+  var tw = model.size.width;
+  var tx = -tw / 2;
+  var ty = -th / 2;
+
+  return {
+    frame: {
+      x: tx - padding.left - borderWidth,
+      y: ty - padding.top - borderWidth,
+      w: tw + padding.width + borderWidth * 2,
+      h: th + padding.height + borderWidth * 2
+    },
+    text: {
+      x: tx,
+      y: ty,
+      w: tw,
+      h: th
+    }
+  };
+}
+
+function getScaleOrigin(el, context) {
+  var scale = context.chart.getDatasetMeta(context.datasetIndex).vScale;
+
+  if (!scale) {
+    return null;
+  }
+
+  if (scale.xCenter !== undefined && scale.yCenter !== undefined) {
+    return {x: scale.xCenter, y: scale.yCenter};
+  }
+
+  var pixel = scale.getBasePixel();
+  return el.horizontal ?
+    {x: pixel, y: null} :
+    {x: null, y: pixel};
+}
+
+function getPositioner(el) {
+  if (el instanceof chart_js.ArcElement) {
+    return positioners.arc;
+  }
+  if (el instanceof chart_js.PointElement) {
+    return positioners.point;
+  }
+  if (el instanceof chart_js.BarElement) {
+    return positioners.bar;
+  }
+  return positioners.fallback;
+}
+
+function drawRoundedRect(ctx, x, y, w, h, radius) {
+  var HALF_PI = Math.PI / 2;
+
+  if (radius) {
+    var r = Math.min(radius, h / 2, w / 2);
+    var left = x + r;
+    var top = y + r;
+    var right = x + w - r;
+    var bottom = y + h - r;
+
+    ctx.moveTo(x, top);
+    if (left < right && top < bottom) {
+      ctx.arc(left, top, r, -Math.PI, -HALF_PI);
+      ctx.arc(right, top, r, -HALF_PI, 0);
+      ctx.arc(right, bottom, r, 0, HALF_PI);
+      ctx.arc(left, bottom, r, HALF_PI, Math.PI);
+    } else if (left < right) {
+      ctx.moveTo(left, y);
+      ctx.arc(right, top, r, -HALF_PI, HALF_PI);
+      ctx.arc(left, top, r, HALF_PI, Math.PI + HALF_PI);
+    } else if (top < bottom) {
+      ctx.arc(left, top, r, -Math.PI, 0);
+      ctx.arc(left, bottom, r, 0, Math.PI);
+    } else {
+      ctx.arc(left, top, r, -Math.PI, Math.PI);
+    }
+    ctx.closePath();
+    ctx.moveTo(x, y);
+  } else {
+    ctx.rect(x, y, w, h);
+  }
+}
+
+function drawFrame(ctx, rect, model) {
+  var bgColor = model.backgroundColor;
+  var borderColor = model.borderColor;
+  var borderWidth = model.borderWidth;
+
+  if (!bgColor && (!borderColor || !borderWidth)) {
+    return;
+  }
+
+  ctx.beginPath();
+
+  drawRoundedRect(
+    ctx,
+    rasterize(rect.x) + borderWidth / 2,
+    rasterize(rect.y) + borderWidth / 2,
+    rasterize(rect.w) - borderWidth,
+    rasterize(rect.h) - borderWidth,
+    model.borderRadius);
+
+  ctx.closePath();
+
+  if (bgColor) {
+    ctx.fillStyle = bgColor;
+    ctx.fill();
+  }
+
+  if (borderColor && borderWidth) {
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = borderWidth;
+    ctx.lineJoin = 'miter';
+    ctx.stroke();
+  }
+}
+
+function textGeometry(rect, align, font) {
+  var h = font.lineHeight;
+  var w = rect.w;
+  var x = rect.x;
+  var y = rect.y + h / 2;
+
+  if (align === 'center') {
+    x += w / 2;
+  } else if (align === 'end' || align === 'right') {
+    x += w;
+  }
+
+  return {
+    h: h,
+    w: w,
+    x: x,
+    y: y
+  };
+}
+
+function drawTextLine(ctx, text, cfg) {
+  var shadow = ctx.shadowBlur;
+  var stroked = cfg.stroked;
+  var x = rasterize(cfg.x);
+  var y = rasterize(cfg.y);
+  var w = rasterize(cfg.w);
+
+  if (stroked) {
+    ctx.strokeText(text, x, y, w);
+  }
+
+  if (cfg.filled) {
+    if (shadow && stroked) {
+      // Prevent drawing shadow on both the text stroke and fill, so
+      // if the text is stroked, remove the shadow for the text fill.
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.fillText(text, x, y, w);
+
+    if (shadow && stroked) {
+      ctx.shadowBlur = shadow;
+    }
+  }
+}
+
+function drawText(ctx, lines, rect, model) {
+  var align = model.textAlign;
+  var color = model.color;
+  var filled = !!color;
+  var font = model.font;
+  var ilen = lines.length;
+  var strokeColor = model.textStrokeColor;
+  var strokeWidth = model.textStrokeWidth;
+  var stroked = strokeColor && strokeWidth;
+  var i;
+
+  if (!ilen || (!filled && !stroked)) {
+    return;
+  }
+
+  // Adjust coordinates based on text alignment and line height
+  rect = textGeometry(rect, align, font);
+
+  ctx.font = font.string;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  ctx.shadowBlur = model.textShadowBlur;
+  ctx.shadowColor = model.textShadowColor;
+
+  if (filled) {
+    ctx.fillStyle = color;
+  }
+  if (stroked) {
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = strokeWidth;
+    ctx.strokeStyle = strokeColor;
+  }
+
+  for (i = 0, ilen = lines.length; i < ilen; ++i) {
+    drawTextLine(ctx, lines[i], {
+      stroked: stroked,
+      filled: filled,
+      w: rect.w,
+      x: rect.x,
+      y: rect.y + rect.h * i
+    });
+  }
+}
+
+var Label = function(config, ctx, el, index) {
+  var me = this;
+
+  me._config = config;
+  me._index = index;
+  me._model = null;
+  me._rects = null;
+  me._ctx = ctx;
+  me._el = el;
+};
+
+helpers.merge(Label.prototype, {
+  /**
+   * @private
+   */
+  _modelize: function(display, lines, config, context) {
+    var me = this;
+    var index = me._index;
+    var font = helpers.toFont(helpers.resolve([config.font, {}], context, index));
+    var color = helpers.resolve([config.color, chart_js.defaults.color], context, index);
+
+    return {
+      align: helpers.resolve([config.align, 'center'], context, index),
+      anchor: helpers.resolve([config.anchor, 'center'], context, index),
+      area: context.chart.chartArea,
+      backgroundColor: helpers.resolve([config.backgroundColor, null], context, index),
+      borderColor: helpers.resolve([config.borderColor, null], context, index),
+      borderRadius: helpers.resolve([config.borderRadius, 0], context, index),
+      borderWidth: helpers.resolve([config.borderWidth, 0], context, index),
+      clamp: helpers.resolve([config.clamp, false], context, index),
+      clip: helpers.resolve([config.clip, false], context, index),
+      color: color,
+      display: display,
+      font: font,
+      lines: lines,
+      offset: helpers.resolve([config.offset, 4], context, index),
+      opacity: helpers.resolve([config.opacity, 1], context, index),
+      origin: getScaleOrigin(me._el, context),
+      padding: helpers.toPadding(helpers.resolve([config.padding, 4], context, index)),
+      positioner: getPositioner(me._el),
+      rotation: helpers.resolve([config.rotation, 0], context, index) * (Math.PI / 180),
+      size: utils.textSize(me._ctx, lines, font),
+      textAlign: helpers.resolve([config.textAlign, 'start'], context, index),
+      textShadowBlur: helpers.resolve([config.textShadowBlur, 0], context, index),
+      textShadowColor: helpers.resolve([config.textShadowColor, color], context, index),
+      textStrokeColor: helpers.resolve([config.textStrokeColor, color], context, index),
+      textStrokeWidth: helpers.resolve([config.textStrokeWidth, 0], context, index)
+    };
+  },
+
+  update: function(context) {
+    var me = this;
+    var model = null;
+    var rects = null;
+    var index = me._index;
+    var config = me._config;
+    var value, label, lines;
+
+    // We first resolve the display option (separately) to avoid computing
+    // other options in case the label is hidden (i.e. display: false).
+    var display = helpers.resolve([config.display, true], context, index);
+
+    if (display) {
+      value = context.dataset.data[index];
+      label = helpers.valueOrDefault(helpers.callback(config.formatter, [value, context]), value);
+      lines = helpers.isNullOrUndef(label) ? [] : utils.toTextLines(label);
+
+      if (lines.length) {
+        model = me._modelize(display, lines, config, context);
+        rects = boundingRects(model);
+      }
+    }
+
+    me._model = model;
+    me._rects = rects;
+  },
+
+  geometry: function() {
+    return this._rects ? this._rects.frame : {};
+  },
+
+  rotation: function() {
+    return this._model ? this._model.rotation : 0;
+  },
+
+  visible: function() {
+    return this._model && this._model.opacity;
+  },
+
+  model: function() {
+    return this._model;
+  },
+
+  draw: function(chart, center) {
+    var me = this;
+    var ctx = chart.ctx;
+    var model = me._model;
+    var rects = me._rects;
+    var area;
+
+    if (!this.visible()) {
+      return;
+    }
+
+    ctx.save();
+
+    if (model.clip) {
+      area = model.area;
+      ctx.beginPath();
+      ctx.rect(
+        area.left,
+        area.top,
+        area.right - area.left,
+        area.bottom - area.top);
+      ctx.clip();
+    }
+
+    ctx.globalAlpha = utils.bound(0, model.opacity, 1);
+    ctx.translate(rasterize(center.x), rasterize(center.y));
+    ctx.rotate(model.rotation);
+
+    drawFrame(ctx, rects.frame, model);
+    drawText(ctx, model.lines, rects.text, model);
+
+    ctx.restore();
+  }
+});
+
+var MIN_INTEGER = Number.MIN_SAFE_INTEGER || -9007199254740991; // eslint-disable-line es/no-number-minsafeinteger
+var MAX_INTEGER = Number.MAX_SAFE_INTEGER || 9007199254740991;  // eslint-disable-line es/no-number-maxsafeinteger
+
+function rotated(point, center, angle) {
+  var cos = Math.cos(angle);
+  var sin = Math.sin(angle);
+  var cx = center.x;
+  var cy = center.y;
+
+  return {
+    x: cx + cos * (point.x - cx) - sin * (point.y - cy),
+    y: cy + sin * (point.x - cx) + cos * (point.y - cy)
+  };
+}
+
+function projected(points, axis) {
+  var min = MAX_INTEGER;
+  var max = MIN_INTEGER;
+  var origin = axis.origin;
+  var i, pt, vx, vy, dp;
+
+  for (i = 0; i < points.length; ++i) {
+    pt = points[i];
+    vx = pt.x - origin.x;
+    vy = pt.y - origin.y;
+    dp = axis.vx * vx + axis.vy * vy;
+    min = Math.min(min, dp);
+    max = Math.max(max, dp);
+  }
+
+  return {
+    min: min,
+    max: max
+  };
+}
+
+function toAxis(p0, p1) {
+  var vx = p1.x - p0.x;
+  var vy = p1.y - p0.y;
+  var ln = Math.sqrt(vx * vx + vy * vy);
+
+  return {
+    vx: (p1.x - p0.x) / ln,
+    vy: (p1.y - p0.y) / ln,
+    origin: p0,
+    ln: ln
+  };
+}
+
+var HitBox = function() {
+  this._rotation = 0;
+  this._rect = {
+    x: 0,
+    y: 0,
+    w: 0,
+    h: 0
+  };
+};
+
+helpers.merge(HitBox.prototype, {
+  center: function() {
+    var r = this._rect;
+    return {
+      x: r.x + r.w / 2,
+      y: r.y + r.h / 2
+    };
+  },
+
+  update: function(center, rect, rotation) {
+    this._rotation = rotation;
+    this._rect = {
+      x: rect.x + center.x,
+      y: rect.y + center.y,
+      w: rect.w,
+      h: rect.h
+    };
+  },
+
+  contains: function(point) {
+    var me = this;
+    var margin = 1;
+    var rect = me._rect;
+
+    point = rotated(point, me.center(), -me._rotation);
+
+    return !(point.x < rect.x - margin
+      || point.y < rect.y - margin
+      || point.x > rect.x + rect.w + margin * 2
+      || point.y > rect.y + rect.h + margin * 2);
+  },
+
+  // Separating Axis Theorem
+  // https://gamedevelopment.tutsplus.com/tutorials/collision-detection-using-the-separating-axis-theorem--gamedev-169
+  intersects: function(other) {
+    var r0 = this._points();
+    var r1 = other._points();
+    var axes = [
+      toAxis(r0[0], r0[1]),
+      toAxis(r0[0], r0[3])
+    ];
+    var i, pr0, pr1;
+
+    if (this._rotation !== other._rotation) {
+      // Only separate with r1 axis if the rotation is different,
+      // else it's enough to separate r0 and r1 with r0 axis only!
+      axes.push(
+        toAxis(r1[0], r1[1]),
+        toAxis(r1[0], r1[3])
+      );
+    }
+
+    for (i = 0; i < axes.length; ++i) {
+      pr0 = projected(r0, axes[i]);
+      pr1 = projected(r1, axes[i]);
+
+      if (pr0.max < pr1.min || pr1.max < pr0.min) {
+        return false;
+      }
+    }
+
+    return true;
+  },
+
+  /**
+   * @private
+   */
+  _points: function() {
+    var me = this;
+    var rect = me._rect;
+    var angle = me._rotation;
+    var center = me.center();
+
+    return [
+      rotated({x: rect.x, y: rect.y}, center, angle),
+      rotated({x: rect.x + rect.w, y: rect.y}, center, angle),
+      rotated({x: rect.x + rect.w, y: rect.y + rect.h}, center, angle),
+      rotated({x: rect.x, y: rect.y + rect.h}, center, angle)
+    ];
+  }
+});
+
+function coordinates(el, model, geometry) {
+  var point = model.positioner(el, model);
+  var vx = point.vx;
+  var vy = point.vy;
+
+  if (!vx && !vy) {
+    // if aligned center, we don't want to offset the center point
+    return {x: point.x, y: point.y};
+  }
+
+  var w = geometry.w;
+  var h = geometry.h;
+
+  // take in account the label rotation
+  var rotation = model.rotation;
+  var dx = Math.abs(w / 2 * Math.cos(rotation)) + Math.abs(h / 2 * Math.sin(rotation));
+  var dy = Math.abs(w / 2 * Math.sin(rotation)) + Math.abs(h / 2 * Math.cos(rotation));
+
+  // scale the unit vector (vx, vy) to get at least dx or dy equal to
+  // w or h respectively (else we would calculate the distance to the
+  // ellipse inscribed in the bounding rect)
+  var vs = 1 / Math.max(Math.abs(vx), Math.abs(vy));
+  dx *= vx * vs;
+  dy *= vy * vs;
+
+  // finally, include the explicit offset
+  dx += model.offset * vx;
+  dy += model.offset * vy;
+
+  return {
+    x: point.x + dx,
+    y: point.y + dy
+  };
+}
+
+function collide(labels, collider) {
+  var i, j, s0, s1;
+
+  // IMPORTANT Iterate in the reverse order since items at the end of the
+  // list have an higher weight/priority and thus should be less impacted
+  // by the overlapping strategy.
+
+  for (i = labels.length - 1; i >= 0; --i) {
+    s0 = labels[i].$layout;
+
+    for (j = i - 1; j >= 0 && s0._visible; --j) {
+      s1 = labels[j].$layout;
+
+      if (s1._visible && s0._box.intersects(s1._box)) {
+        collider(s0, s1);
+      }
+    }
+  }
+
+  return labels;
+}
+
+function compute(labels) {
+  var i, ilen, label, state, geometry, center, proxy;
+
+  // Initialize labels for overlap detection
+  for (i = 0, ilen = labels.length; i < ilen; ++i) {
+    label = labels[i];
+    state = label.$layout;
+
+    if (state._visible) {
+      // Chart.js 3 removed el._model in favor of getProps(), making harder to
+      // abstract reading values in positioners. Also, using string arrays to
+      // read values (i.e. var {a,b,c} = el.getProps(["a","b","c"])) would make
+      // positioners inefficient in the normal case (i.e. not the final values)
+      // and the code a bit ugly, so let's use a Proxy instead.
+      proxy = new Proxy(label._el, {get: (el, p) => el.getProps([p], true)[p]});
+
+      geometry = label.geometry();
+      center = coordinates(proxy, label.model(), geometry);
+      state._box.update(center, geometry, label.rotation());
+    }
+  }
+
+  // Auto hide overlapping labels
+  return collide(labels, function(s0, s1) {
+    var h0 = s0._hidable;
+    var h1 = s1._hidable;
+
+    if ((h0 && h1) || h1) {
+      s1._visible = false;
+    } else if (h0) {
+      s0._visible = false;
+    }
+  });
+}
+
+var layout = {
+  prepare: function(datasets) {
+    var labels = [];
+    var i, j, ilen, jlen, label;
+
+    for (i = 0, ilen = datasets.length; i < ilen; ++i) {
+      for (j = 0, jlen = datasets[i].length; j < jlen; ++j) {
+        label = datasets[i][j];
+        labels.push(label);
+        label.$layout = {
+          _box: new HitBox(),
+          _hidable: false,
+          _visible: true,
+          _set: i,
+          _idx: label._index
+        };
+      }
+    }
+
+    // TODO New `z` option: labels with a higher z-index are drawn
+    // of top of the ones with a lower index. Lowest z-index labels
+    // are also discarded first when hiding overlapping labels.
+    labels.sort(function(a, b) {
+      var sa = a.$layout;
+      var sb = b.$layout;
+
+      return sa._idx === sb._idx
+        ? sb._set - sa._set
+        : sb._idx - sa._idx;
+    });
+
+    this.update(labels);
+
+    return labels;
+  },
+
+  update: function(labels) {
+    var dirty = false;
+    var i, ilen, label, model, state;
+
+    for (i = 0, ilen = labels.length; i < ilen; ++i) {
+      label = labels[i];
+      model = label.model();
+      state = label.$layout;
+      state._hidable = model && model.display === 'auto';
+      state._visible = label.visible();
+      dirty |= state._hidable;
+    }
+
+    if (dirty) {
+      compute(labels);
+    }
+  },
+
+  lookup: function(labels, point) {
+    var i, state;
+
+    // IMPORTANT Iterate in the reverse order since items at the end of
+    // the list have an higher z-index, thus should be picked first.
+
+    for (i = labels.length - 1; i >= 0; --i) {
+      state = labels[i].$layout;
+
+      if (state && state._visible && state._box.contains(point)) {
+        return labels[i];
+      }
+    }
+
+    return null;
+  },
+
+  draw: function(chart, labels) {
+    var i, ilen, label, state, geometry, center;
+
+    for (i = 0, ilen = labels.length; i < ilen; ++i) {
+      label = labels[i];
+      state = label.$layout;
+
+      if (state._visible) {
+        geometry = label.geometry();
+        center = coordinates(label._el, label.model(), geometry);
+        state._box.update(center, geometry, label.rotation());
+        label.draw(chart, center);
+      }
+    }
+  }
+};
+
+var formatter = function(value) {
+  if (helpers.isNullOrUndef(value)) {
+    return null;
+  }
+
+  var label = value;
+  var keys, klen, k;
+  if (helpers.isObject(value)) {
+    if (!helpers.isNullOrUndef(value.label)) {
+      label = value.label;
+    } else if (!helpers.isNullOrUndef(value.r)) {
+      label = value.r;
+    } else {
+      label = '';
+      keys = Object.keys(value);
+      for (k = 0, klen = keys.length; k < klen; ++k) {
+        label += (k !== 0 ? ', ' : '') + keys[k] + ': ' + value[keys[k]];
+      }
+    }
+  }
+
+  return '' + label;
+};
+
+/**
+ * IMPORTANT: make sure to also update tests and TypeScript definition
+ * files (`/test/specs/defaults.spec.js` and `/types/options.d.ts`)
+ */
+
+var defaults = {
+  align: 'center',
+  anchor: 'center',
+  backgroundColor: null,
+  borderColor: null,
+  borderRadius: 0,
+  borderWidth: 0,
+  clamp: false,
+  clip: false,
+  color: undefined,
+  display: true,
+  font: {
+    family: undefined,
+    lineHeight: 1.2,
+    size: undefined,
+    style: undefined,
+    weight: null
+  },
+  formatter: formatter,
+  labels: undefined,
+  listeners: {},
+  offset: 4,
+  opacity: 1,
+  padding: {
+    top: 4,
+    right: 4,
+    bottom: 4,
+    left: 4
+  },
+  rotation: 0,
+  textAlign: 'start',
+  textStrokeColor: undefined,
+  textStrokeWidth: 0,
+  textShadowBlur: 0,
+  textShadowColor: undefined
+};
+
+/**
+ * @see https://github.com/chartjs/Chart.js/issues/4176
+ */
+
+var EXPANDO_KEY = '$datalabels';
+var DEFAULT_KEY = '$default';
+
+function configure(dataset, options) {
+  var override = dataset.datalabels;
+  var listeners = {};
+  var configs = [];
+  var labels, keys;
+
+  if (override === false) {
+    return null;
+  }
+  if (override === true) {
+    override = {};
+  }
+
+  options = helpers.merge({}, [options, override]);
+  labels = options.labels || {};
+  keys = Object.keys(labels);
+  delete options.labels;
+
+  if (keys.length) {
+    keys.forEach(function(key) {
+      if (labels[key]) {
+        configs.push(helpers.merge({}, [
+          options,
+          labels[key],
+          {_key: key}
+        ]));
+      }
+    });
+  } else {
+    // Default label if no "named" label defined.
+    configs.push(options);
+  }
+
+  // listeners: {<event-type>: {<label-key>: <fn>}}
+  listeners = configs.reduce(function(target, config) {
+    helpers.each(config.listeners || {}, function(fn, event) {
+      target[event] = target[event] || {};
+      target[event][config._key || DEFAULT_KEY] = fn;
+    });
+
+    delete config.listeners;
+    return target;
+  }, {});
+
+  return {
+    labels: configs,
+    listeners: listeners
+  };
+}
+
+function dispatchEvent(chart, listeners, label, event) {
+  if (!listeners) {
+    return;
+  }
+
+  var context = label.$context;
+  var groups = label.$groups;
+  var callback;
+
+  if (!listeners[groups._set]) {
+    return;
+  }
+
+  callback = listeners[groups._set][groups._key];
+  if (!callback) {
+    return;
+  }
+
+  if (helpers.callback(callback, [context, event]) === true) {
+    // Users are allowed to tweak the given context by injecting values that can be
+    // used in scriptable options to display labels differently based on the current
+    // event (e.g. highlight an hovered label). That's why we update the label with
+    // the output context and schedule a new chart render by setting it dirty.
+    chart[EXPANDO_KEY]._dirty = true;
+    label.update(context);
+  }
+}
+
+function dispatchMoveEvents(chart, listeners, previous, label, event) {
+  var enter, leave;
+
+  if (!previous && !label) {
+    return;
+  }
+
+  if (!previous) {
+    enter = true;
+  } else if (!label) {
+    leave = true;
+  } else if (previous !== label) {
+    leave = enter = true;
+  }
+
+  if (leave) {
+    dispatchEvent(chart, listeners.leave, previous, event);
+  }
+  if (enter) {
+    dispatchEvent(chart, listeners.enter, label, event);
+  }
+}
+
+function handleMoveEvents(chart, event) {
+  var expando = chart[EXPANDO_KEY];
+  var listeners = expando._listeners;
+  var previous, label;
+
+  if (!listeners.enter && !listeners.leave) {
+    return;
+  }
+
+  if (event.type === 'mousemove') {
+    label = layout.lookup(expando._labels, event);
+  } else if (event.type !== 'mouseout') {
+    return;
+  }
+
+  previous = expando._hovered;
+  expando._hovered = label;
+  dispatchMoveEvents(chart, listeners, previous, label, event);
+}
+
+function handleClickEvents(chart, event) {
+  var expando = chart[EXPANDO_KEY];
+  var handlers = expando._listeners.click;
+  var label = handlers && layout.lookup(expando._labels, event);
+  if (label) {
+    dispatchEvent(chart, handlers, label, event);
+  }
+}
+
+var plugin = {
+  id: 'datalabels',
+
+  defaults: defaults,
+
+  beforeInit: function(chart) {
+    chart[EXPANDO_KEY] = {
+      _actives: []
+    };
+  },
+
+  beforeUpdate: function(chart) {
+    var expando = chart[EXPANDO_KEY];
+    expando._listened = false;
+    expando._listeners = {};     // {<event-type>: {<dataset-index>: {<label-key>: <fn>}}}
+    expando._datasets = [];      // per dataset labels: [Label[]]
+    expando._labels = [];        // layouted labels: Label[]
+  },
+
+  afterDatasetUpdate: function(chart, args, options) {
+    var datasetIndex = args.index;
+    var expando = chart[EXPANDO_KEY];
+    var labels = expando._datasets[datasetIndex] = [];
+    var visible = chart.isDatasetVisible(datasetIndex);
+    var dataset = chart.data.datasets[datasetIndex];
+    var config = configure(dataset, options);
+    var elements = args.meta.data || [];
+    var ctx = chart.ctx;
+    var i, j, ilen, jlen, cfg, key, el, label;
+
+    ctx.save();
+
+    for (i = 0, ilen = elements.length; i < ilen; ++i) {
+      el = elements[i];
+      el[EXPANDO_KEY] = [];
+
+      if (visible && el && chart.getDataVisibility(i) && !el.skip) {
+        for (j = 0, jlen = config.labels.length; j < jlen; ++j) {
+          cfg = config.labels[j];
+          key = cfg._key;
+
+          label = new Label(cfg, ctx, el, i);
+          label.$groups = {
+            _set: datasetIndex,
+            _key: key || DEFAULT_KEY
+          };
+          label.$context = {
+            active: false,
+            chart: chart,
+            dataIndex: i,
+            dataset: dataset,
+            datasetIndex: datasetIndex
+          };
+
+          label.update(label.$context);
+          el[EXPANDO_KEY].push(label);
+          labels.push(label);
+        }
+      }
+    }
+
+    ctx.restore();
+
+    // Store listeners at the chart level and per event type to optimize
+    // cases where no listeners are registered for a specific event.
+    helpers.merge(expando._listeners, config.listeners, {
+      merger: function(event, target, source) {
+        target[event] = target[event] || {};
+        target[event][args.index] = source[event];
+        expando._listened = true;
+      }
+    });
+  },
+
+  afterUpdate: function(chart) {
+    chart[EXPANDO_KEY]._labels = layout.prepare(chart[EXPANDO_KEY]._datasets);
+  },
+
+  // Draw labels on top of all dataset elements
+  // https://github.com/chartjs/chartjs-plugin-datalabels/issues/29
+  // https://github.com/chartjs/chartjs-plugin-datalabels/issues/32
+  afterDatasetsDraw: function(chart) {
+    layout.draw(chart, chart[EXPANDO_KEY]._labels);
+  },
+
+  beforeEvent: function(chart, args) {
+    // If there is no listener registered for this chart, `listened` will be false,
+    // meaning we can immediately ignore the incoming event and avoid useless extra
+    // computation for users who don't implement label interactions.
+    if (chart[EXPANDO_KEY]._listened) {
+      var event = args.event;
+      switch (event.type) {
+      case 'mousemove':
+      case 'mouseout':
+        handleMoveEvents(chart, event);
+        break;
+      case 'click':
+        handleClickEvents(chart, event);
+        break;
+      }
+    }
+  },
+
+  afterEvent: function(chart) {
+    var expando = chart[EXPANDO_KEY];
+    var previous = expando._actives;
+    var actives = expando._actives = chart.getActiveElements();
+    var updates = utils.arrayDiff(previous, actives);
+    var i, ilen, j, jlen, update, label, labels;
+
+    for (i = 0, ilen = updates.length; i < ilen; ++i) {
+      update = updates[i];
+      if (update[1]) {
+        labels = update[0].element[EXPANDO_KEY] || [];
+        for (j = 0, jlen = labels.length; j < jlen; ++j) {
+          label = labels[j];
+          label.$context.active = (update[1] === 1);
+          label.update(label.$context);
+        }
+      }
+    }
+
+    if (expando._dirty || updates.length) {
+      layout.update(expando._labels);
+      chart.render();
+    }
+
+    delete expando._dirty;
+  }
+};
+
+return plugin;
+
+}));
+
+},{"chart.js":3,"chart.js/helpers":6}],8:[function(require,module,exports){
 /* @license
 Papa Parse
 v5.4.1
@@ -15033,14 +16531,18 @@ https://github.com/mholt/PapaParse
 License: MIT
 */
 !function(e,t){"function"==typeof define&&define.amd?define([],t):"object"==typeof module&&"undefined"!=typeof exports?module.exports=t():e.Papa=t()}(this,function s(){"use strict";var f="undefined"!=typeof self?self:"undefined"!=typeof window?window:void 0!==f?f:{};var n=!f.document&&!!f.postMessage,o=f.IS_PAPA_WORKER||!1,a={},u=0,b={parse:function(e,t){var r=(t=t||{}).dynamicTyping||!1;J(r)&&(t.dynamicTypingFunction=r,r={});if(t.dynamicTyping=r,t.transform=!!J(t.transform)&&t.transform,t.worker&&b.WORKERS_SUPPORTED){var i=function(){if(!b.WORKERS_SUPPORTED)return!1;var e=(r=f.URL||f.webkitURL||null,i=s.toString(),b.BLOB_URL||(b.BLOB_URL=r.createObjectURL(new Blob(["var global = (function() { if (typeof self !== 'undefined') { return self; } if (typeof window !== 'undefined') { return window; } if (typeof global !== 'undefined') { return global; } return {}; })(); global.IS_PAPA_WORKER=true; ","(",i,")();"],{type:"text/javascript"})))),t=new f.Worker(e);var r,i;return t.onmessage=_,t.id=u++,a[t.id]=t}();return i.userStep=t.step,i.userChunk=t.chunk,i.userComplete=t.complete,i.userError=t.error,t.step=J(t.step),t.chunk=J(t.chunk),t.complete=J(t.complete),t.error=J(t.error),delete t.worker,void i.postMessage({input:e,config:t,workerId:i.id})}var n=null;b.NODE_STREAM_INPUT,"string"==typeof e?(e=function(e){if(65279===e.charCodeAt(0))return e.slice(1);return e}(e),n=t.download?new l(t):new p(t)):!0===e.readable&&J(e.read)&&J(e.on)?n=new g(t):(f.File&&e instanceof File||e instanceof Object)&&(n=new c(t));return n.stream(e)},unparse:function(e,t){var n=!1,_=!0,m=",",y="\r\n",s='"',a=s+s,r=!1,i=null,o=!1;!function(){if("object"!=typeof t)return;"string"!=typeof t.delimiter||b.BAD_DELIMITERS.filter(function(e){return-1!==t.delimiter.indexOf(e)}).length||(m=t.delimiter);("boolean"==typeof t.quotes||"function"==typeof t.quotes||Array.isArray(t.quotes))&&(n=t.quotes);"boolean"!=typeof t.skipEmptyLines&&"string"!=typeof t.skipEmptyLines||(r=t.skipEmptyLines);"string"==typeof t.newline&&(y=t.newline);"string"==typeof t.quoteChar&&(s=t.quoteChar);"boolean"==typeof t.header&&(_=t.header);if(Array.isArray(t.columns)){if(0===t.columns.length)throw new Error("Option columns is empty");i=t.columns}void 0!==t.escapeChar&&(a=t.escapeChar+s);("boolean"==typeof t.escapeFormulae||t.escapeFormulae instanceof RegExp)&&(o=t.escapeFormulae instanceof RegExp?t.escapeFormulae:/^[=+\-@\t\r].*$/)}();var u=new RegExp(Q(s),"g");"string"==typeof e&&(e=JSON.parse(e));if(Array.isArray(e)){if(!e.length||Array.isArray(e[0]))return h(null,e,r);if("object"==typeof e[0])return h(i||Object.keys(e[0]),e,r)}else if("object"==typeof e)return"string"==typeof e.data&&(e.data=JSON.parse(e.data)),Array.isArray(e.data)&&(e.fields||(e.fields=e.meta&&e.meta.fields||i),e.fields||(e.fields=Array.isArray(e.data[0])?e.fields:"object"==typeof e.data[0]?Object.keys(e.data[0]):[]),Array.isArray(e.data[0])||"object"==typeof e.data[0]||(e.data=[e.data])),h(e.fields||[],e.data||[],r);throw new Error("Unable to serialize unrecognized input");function h(e,t,r){var i="";"string"==typeof e&&(e=JSON.parse(e)),"string"==typeof t&&(t=JSON.parse(t));var n=Array.isArray(e)&&0<e.length,s=!Array.isArray(t[0]);if(n&&_){for(var a=0;a<e.length;a++)0<a&&(i+=m),i+=v(e[a],a);0<t.length&&(i+=y)}for(var o=0;o<t.length;o++){var u=n?e.length:t[o].length,h=!1,f=n?0===Object.keys(t[o]).length:0===t[o].length;if(r&&!n&&(h="greedy"===r?""===t[o].join("").trim():1===t[o].length&&0===t[o][0].length),"greedy"===r&&n){for(var d=[],l=0;l<u;l++){var c=s?e[l]:l;d.push(t[o][c])}h=""===d.join("").trim()}if(!h){for(var p=0;p<u;p++){0<p&&!f&&(i+=m);var g=n&&s?e[p]:p;i+=v(t[o][g],p)}o<t.length-1&&(!r||0<u&&!f)&&(i+=y)}}return i}function v(e,t){if(null==e)return"";if(e.constructor===Date)return JSON.stringify(e).slice(1,25);var r=!1;o&&"string"==typeof e&&o.test(e)&&(e="'"+e,r=!0);var i=e.toString().replace(u,a);return(r=r||!0===n||"function"==typeof n&&n(e,t)||Array.isArray(n)&&n[t]||function(e,t){for(var r=0;r<t.length;r++)if(-1<e.indexOf(t[r]))return!0;return!1}(i,b.BAD_DELIMITERS)||-1<i.indexOf(m)||" "===i.charAt(0)||" "===i.charAt(i.length-1))?s+i+s:i}}};if(b.RECORD_SEP=String.fromCharCode(30),b.UNIT_SEP=String.fromCharCode(31),b.BYTE_ORDER_MARK="\ufeff",b.BAD_DELIMITERS=["\r","\n",'"',b.BYTE_ORDER_MARK],b.WORKERS_SUPPORTED=!n&&!!f.Worker,b.NODE_STREAM_INPUT=1,b.LocalChunkSize=10485760,b.RemoteChunkSize=5242880,b.DefaultDelimiter=",",b.Parser=E,b.ParserHandle=r,b.NetworkStreamer=l,b.FileStreamer=c,b.StringStreamer=p,b.ReadableStreamStreamer=g,f.jQuery){var d=f.jQuery;d.fn.parse=function(o){var r=o.config||{},u=[];return this.each(function(e){if(!("INPUT"===d(this).prop("tagName").toUpperCase()&&"file"===d(this).attr("type").toLowerCase()&&f.FileReader)||!this.files||0===this.files.length)return!0;for(var t=0;t<this.files.length;t++)u.push({file:this.files[t],inputElem:this,instanceConfig:d.extend({},r)})}),e(),this;function e(){if(0!==u.length){var e,t,r,i,n=u[0];if(J(o.before)){var s=o.before(n.file,n.inputElem);if("object"==typeof s){if("abort"===s.action)return e="AbortError",t=n.file,r=n.inputElem,i=s.reason,void(J(o.error)&&o.error({name:e},t,r,i));if("skip"===s.action)return void h();"object"==typeof s.config&&(n.instanceConfig=d.extend(n.instanceConfig,s.config))}else if("skip"===s)return void h()}var a=n.instanceConfig.complete;n.instanceConfig.complete=function(e){J(a)&&a(e,n.file,n.inputElem),h()},b.parse(n.file,n.instanceConfig)}else J(o.complete)&&o.complete()}function h(){u.splice(0,1),e()}}}function h(e){this._handle=null,this._finished=!1,this._completed=!1,this._halted=!1,this._input=null,this._baseIndex=0,this._partialLine="",this._rowCount=0,this._start=0,this._nextChunk=null,this.isFirstChunk=!0,this._completeResults={data:[],errors:[],meta:{}},function(e){var t=w(e);t.chunkSize=parseInt(t.chunkSize),e.step||e.chunk||(t.chunkSize=null);this._handle=new r(t),(this._handle.streamer=this)._config=t}.call(this,e),this.parseChunk=function(e,t){if(this.isFirstChunk&&J(this._config.beforeFirstChunk)){var r=this._config.beforeFirstChunk(e);void 0!==r&&(e=r)}this.isFirstChunk=!1,this._halted=!1;var i=this._partialLine+e;this._partialLine="";var n=this._handle.parse(i,this._baseIndex,!this._finished);if(!this._handle.paused()&&!this._handle.aborted()){var s=n.meta.cursor;this._finished||(this._partialLine=i.substring(s-this._baseIndex),this._baseIndex=s),n&&n.data&&(this._rowCount+=n.data.length);var a=this._finished||this._config.preview&&this._rowCount>=this._config.preview;if(o)f.postMessage({results:n,workerId:b.WORKER_ID,finished:a});else if(J(this._config.chunk)&&!t){if(this._config.chunk(n,this._handle),this._handle.paused()||this._handle.aborted())return void(this._halted=!0);n=void 0,this._completeResults=void 0}return this._config.step||this._config.chunk||(this._completeResults.data=this._completeResults.data.concat(n.data),this._completeResults.errors=this._completeResults.errors.concat(n.errors),this._completeResults.meta=n.meta),this._completed||!a||!J(this._config.complete)||n&&n.meta.aborted||(this._config.complete(this._completeResults,this._input),this._completed=!0),a||n&&n.meta.paused||this._nextChunk(),n}this._halted=!0},this._sendError=function(e){J(this._config.error)?this._config.error(e):o&&this._config.error&&f.postMessage({workerId:b.WORKER_ID,error:e,finished:!1})}}function l(e){var i;(e=e||{}).chunkSize||(e.chunkSize=b.RemoteChunkSize),h.call(this,e),this._nextChunk=n?function(){this._readChunk(),this._chunkLoaded()}:function(){this._readChunk()},this.stream=function(e){this._input=e,this._nextChunk()},this._readChunk=function(){if(this._finished)this._chunkLoaded();else{if(i=new XMLHttpRequest,this._config.withCredentials&&(i.withCredentials=this._config.withCredentials),n||(i.onload=v(this._chunkLoaded,this),i.onerror=v(this._chunkError,this)),i.open(this._config.downloadRequestBody?"POST":"GET",this._input,!n),this._config.downloadRequestHeaders){var e=this._config.downloadRequestHeaders;for(var t in e)i.setRequestHeader(t,e[t])}if(this._config.chunkSize){var r=this._start+this._config.chunkSize-1;i.setRequestHeader("Range","bytes="+this._start+"-"+r)}try{i.send(this._config.downloadRequestBody)}catch(e){this._chunkError(e.message)}n&&0===i.status&&this._chunkError()}},this._chunkLoaded=function(){4===i.readyState&&(i.status<200||400<=i.status?this._chunkError():(this._start+=this._config.chunkSize?this._config.chunkSize:i.responseText.length,this._finished=!this._config.chunkSize||this._start>=function(e){var t=e.getResponseHeader("Content-Range");if(null===t)return-1;return parseInt(t.substring(t.lastIndexOf("/")+1))}(i),this.parseChunk(i.responseText)))},this._chunkError=function(e){var t=i.statusText||e;this._sendError(new Error(t))}}function c(e){var i,n;(e=e||{}).chunkSize||(e.chunkSize=b.LocalChunkSize),h.call(this,e);var s="undefined"!=typeof FileReader;this.stream=function(e){this._input=e,n=e.slice||e.webkitSlice||e.mozSlice,s?((i=new FileReader).onload=v(this._chunkLoaded,this),i.onerror=v(this._chunkError,this)):i=new FileReaderSync,this._nextChunk()},this._nextChunk=function(){this._finished||this._config.preview&&!(this._rowCount<this._config.preview)||this._readChunk()},this._readChunk=function(){var e=this._input;if(this._config.chunkSize){var t=Math.min(this._start+this._config.chunkSize,this._input.size);e=n.call(e,this._start,t)}var r=i.readAsText(e,this._config.encoding);s||this._chunkLoaded({target:{result:r}})},this._chunkLoaded=function(e){this._start+=this._config.chunkSize,this._finished=!this._config.chunkSize||this._start>=this._input.size,this.parseChunk(e.target.result)},this._chunkError=function(){this._sendError(i.error)}}function p(e){var r;h.call(this,e=e||{}),this.stream=function(e){return r=e,this._nextChunk()},this._nextChunk=function(){if(!this._finished){var e,t=this._config.chunkSize;return t?(e=r.substring(0,t),r=r.substring(t)):(e=r,r=""),this._finished=!r,this.parseChunk(e)}}}function g(e){h.call(this,e=e||{});var t=[],r=!0,i=!1;this.pause=function(){h.prototype.pause.apply(this,arguments),this._input.pause()},this.resume=function(){h.prototype.resume.apply(this,arguments),this._input.resume()},this.stream=function(e){this._input=e,this._input.on("data",this._streamData),this._input.on("end",this._streamEnd),this._input.on("error",this._streamError)},this._checkIsFinished=function(){i&&1===t.length&&(this._finished=!0)},this._nextChunk=function(){this._checkIsFinished(),t.length?this.parseChunk(t.shift()):r=!0},this._streamData=v(function(e){try{t.push("string"==typeof e?e:e.toString(this._config.encoding)),r&&(r=!1,this._checkIsFinished(),this.parseChunk(t.shift()))}catch(e){this._streamError(e)}},this),this._streamError=v(function(e){this._streamCleanUp(),this._sendError(e)},this),this._streamEnd=v(function(){this._streamCleanUp(),i=!0,this._streamData("")},this),this._streamCleanUp=v(function(){this._input.removeListener("data",this._streamData),this._input.removeListener("end",this._streamEnd),this._input.removeListener("error",this._streamError)},this)}function r(m){var a,o,u,i=Math.pow(2,53),n=-i,s=/^\s*-?(\d+\.?|\.\d+|\d+\.\d+)([eE][-+]?\d+)?\s*$/,h=/^((\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z)))$/,t=this,r=0,f=0,d=!1,e=!1,l=[],c={data:[],errors:[],meta:{}};if(J(m.step)){var p=m.step;m.step=function(e){if(c=e,_())g();else{if(g(),0===c.data.length)return;r+=e.data.length,m.preview&&r>m.preview?o.abort():(c.data=c.data[0],p(c,t))}}}function y(e){return"greedy"===m.skipEmptyLines?""===e.join("").trim():1===e.length&&0===e[0].length}function g(){return c&&u&&(k("Delimiter","UndetectableDelimiter","Unable to auto-detect delimiting character; defaulted to '"+b.DefaultDelimiter+"'"),u=!1),m.skipEmptyLines&&(c.data=c.data.filter(function(e){return!y(e)})),_()&&function(){if(!c)return;function e(e,t){J(m.transformHeader)&&(e=m.transformHeader(e,t)),l.push(e)}if(Array.isArray(c.data[0])){for(var t=0;_()&&t<c.data.length;t++)c.data[t].forEach(e);c.data.splice(0,1)}else c.data.forEach(e)}(),function(){if(!c||!m.header&&!m.dynamicTyping&&!m.transform)return c;function e(e,t){var r,i=m.header?{}:[];for(r=0;r<e.length;r++){var n=r,s=e[r];m.header&&(n=r>=l.length?"__parsed_extra":l[r]),m.transform&&(s=m.transform(s,n)),s=v(n,s),"__parsed_extra"===n?(i[n]=i[n]||[],i[n].push(s)):i[n]=s}return m.header&&(r>l.length?k("FieldMismatch","TooManyFields","Too many fields: expected "+l.length+" fields but parsed "+r,f+t):r<l.length&&k("FieldMismatch","TooFewFields","Too few fields: expected "+l.length+" fields but parsed "+r,f+t)),i}var t=1;!c.data.length||Array.isArray(c.data[0])?(c.data=c.data.map(e),t=c.data.length):c.data=e(c.data,0);m.header&&c.meta&&(c.meta.fields=l);return f+=t,c}()}function _(){return m.header&&0===l.length}function v(e,t){return r=e,m.dynamicTypingFunction&&void 0===m.dynamicTyping[r]&&(m.dynamicTyping[r]=m.dynamicTypingFunction(r)),!0===(m.dynamicTyping[r]||m.dynamicTyping)?"true"===t||"TRUE"===t||"false"!==t&&"FALSE"!==t&&(function(e){if(s.test(e)){var t=parseFloat(e);if(n<t&&t<i)return!0}return!1}(t)?parseFloat(t):h.test(t)?new Date(t):""===t?null:t):t;var r}function k(e,t,r,i){var n={type:e,code:t,message:r};void 0!==i&&(n.row=i),c.errors.push(n)}this.parse=function(e,t,r){var i=m.quoteChar||'"';if(m.newline||(m.newline=function(e,t){e=e.substring(0,1048576);var r=new RegExp(Q(t)+"([^]*?)"+Q(t),"gm"),i=(e=e.replace(r,"")).split("\r"),n=e.split("\n"),s=1<n.length&&n[0].length<i[0].length;if(1===i.length||s)return"\n";for(var a=0,o=0;o<i.length;o++)"\n"===i[o][0]&&a++;return a>=i.length/2?"\r\n":"\r"}(e,i)),u=!1,m.delimiter)J(m.delimiter)&&(m.delimiter=m.delimiter(e),c.meta.delimiter=m.delimiter);else{var n=function(e,t,r,i,n){var s,a,o,u;n=n||[",","\t","|",";",b.RECORD_SEP,b.UNIT_SEP];for(var h=0;h<n.length;h++){var f=n[h],d=0,l=0,c=0;o=void 0;for(var p=new E({comments:i,delimiter:f,newline:t,preview:10}).parse(e),g=0;g<p.data.length;g++)if(r&&y(p.data[g]))c++;else{var _=p.data[g].length;l+=_,void 0!==o?0<_&&(d+=Math.abs(_-o),o=_):o=_}0<p.data.length&&(l/=p.data.length-c),(void 0===a||d<=a)&&(void 0===u||u<l)&&1.99<l&&(a=d,s=f,u=l)}return{successful:!!(m.delimiter=s),bestDelimiter:s}}(e,m.newline,m.skipEmptyLines,m.comments,m.delimitersToGuess);n.successful?m.delimiter=n.bestDelimiter:(u=!0,m.delimiter=b.DefaultDelimiter),c.meta.delimiter=m.delimiter}var s=w(m);return m.preview&&m.header&&s.preview++,a=e,o=new E(s),c=o.parse(a,t,r),g(),d?{meta:{paused:!0}}:c||{meta:{paused:!1}}},this.paused=function(){return d},this.pause=function(){d=!0,o.abort(),a=J(m.chunk)?"":a.substring(o.getCharIndex())},this.resume=function(){t.streamer._halted?(d=!1,t.streamer.parseChunk(a,!0)):setTimeout(t.resume,3)},this.aborted=function(){return e},this.abort=function(){e=!0,o.abort(),c.meta.aborted=!0,J(m.complete)&&m.complete(c),a=""}}function Q(e){return e.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}function E(j){var z,M=(j=j||{}).delimiter,P=j.newline,U=j.comments,q=j.step,N=j.preview,B=j.fastMode,K=z=void 0===j.quoteChar||null===j.quoteChar?'"':j.quoteChar;if(void 0!==j.escapeChar&&(K=j.escapeChar),("string"!=typeof M||-1<b.BAD_DELIMITERS.indexOf(M))&&(M=","),U===M)throw new Error("Comment character same as delimiter");!0===U?U="#":("string"!=typeof U||-1<b.BAD_DELIMITERS.indexOf(U))&&(U=!1),"\n"!==P&&"\r"!==P&&"\r\n"!==P&&(P="\n");var W=0,H=!1;this.parse=function(i,t,r){if("string"!=typeof i)throw new Error("Input must be a string");var n=i.length,e=M.length,s=P.length,a=U.length,o=J(q),u=[],h=[],f=[],d=W=0;if(!i)return L();if(j.header&&!t){var l=i.split(P)[0].split(M),c=[],p={},g=!1;for(var _ in l){var m=l[_];J(j.transformHeader)&&(m=j.transformHeader(m,_));var y=m,v=p[m]||0;for(0<v&&(g=!0,y=m+"_"+v),p[m]=v+1;c.includes(y);)y=y+"_"+v;c.push(y)}if(g){var k=i.split(P);k[0]=c.join(M),i=k.join(P)}}if(B||!1!==B&&-1===i.indexOf(z)){for(var b=i.split(P),E=0;E<b.length;E++){if(f=b[E],W+=f.length,E!==b.length-1)W+=P.length;else if(r)return L();if(!U||f.substring(0,a)!==U){if(o){if(u=[],I(f.split(M)),F(),H)return L()}else I(f.split(M));if(N&&N<=E)return u=u.slice(0,N),L(!0)}}return L()}for(var w=i.indexOf(M,W),R=i.indexOf(P,W),C=new RegExp(Q(K)+Q(z),"g"),S=i.indexOf(z,W);;)if(i[W]!==z)if(U&&0===f.length&&i.substring(W,W+a)===U){if(-1===R)return L();W=R+s,R=i.indexOf(P,W),w=i.indexOf(M,W)}else if(-1!==w&&(w<R||-1===R))f.push(i.substring(W,w)),W=w+e,w=i.indexOf(M,W);else{if(-1===R)break;if(f.push(i.substring(W,R)),D(R+s),o&&(F(),H))return L();if(N&&u.length>=N)return L(!0)}else for(S=W,W++;;){if(-1===(S=i.indexOf(z,S+1)))return r||h.push({type:"Quotes",code:"MissingQuotes",message:"Quoted field unterminated",row:u.length,index:W}),T();if(S===n-1)return T(i.substring(W,S).replace(C,z));if(z!==K||i[S+1]!==K){if(z===K||0===S||i[S-1]!==K){-1!==w&&w<S+1&&(w=i.indexOf(M,S+1)),-1!==R&&R<S+1&&(R=i.indexOf(P,S+1));var O=A(-1===R?w:Math.min(w,R));if(i.substr(S+1+O,e)===M){f.push(i.substring(W,S).replace(C,z)),i[W=S+1+O+e]!==z&&(S=i.indexOf(z,W)),w=i.indexOf(M,W),R=i.indexOf(P,W);break}var x=A(R);if(i.substring(S+1+x,S+1+x+s)===P){if(f.push(i.substring(W,S).replace(C,z)),D(S+1+x+s),w=i.indexOf(M,W),S=i.indexOf(z,W),o&&(F(),H))return L();if(N&&u.length>=N)return L(!0);break}h.push({type:"Quotes",code:"InvalidQuotes",message:"Trailing quote on quoted field is malformed",row:u.length,index:W}),S++}}else S++}return T();function I(e){u.push(e),d=W}function A(e){var t=0;if(-1!==e){var r=i.substring(S+1,e);r&&""===r.trim()&&(t=r.length)}return t}function T(e){return r||(void 0===e&&(e=i.substring(W)),f.push(e),W=n,I(f),o&&F()),L()}function D(e){W=e,I(f),f=[],R=i.indexOf(P,W)}function L(e){return{data:u,errors:h,meta:{delimiter:M,linebreak:P,aborted:H,truncated:!!e,cursor:d+(t||0)}}}function F(){q(L()),u=[],h=[]}},this.abort=function(){H=!0},this.getCharIndex=function(){return W}}function _(e){var t=e.data,r=a[t.workerId],i=!1;if(t.error)r.userError(t.error,t.file);else if(t.results&&t.results.data){var n={abort:function(){i=!0,m(t.workerId,{data:[],errors:[],meta:{aborted:!0}})},pause:y,resume:y};if(J(r.userStep)){for(var s=0;s<t.results.data.length&&(r.userStep({data:t.results.data[s],errors:t.results.errors,meta:t.results.meta},n),!i);s++);delete t.results}else J(r.userChunk)&&(r.userChunk(t.results,n,t.file),delete t.results)}t.finished&&!i&&m(t.workerId,t.results)}function m(e,t){var r=a[e];J(r.userComplete)&&r.userComplete(t),r.terminate(),delete a[e]}function y(){throw new Error("Not implemented.")}function w(e){if("object"!=typeof e||null===e)return e;var t=Array.isArray(e)?[]:{};for(var r in e)t[r]=w(e[r]);return t}function v(e,t){return function(){e.apply(t,arguments)}}function J(e){return"function"==typeof e}return o&&(f.onmessage=function(e){var t=e.data;void 0===b.WORKER_ID&&t&&(b.WORKER_ID=t.workerId);if("string"==typeof t.input)f.postMessage({workerId:b.WORKER_ID,results:b.parse(t.input,t.config),finished:!0});else if(f.File&&t.input instanceof File||t.input instanceof Object){var r=b.parse(t.input,t.config);r&&f.postMessage({workerId:b.WORKER_ID,results:r,finished:!0})}}),(l.prototype=Object.create(h.prototype)).constructor=l,(c.prototype=Object.create(h.prototype)).constructor=c,(p.prototype=Object.create(p.prototype)).constructor=p,(g.prototype=Object.create(h.prototype)).constructor=g,b});
-},{}],6:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 !function(r,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((r="undefined"!=typeof globalThis?globalThis:r||self).ss={})}(this,(function(r){"use strict";function t(r){if(0===r.length)return 0;var t,n=r[0],e=0;if("number"!=typeof n)return NaN;for(var a=1;a<r.length;a++){if("number"!=typeof r[a])return NaN;t=n+r[a],Math.abs(n)>=Math.abs(r[a])?e+=n-t+r[a]:e+=r[a]-t+n,n=t}return n+e}function n(r){if(0===r.length)throw new Error("mean requires at least one data point");return t(r)/r.length}function e(r,t){var e,a,o=n(r),i=0;if(2===t)for(a=0;a<r.length;a++)i+=(e=r[a]-o)*e;else for(a=0;a<r.length;a++)i+=Math.pow(r[a]-o,t);return i}function a(r){if(0===r.length)throw new Error("variance requires at least one data point");return e(r,2)/r.length}function o(r){if(1===r.length)return 0;var t=a(r);return Math.sqrt(t)}function i(r){if(0===r.length)throw new Error("mode requires at least one data point");if(1===r.length)return r[0];for(var t=r[0],n=NaN,e=0,a=1,o=1;o<r.length+1;o++)r[o]!==t?(a>e&&(e=a,n=t),a=1,t=r[o]):a++;return n}function u(r){return r.slice().sort((function(r,t){return r-t}))}function h(r){if(0===r.length)throw new Error("min requires at least one data point");for(var t=r[0],n=1;n<r.length;n++)r[n]<t&&(t=r[n]);return t}function f(r){if(0===r.length)throw new Error("max requires at least one data point");for(var t=r[0],n=1;n<r.length;n++)r[n]>t&&(t=r[n]);return t}function l(r){for(var t=0,n=0;n<r.length;n++){if("number"!=typeof r[n])return NaN;t+=r[n]}return t}function s(r,t){var n=r.length*t;if(0===r.length)throw new Error("quantile requires at least one data point.");if(t<0||t>1)throw new Error("quantiles must be between 0 and 1");return 1===t?r[r.length-1]:0===t?r[0]:n%1!=0?r[Math.ceil(n)-1]:r.length%2==0?(r[n-1]+r[n])/2:r[n]}function c(r,t,n,e){for(n=n||0,e=e||r.length-1;e>n;){if(e-n>600){var a=e-n+1,o=t-n+1,i=Math.log(a),u=.5*Math.exp(2*i/3),h=.5*Math.sqrt(i*u*(a-u)/a);o-a/2<0&&(h*=-1),c(r,t,Math.max(n,Math.floor(t-o*u/a+h)),Math.min(e,Math.floor(t+(a-o)*u/a+h)))}var f=r[t],l=n,s=e;for(g(r,n,t),r[e]>f&&g(r,n,e);l<s;){for(g(r,l,s),l++,s--;r[l]<f;)l++;for(;r[s]>f;)s--}r[n]===f?g(r,n,s):g(r,++s,e),s<=t&&(n=s+1),t<=s&&(e=s-1)}}function g(r,t,n){var e=r[t];r[t]=r[n],r[n]=e}function v(r,t){var n=r.slice();if(Array.isArray(t)){!function(r,t){for(var n=[0],e=0;e<t.length;e++)n.push(w(r.length,t[e]));n.push(r.length-1),n.sort(m);var a=[0,n.length-1];for(;a.length;){var o=Math.ceil(a.pop()),i=Math.floor(a.pop());if(!(o-i<=1)){var u=Math.floor((i+o)/2);p(r,n[u],Math.floor(n[i]),Math.ceil(n[o])),a.push(i,u,u,o)}}}(n,t);for(var e=[],a=0;a<t.length;a++)e[a]=s(n,t[a]);return e}return p(n,w(n.length,t),0,n.length-1),s(n,t)}function p(r,t,n,e){t%1==0?c(r,t,n,e):(c(r,t=Math.floor(t),n,e),c(r,t+1,t+1,e))}function m(r,t){return r-t}function w(r,t){var n=r*t;return 1===t?r-1:0===t?0:n%1!=0?Math.ceil(n)-1:r%2==0?n-.5:n}function M(r,t){if(t<r[0])return 0;if(t>r[r.length-1])return 1;var n=function(r,t){var n=0,e=0,a=r.length;for(;e<a;)t<=r[n=e+a>>>1]?a=n:e=-~n;return e}(r,t);if(r[n]!==t)return n/r.length;n++;var e=function(r,t){var n=0,e=0,a=r.length;for(;e<a;)t>=r[n=e+a>>>1]?e=-~n:a=n;return e}(r,t);if(e===n)return n/r.length;var a=e-n+1;return a*(e+n)/2/a/r.length}function d(r){var t=v(r,.75),n=v(r,.25);if("number"==typeof t&&"number"==typeof n)return t-n}function b(r){return+v(r,.5)}function q(r){for(var t=b(r),n=[],e=0;e<r.length;e++)n.push(Math.abs(r[e]-t));return b(n)}function y(r,t){t=t||Math.random;for(var n,e,a=r.length;a>0;)e=Math.floor(t()*a--),n=r[a],r[a]=r[e],r[e]=n;return r}function E(r,t){return y(r.slice(),t)}function x(r,t,n){return E(r,n).slice(0,t)}function S(r,t){for(var n=[],e=0;e<r;e++){for(var a=[],o=0;o<t;o++)a.push(0);n.push(a)}return n}function k(r){for(var t,n=0,e=0;e<r.length;e++)0!==e&&r[e]===t||(t=r[e],n++);return n}function A(r,t,n,e){var a;if(r>0){var o=(n[t]-n[r-1])/(t-r+1);a=e[t]-e[r-1]-(t-r+1)*o*o}else a=e[t]-n[t]*n[t]/(t+1);return a<0?0:a}function N(r,t,n,e,a,o,i){if(!(r>t)){var u=Math.floor((r+t)/2);e[n][u]=e[n-1][u-1],a[n][u]=u;var h=n;r>n&&(h=Math.max(h,a[n][r-1]||0)),h=Math.max(h,a[n-1][u]||0);var f,l,s,c=u-1;t<e[0].length-1&&(c=Math.min(c,a[n][t+1]||0));for(var g=c;g>=h&&!((f=A(g,u,o,i))+e[n-1][h-1]>=e[n][u]);--g)(l=A(h,u,o,i)+e[n-1][h-1])<e[n][u]&&(e[n][u]=l,a[n][u]=h),h++,(s=f+e[n-1][g-1])<e[n][u]&&(e[n][u]=s,a[n][u]=g);N(r,u-1,n,e,a,o,i),N(u+1,t,n,e,a,o,i)}}function P(r,t){if(r.length!==t.length)throw new Error("sampleCovariance requires samples with equal lengths");if(r.length<2)throw new Error("sampleCovariance requires at least two data points in each sample");for(var e=n(r),a=n(t),o=0,i=0;i<r.length;i++)o+=(r[i]-e)*(t[i]-a);return o/(r.length-1)}function C(r){if(r.length<2)throw new Error("sampleVariance requires at least two data points");return e(r,2)/(r.length-1)}function I(r){var t=C(r);return Math.sqrt(t)}function T(r,t){return P(r,t)/I(r)/I(t)}function D(r,t,n,e){return(r*t+n*e)/(t+e)}function R(r){if(0===r.length)throw new Error("meanSimple requires at least one data point");return l(r)/r.length}function _(r){if(0===r.length)throw new Error("rootMeanSquare requires at least one data point");for(var t=0,n=0;n<r.length;n++)t+=Math.pow(r[n],2);return Math.sqrt(t/r.length)}var L=function(){this.totalCount=0,this.data={}};L.prototype.train=function(r,t){for(var n in this.data[t]||(this.data[t]={}),r){var e=r[n];void 0===this.data[t][n]&&(this.data[t][n]={}),void 0===this.data[t][n][e]&&(this.data[t][n][e]=0),this.data[t][n][e]++}this.totalCount++},L.prototype.score=function(r){var t,n={};for(var e in r){var a=r[e];for(t in this.data)n[t]={},this.data[t][e]?n[t][e+"_"+a]=(this.data[t][e][a]||0)/this.totalCount:n[t][e+"_"+a]=0}var o={};for(t in n)for(var i in o[t]=0,n[t])o[t]+=n[t][i];return o};var V=function(){this.weights=[],this.bias=0};V.prototype.predict=function(r){if(r.length!==this.weights.length)return null;for(var t=0,n=0;n<this.weights.length;n++)t+=this.weights[n]*r[n];return(t+=this.bias)>0?1:0},V.prototype.train=function(r,t){if(0!==t&&1!==t)return null;r.length!==this.weights.length&&(this.weights=r,this.bias=1);var n=this.predict(r);if("number"==typeof n&&n!==t){for(var e=t-n,a=0;a<this.weights.length;a++)this.weights[a]+=e*r[a];this.bias+=e}return this};var F=1e-4;function U(r){if(r<0)throw new Error("factorial requires a non-negative value");if(Math.floor(r)!==r)throw new Error("factorial requires an integer input");for(var t=1,n=2;n<=r;n++)t*=n;return t}var z=[.9999999999999971,57.15623566586292,-59.59796035547549,14.136097974741746,-.4919138160976202,3399464998481189e-20,4652362892704858e-20,-9837447530487956e-20,.0001580887032249125,-.00021026444172410488,.00021743961811521265,-.0001643181065367639,8441822398385275e-20,-26190838401581408e-21,36899182659531625e-22],X=Math.log(Math.sqrt(2*Math.PI));var j={1:{.995:0,.99:0,.975:0,.95:0,.9:.02,.5:.45,.1:2.71,.05:3.84,.025:5.02,.01:6.63,.005:7.88},2:{.995:.01,.99:.02,.975:.05,.95:.1,.9:.21,.5:1.39,.1:4.61,.05:5.99,.025:7.38,.01:9.21,.005:10.6},3:{.995:.07,.99:.11,.975:.22,.95:.35,.9:.58,.5:2.37,.1:6.25,.05:7.81,.025:9.35,.01:11.34,.005:12.84},4:{.995:.21,.99:.3,.975:.48,.95:.71,.9:1.06,.5:3.36,.1:7.78,.05:9.49,.025:11.14,.01:13.28,.005:14.86},5:{.995:.41,.99:.55,.975:.83,.95:1.15,.9:1.61,.5:4.35,.1:9.24,.05:11.07,.025:12.83,.01:15.09,.005:16.75},6:{.995:.68,.99:.87,.975:1.24,.95:1.64,.9:2.2,.5:5.35,.1:10.65,.05:12.59,.025:14.45,.01:16.81,.005:18.55},7:{.995:.99,.99:1.25,.975:1.69,.95:2.17,.9:2.83,.5:6.35,.1:12.02,.05:14.07,.025:16.01,.01:18.48,.005:20.28},8:{.995:1.34,.99:1.65,.975:2.18,.95:2.73,.9:3.49,.5:7.34,.1:13.36,.05:15.51,.025:17.53,.01:20.09,.005:21.96},9:{.995:1.73,.99:2.09,.975:2.7,.95:3.33,.9:4.17,.5:8.34,.1:14.68,.05:16.92,.025:19.02,.01:21.67,.005:23.59},10:{.995:2.16,.99:2.56,.975:3.25,.95:3.94,.9:4.87,.5:9.34,.1:15.99,.05:18.31,.025:20.48,.01:23.21,.005:25.19},11:{.995:2.6,.99:3.05,.975:3.82,.95:4.57,.9:5.58,.5:10.34,.1:17.28,.05:19.68,.025:21.92,.01:24.72,.005:26.76},12:{.995:3.07,.99:3.57,.975:4.4,.95:5.23,.9:6.3,.5:11.34,.1:18.55,.05:21.03,.025:23.34,.01:26.22,.005:28.3},13:{.995:3.57,.99:4.11,.975:5.01,.95:5.89,.9:7.04,.5:12.34,.1:19.81,.05:22.36,.025:24.74,.01:27.69,.005:29.82},14:{.995:4.07,.99:4.66,.975:5.63,.95:6.57,.9:7.79,.5:13.34,.1:21.06,.05:23.68,.025:26.12,.01:29.14,.005:31.32},15:{.995:4.6,.99:5.23,.975:6.27,.95:7.26,.9:8.55,.5:14.34,.1:22.31,.05:25,.025:27.49,.01:30.58,.005:32.8},16:{.995:5.14,.99:5.81,.975:6.91,.95:7.96,.9:9.31,.5:15.34,.1:23.54,.05:26.3,.025:28.85,.01:32,.005:34.27},17:{.995:5.7,.99:6.41,.975:7.56,.95:8.67,.9:10.09,.5:16.34,.1:24.77,.05:27.59,.025:30.19,.01:33.41,.005:35.72},18:{.995:6.26,.99:7.01,.975:8.23,.95:9.39,.9:10.87,.5:17.34,.1:25.99,.05:28.87,.025:31.53,.01:34.81,.005:37.16},19:{.995:6.84,.99:7.63,.975:8.91,.95:10.12,.9:11.65,.5:18.34,.1:27.2,.05:30.14,.025:32.85,.01:36.19,.005:38.58},20:{.995:7.43,.99:8.26,.975:9.59,.95:10.85,.9:12.44,.5:19.34,.1:28.41,.05:31.41,.025:34.17,.01:37.57,.005:40},21:{.995:8.03,.99:8.9,.975:10.28,.95:11.59,.9:13.24,.5:20.34,.1:29.62,.05:32.67,.025:35.48,.01:38.93,.005:41.4},22:{.995:8.64,.99:9.54,.975:10.98,.95:12.34,.9:14.04,.5:21.34,.1:30.81,.05:33.92,.025:36.78,.01:40.29,.005:42.8},23:{.995:9.26,.99:10.2,.975:11.69,.95:13.09,.9:14.85,.5:22.34,.1:32.01,.05:35.17,.025:38.08,.01:41.64,.005:44.18},24:{.995:9.89,.99:10.86,.975:12.4,.95:13.85,.9:15.66,.5:23.34,.1:33.2,.05:36.42,.025:39.36,.01:42.98,.005:45.56},25:{.995:10.52,.99:11.52,.975:13.12,.95:14.61,.9:16.47,.5:24.34,.1:34.28,.05:37.65,.025:40.65,.01:44.31,.005:46.93},26:{.995:11.16,.99:12.2,.975:13.84,.95:15.38,.9:17.29,.5:25.34,.1:35.56,.05:38.89,.025:41.92,.01:45.64,.005:48.29},27:{.995:11.81,.99:12.88,.975:14.57,.95:16.15,.9:18.11,.5:26.34,.1:36.74,.05:40.11,.025:43.19,.01:46.96,.005:49.65},28:{.995:12.46,.99:13.57,.975:15.31,.95:16.93,.9:18.94,.5:27.34,.1:37.92,.05:41.34,.025:44.46,.01:48.28,.005:50.99},29:{.995:13.12,.99:14.26,.975:16.05,.95:17.71,.9:19.77,.5:28.34,.1:39.09,.05:42.56,.025:45.72,.01:49.59,.005:52.34},30:{.995:13.79,.99:14.95,.975:16.79,.95:18.49,.9:20.6,.5:29.34,.1:40.26,.05:43.77,.025:46.98,.01:50.89,.005:53.67},40:{.995:20.71,.99:22.16,.975:24.43,.95:26.51,.9:29.05,.5:39.34,.1:51.81,.05:55.76,.025:59.34,.01:63.69,.005:66.77},50:{.995:27.99,.99:29.71,.975:32.36,.95:34.76,.9:37.69,.5:49.33,.1:63.17,.05:67.5,.025:71.42,.01:76.15,.005:79.49},60:{.995:35.53,.99:37.48,.975:40.48,.95:43.19,.9:46.46,.5:59.33,.1:74.4,.05:79.08,.025:83.3,.01:88.38,.005:91.95},70:{.995:43.28,.99:45.44,.975:48.76,.95:51.74,.9:55.33,.5:69.33,.1:85.53,.05:90.53,.025:95.02,.01:100.42,.005:104.22},80:{.995:51.17,.99:53.54,.975:57.15,.95:60.39,.9:64.28,.5:79.33,.1:96.58,.05:101.88,.025:106.63,.01:112.33,.005:116.32},90:{.995:59.2,.99:61.75,.975:65.65,.95:69.13,.9:73.29,.5:89.33,.1:107.57,.05:113.14,.025:118.14,.01:124.12,.005:128.3},100:{.995:67.33,.99:70.06,.975:74.22,.95:77.93,.9:82.36,.5:99.33,.1:118.5,.05:124.34,.025:129.56,.01:135.81,.005:140.17}};var B=Math.sqrt(2*Math.PI),K={gaussian:function(r){return Math.exp(-.5*r*r)/B}},O={nrd:function(r){var t=I(r),n=d(r);return"number"==typeof n&&(t=Math.min(t,n/1.34)),1.06*t*Math.pow(r.length,-.2)}};function G(r,t,n){var e,a;if(void 0===t)e=K.gaussian;else if("string"==typeof t){if(!K[t])throw new Error('Unknown kernel "'+t+'"');e=K[t]}else e=t;if(void 0===n)a=O.nrd(r);else if("string"==typeof n){if(!O[n])throw new Error('Unknown bandwidth method "'+n+'"');a=O[n](r)}else a=n;return function(t){var n=0,o=0;for(n=0;n<r.length;n++)o+=e((t-r[n])/a);return o/a/r.length}}var H=Math.sqrt(2*Math.PI);function W(r){for(var t=r,n=r,e=1;e<15;e++)t+=n*=r*r/(2*e+1);return Math.round(1e4*(.5+t/H*Math.exp(-r*r/2)))/1e4}for(var J=[],Q=0;Q<=3.09;Q+=.01)J.push(W(Q));function Y(r){var t=1/(1+.5*Math.abs(r)),n=t*Math.exp(-r*r+((((((((.17087277*t-.82215223)*t+1.48851587)*t-1.13520398)*t+.27886807)*t-.18628806)*t+.09678418)*t+.37409196)*t+1.00002368)*t-1.26551223);return r>=0?1-n:n-1}function Z(r){var t=8*(Math.PI-3)/(3*Math.PI*(4-Math.PI)),n=Math.sqrt(Math.sqrt(Math.pow(2/(Math.PI*t)+Math.log(1-r*r)/2,2)-Math.log(1-r*r)/t)-(2/(Math.PI*t)+Math.log(1-r*r)/2));return r>=0?n:-n}function $(r){if("number"==typeof r)return r<0?-1:0===r?0:1;throw new TypeError("not a number")}function rr(r,t){for(var n=0,e=0;e<r.length;e++){var a=r[e]-t[e];n+=a*a}return Math.sqrt(n)}function tr(r,t){return r.map((function(r){for(var n=Number.MAX_VALUE,e=-1,a=0;a<t.length;a++){var o=rr(r,t[a]);o<n&&(n=o,e=a)}return e}))}function nr(r,t,n){for(var e=r[0].length,a=S(n,e),o=Array(n).fill(0),i=r.length,u=0;u<i;u++){for(var h=r[u],f=t[u],l=a[f],s=0;s<e;s++)l[s]+=h[s];o[f]+=1}for(var c=0;c<n;c++){if(0===o[c])throw new Error("Centroid "+c+" has no friends");for(var g=a[c],v=0;v<e;v++)g[v]/=o[c]}return a}function er(r,t){for(var n=0,e=0;e<r.length;e++)n+=rr(r[e],t[e]);return n}function ar(r,t){if(r.length!==t.length)throw new Error("must have exactly as many labels as points");for(var n=function(r){for(var t=1+f(r),n=Array(t),e=0;e<r.length;e++){var a=r[e];void 0===n[a]&&(n[a]=[]),n[a].push(e)}return n}(t),e=function(r){for(var t=r.length,n=S(t,t),e=0;e<t;e++)for(var a=0;a<e;a++)n[e][a]=rr(r[e],r[a]),n[a][e]=n[e][a];return n}(r),a=[],o=0;o<r.length;o++){var i=0;if(n[t[o]].length>1){var u=ir(o,n[t[o]],e),h=or(o,t,n,e);i=(h-u)/Math.max(u,h)}a.push(i)}return a}function or(r,t,n,e){for(var a=t[r],o=Number.MAX_VALUE,i=0;i<n.length;i++)if(i!==a){var u=ir(r,n[i],e);u<o&&(o=u)}return o}function ir(r,t,n){for(var e=0,a=0;a<t.length;a++)e+=n[r][t[a]];return e/t.length}function ur(r,t){return 0===r&&0===t?0:Math.abs((r-t)/t)}r.BayesianClassifier=L,r.PerceptronModel=V,r.addToMean=function(r,t,n){return r+(n-r)/(t+1)},r.approxEqual=function(r,t,n){return void 0===n&&(n=F),ur(r,t)<=n},r.average=n,r.averageSimple=R,r.bayesian=L,r.bernoulliDistribution=function(r){if(r<0||r>1)throw new Error("bernoulliDistribution requires probability to be between 0 and 1 inclusive");return[1-r,r]},r.binomialDistribution=function(r,t){if(!(t<0||t>1||r<=0||r%1!=0)){var n=0,e=0,a=[],o=1;do{a[n]=o*Math.pow(t,n)*Math.pow(1-t,r-n),e+=a[n],o=o*(r-++n+1)/n}while(e<.9999);return a}},r.bisect=function(r,t,n,e,a){if("function"!=typeof r)throw new TypeError("func must be a function");for(var o=0;o<e;o++){var i=(t+n)/2;if(0===r(i)||Math.abs((n-t)/2)<a)return i;$(r(i))===$(r(t))?t=i:n=i}throw new Error("maximum number of iterations exceeded")},r.chiSquaredDistributionTable=j,r.chiSquaredGoodnessOfFit=function(r,t,e){for(var a=0,o=t(n(r)),i=[],u=[],h=0;h<r.length;h++)void 0===i[r[h]]&&(i[r[h]]=0),i[r[h]]++;for(var f=0;f<i.length;f++)void 0===i[f]&&(i[f]=0);for(var l in o)l in i&&(u[+l]=o[l]*r.length);for(var s=u.length-1;s>=0;s--)u[s]<3&&(u[s-1]+=u[s],u.pop(),i[s-1]+=i[s],i.pop());for(var c=0;c<i.length;c++)a+=Math.pow(i[c]-u[c],2)/u[c];var g=i.length-1-1;return j[g][e]<a},r.chunk=function(r,t){var n=[];if(t<1)throw new Error("chunk size must be a positive number");if(Math.floor(t)!==t)throw new Error("chunk size must be an integer");for(var e=0;e<r.length;e+=t)n.push(r.slice(e,e+t));return n},r.ckmeans=function(r,t){if(t>r.length)throw new Error("cannot generate more classes than there are data values");var n=u(r);if(1===k(n))return[n];var e=S(t,n.length),a=S(t,n.length);!function(r,t,n){for(var e=t[0].length,a=r[Math.floor(e/2)],o=[],i=[],u=0,h=void 0;u<e;++u)h=r[u]-a,0===u?(o.push(h),i.push(h*h)):(o.push(o[u-1]+h),i.push(i[u-1]+h*h)),t[0][u]=A(0,u,o,i),n[0][u]=0;for(var f=1;f<t.length;++f)N(f<t.length-1?f:e-1,e-1,f,t,n,o,i)}(n,e,a);for(var o=[],i=a[0].length-1,h=a.length-1;h>=0;h--){var f=a[h][i];o[h]=n.slice(f,i+1),h>0&&(i=f-1)}return o},r.coefficientOfVariation=function(r){return I(r)/n(r)},r.combinations=function r(t,n){var e,a,o,i,u=[];for(e=0;e<t.length;e++)if(1===n)u.push([t[e]]);else for(o=r(t.slice(e+1,t.length),n-1),a=0;a<o.length;a++)(i=o[a]).unshift(t[e]),u.push(i);return u},r.combinationsReplacement=function r(t,n){for(var e=[],a=0;a<t.length;a++)if(1===n)e.push([t[a]]);else for(var o=r(t.slice(a,t.length),n-1),i=0;i<o.length;i++)e.push([t[a]].concat(o[i]));return e},r.combineMeans=D,r.combineVariances=function(r,t,n,e,a,o){var i=D(t,n,a,o);return(n*(r+Math.pow(t-i,2))+o*(e+Math.pow(a-i,2)))/(n+o)},r.cumulativeStdLogisticProbability=function(r){return 1/(Math.exp(-r)+1)},r.cumulativeStdNormalProbability=function(r){var t=Math.abs(r),n=Math.min(Math.round(100*t),J.length-1);return r>=0?J[n]:+(1-J[n]).toFixed(4)},r.epsilon=F,r.equalIntervalBreaks=function(r,t){if(r.length<2)return r;for(var n=h(r),e=f(r),a=[n],o=(e-n)/t,i=1;i<t;i++)a.push(a[0]+o*i);return a.push(e),a},r.erf=Y,r.errorFunction=Y,r.extent=function(r){if(0===r.length)throw new Error("extent requires at least one data point");for(var t=r[0],n=r[0],e=1;e<r.length;e++)r[e]>n&&(n=r[e]),r[e]<t&&(t=r[e]);return[t,n]},r.extentSorted=function(r){return[r[0],r[r.length-1]]},r.factorial=U,r.gamma=function r(t){if(Number.isInteger(t))return t<=0?NaN:U(t-1);if(--t<0)return Math.PI/(Math.sin(Math.PI*-t)*r(-t));var n=t+1/4;return Math.pow(t/Math.E,t)*Math.sqrt(2*Math.PI*(t+1/6))*(1+1/144/Math.pow(n,2)-1/12960/Math.pow(n,3)-257/207360/Math.pow(n,4)-52/2612736/Math.pow(n,5)+5741173/9405849600/Math.pow(n,6)+37529/18811699200/Math.pow(n,7))},r.gammaln=function(r){if(r<=0)return 1/0;r--;for(var t=z[0],n=1;n<15;n++)t+=z[n]/(r+n);var e=5.2421875+r;return X+Math.log(t)-e+(r+.5)*Math.log(e)},r.geometricMean=function(r){if(0===r.length)throw new Error("geometricMean requires at least one data point");for(var t=1,n=0;n<r.length;n++){if(r[n]<0)throw new Error("geometricMean requires only non-negative numbers as input");t*=r[n]}return Math.pow(t,1/r.length)},r.harmonicMean=function(r){if(0===r.length)throw new Error("harmonicMean requires at least one data point");for(var t=0,n=0;n<r.length;n++){if(r[n]<=0)throw new Error("harmonicMean requires only positive numbers as input");t+=1/r[n]}return r.length/t},r.interquartileRange=d,r.inverseErrorFunction=Z,r.iqr=d,r.jenks=function(r,t){if(t>r.length)return null;var n=function(r,t){var n,e,a=[],o=[],i=0;for(n=0;n<r.length+1;n++){var u=[],h=[];for(e=0;e<t+1;e++)u.push(0),h.push(0);a.push(u),o.push(h)}for(n=1;n<t+1;n++)for(a[1][n]=1,o[1][n]=0,e=2;e<r.length+1;e++)o[e][n]=1/0;for(var f=2;f<r.length+1;f++){for(var l=0,s=0,c=0,g=0,v=1;v<f+1;v++){var p=f-v+1,m=r[p-1];if(i=(s+=m*m)-(l+=m)*l/++c,0!=(g=p-1))for(e=2;e<t+1;e++)o[f][e]>=i+o[g][e-1]&&(a[f][e]=p,o[f][e]=i+o[g][e-1])}a[f][1]=1,o[f][1]=i}return{lowerClassLimits:a,varianceCombinations:o}}(r=r.slice().sort((function(r,t){return r-t})),t);return function(r,t,n){var e=r.length,a=[],o=n;for(a[n]=r[r.length-1];o>0;)a[o-1]=r[t[e][o]-1],e=t[e][o]-1,o--;return a}(r,n.lowerClassLimits,t)},r.kMeansCluster=function(r,t,n){void 0===n&&(n=Math.random);for(var e=null,a=x(r,t,n),o=null,i=Number.MAX_VALUE;0!==i;)e=a,i=er(a=nr(r,o=tr(r,a),t),e);return{labels:o,centroids:a}},r.kde=G,r.kernelDensityEstimation=G,r.linearRegression=function(r){var t,n,e=r.length;if(1===e)t=0,n=r[0][1];else{for(var a,o,i,u=0,h=0,f=0,l=0,s=0;s<e;s++)u+=o=(a=r[s])[0],h+=i=a[1],f+=o*o,l+=o*i;n=h/e-(t=(e*l-u*h)/(e*f-u*u))*u/e}return{m:t,b:n}},r.linearRegressionLine=function(r){return function(t){return r.b+r.m*t}},r.logAverage=function(r){if(0===r.length)throw new Error("logAverage requires at least one data point");for(var t=0,n=0;n<r.length;n++){if(r[n]<0)throw new Error("logAverage requires only non-negative numbers as input");t+=Math.log(r[n])}return Math.exp(t/r.length)},r.logit=function(r){if(r<=0||r>=1)throw new Error("p must be strictly between zero and one");return Math.log(r/(1-r))},r.mad=q,r.max=f,r.maxSorted=function(r){return r[r.length-1]},r.mean=n,r.meanSimple=R,r.median=b,r.medianAbsoluteDeviation=q,r.medianSorted=function(r){return s(r,.5)},r.min=h,r.minSorted=function(r){return r[0]},r.mode=function(r){return i(u(r))},r.modeFast=function(r){for(var t,n=new Map,e=0,a=0;a<r.length;a++){var o=n.get(r[a]);void 0===o?o=1:o++,o>e&&(t=r[a],e=o),n.set(r[a],o)}if(0===e)throw new Error("mode requires at last one data point");return t},r.modeSorted=i,r.numericSort=u,r.perceptron=V,r.permutationTest=function(r,t,e,a,o){if(void 0===a&&(a=1e4),void 0===e&&(e="two_side"),"two_side"!==e&&"greater"!==e&&"less"!==e)throw new Error("`alternative` must be either 'two_side', 'greater', or 'less'.");for(var i=n(r)-n(t),u=new Array(a),h=r.concat(t),f=Math.floor(h.length/2),l=0;l<a;l++){y(h,o);var s=h.slice(0,f),c=h.slice(f,h.length),g=n(s)-n(c);u[l]=g}var v=0;if("two_side"===e)for(var p=0;p<=a;p++)Math.abs(u[p])>=Math.abs(i)&&(v+=1);else if("greater"===e)for(var m=0;m<=a;m++)u[m]>=i&&(v+=1);else for(var w=0;w<=a;w++)u[w]<=i&&(v+=1);return v/a},r.permutationsHeap=function(r){for(var t=new Array(r.length),n=[r.slice()],e=0;e<r.length;e++)t[e]=0;for(var a=0;a<r.length;)if(t[a]<a){var o=0;a%2!=0&&(o=t[a]);var i=r[o];r[o]=r[a],r[a]=i,n.push(r.slice()),t[a]++,a=0}else t[a]=0,a++;return n},r.poissonDistribution=function(r){if(!(r<=0)){var t=0,n=0,e=[],a=1;do{e[t]=Math.exp(-r)*Math.pow(r,t)/a,n+=e[t],a*=++t}while(n<.9999);return e}},r.probit=function(r){return 0===r?r=F:r>=1&&(r=.9999),Math.sqrt(2)*Z(2*r-1)},r.product=function(r){for(var t=1,n=0;n<r.length;n++)t*=r[n];return t},r.quantile=v,r.quantileRank=function(r,t){return M(u(r),t)},r.quantileRankSorted=M,r.quantileSorted=s,r.quickselect=c,r.rSquared=function(r,t){if(r.length<2)return 1;for(var n=0,e=0;e<r.length;e++)n+=r[e][1];for(var a=n/r.length,o=0,i=0;i<r.length;i++)o+=Math.pow(a-r[i][1],2);for(var u=0,h=0;h<r.length;h++)u+=Math.pow(r[h][1]-t(r[h][0]),2);return 1-u/o},r.relativeError=ur,r.rms=_,r.rootMeanSquare=_,r.sample=x,r.sampleCorrelation=T,r.sampleCovariance=P,r.sampleKurtosis=function(r){var t=r.length;if(t<4)throw new Error("sampleKurtosis requires at least four data points");for(var e,a=n(r),o=0,i=0,u=0;u<t;u++)o+=(e=r[u]-a)*e,i+=e*e*e*e;return(t-1)/((t-2)*(t-3))*(t*(t+1)*i/(o*o)-3*(t-1))},r.sampleRankCorrelation=function(r,t){for(var n=r.map((function(r,t){return[r,t]})).sort((function(r,t){return r[0]-t[0]})).map((function(r){return r[1]})),e=t.map((function(r,t){return[r,t]})).sort((function(r,t){return r[0]-t[0]})).map((function(r){return r[1]})),a=Array(n.length),o=Array(n.length),i=0;i<n.length;i++)a[n[i]]=i,o[e[i]]=i;return T(a,o)},r.sampleSkewness=function(r){if(r.length<3)throw new Error("sampleSkewness requires at least three data points");for(var t,e=n(r),a=0,o=0,i=0;i<r.length;i++)a+=(t=r[i]-e)*t,o+=t*t*t;var u=r.length-1,h=Math.sqrt(a/u),f=r.length;return f*o/((f-1)*(f-2)*Math.pow(h,3))},r.sampleStandardDeviation=I,r.sampleVariance=C,r.sampleWithReplacement=function(r,t,n){if(0===r.length)return[];n=n||Math.random;for(var e=r.length,a=[],o=0;o<t;o++){var i=Math.floor(n()*e);a.push(r[i])}return a},r.shuffle=E,r.shuffleInPlace=y,r.sign=$,r.silhouette=ar,r.silhouetteMetric=function(r,t){return f(ar(r,t))},r.standardDeviation=o,r.standardNormalTable=J,r.subtractFromMean=function(r,t,n){return(r*t-n)/(t-1)},r.sum=t,r.sumNthPowerDeviations=e,r.sumSimple=l,r.tTest=function(r,t){return(n(r)-t)/(o(r)/Math.sqrt(r.length))},r.tTestTwoSample=function(r,t,e){var a=r.length,o=t.length;if(!a||!o)return null;e||(e=0);var i=n(r),u=n(t),h=C(r),f=C(t);if("number"==typeof i&&"number"==typeof u&&"number"==typeof h&&"number"==typeof f){var l=((a-1)*h+(o-1)*f)/(a+o-2);return(i-u-e)/Math.sqrt(l*(1/a+1/o))}},r.uniqueCountSorted=k,r.variance=a,r.wilcoxonRankSum=function(r,t){if(!r.length||!t.length)throw new Error("Neither sample can be empty");for(var n=r.map((function(r){return{label:"x",value:r}})).concat(t.map((function(r){return{label:"y",value:r}}))).sort((function(r,t){return r.value-t.value})),e=0;e<n.length;e++)n[e].rank=e;for(var a=[n[0].rank],o=1;o<n.length;o++)n[o].value===n[o-1].value?(a.push(n[o].rank),o===n.length-1&&i(n,a)):a.length>1?i(n,a):a=[n[o].rank];function i(r,t){for(var n=(t[0]+t[t.length-1])/2,e=0;e<t.length;e++)r[t[e]].rank=n}for(var u=0,h=0;h<n.length;h++){var f=n[h];"x"===f.label&&(u+=f.rank+1)}return u},r.zScore=function(r,t,n){return(r-t)/n}}));
 
 
-},{}],7:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 const ss = require("simple-statistics");
 const chartjs = require("chart.js/auto");
 const papa = require("papaparse");
+const chartJsPtLabels = require("chartjs-plugin-datalabels");
+
+//Global variable to store the reference to the created chart
+let CHART = null;
 
 /**
  * @typedef {Object} Sample
@@ -15052,6 +16554,7 @@ const papa = require("papaparse");
  * @property {string} units - The units of x i.e ug/mL, ng/mL, ug/uL, etc.
  * @property {string[]} wellPositions - The wells the sample was loaded in i.e A1, B1, C1, etc.
  * @property {number} averageY - The average of y if sample was loaded in replicates 
+ * @property {Function} getData - Function that returns a list of important data for the same that can be used to display in a table
  * 
 */
 
@@ -15104,10 +16607,10 @@ async function merge(rawdataFile, templateFile){
                 if(parsedSample.has("units")){
                     const units = parsedSample.get("units");
                     const x = parsedSample.get("x");
-                    samples.set(name, {name, type, units, wellPositions:[wellPosition], x, ys:[y]})
+                    samples.set(name, {name, type, units, wellPositions:[wellPosition], x, ys:[y], getData:function(){return [this.name, this.type, this.averageY, this.interpolatedX]}})
                 }
                 else{
-                    samples.set(name, {name, type, wellPositions:[wellPosition], ys:[y]})
+                    samples.set(name, {name, type, wellPositions:[wellPosition], ys:[y], getData:function(){return [this.name, this.type, this.averageY, this.interpolatedX]}})
                 }
             }
         }
@@ -15116,9 +16619,10 @@ async function merge(rawdataFile, templateFile){
     samples.forEach((v,k, m) => v.averageY = ss.average(v.ys));
 
     //Provide the filename so that it can be used to create the results xlsx file
-    samples.set("filename", filename);
+    // samples.set("filename", filename);
     return samples;
 }
+
 /**
  * @param {string} sampleName
  * @returns {Map<string,string|number>}
@@ -15126,7 +16630,6 @@ async function merge(rawdataFile, templateFile){
 function parseSampleName(sampleName){
     const parsed = new Map();
     let [type,name] = sampleName.split("-");
-    console.log(type, name)
     switch (type.toLowerCase()){
         case "standard":
             const units = name.slice(-5);
@@ -15152,6 +16655,8 @@ function handleClick(e){
     const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
     const chartCanvas = document.getElementById("regression-chart");
+    const tableContainer = document.getElementById("table-container");
+    if(CHART !== null) CHART.destroy()
     if(!rawdataFile || !templateFile) return;
     merge(rawdataFile, templateFile)
     .then(samples =>{
@@ -15164,9 +16669,10 @@ function handleClick(e){
         //Iterpolate the concentration of all the samples using the regression model generated
         for(let sample of samples.values()) sample.interpolatedX = invEq(sample.averageY);
 
-        new chartjs.Chart(chartCanvas, {
+        CHART = new chartjs.Chart(chartCanvas, {
             type:"scatter",
             data:{
+                labels:[],
                 datasets:[
                     {
                         label:"Standards",
@@ -15206,16 +16712,59 @@ function handleClick(e){
                     title:{
                         display:true,
                         text: `${new Date().getMonth()}/${new Date().getDate()}/${new Date().getFullYear()} Interpolation of Unknowns Using Linear Regression`,
-                    },
-                    legend:{
-                        display:true,
-                        
-                    }
+                    },                   
                 }
             }
-        })
+        })  
+        // console.log(samples)
+        deleteTable(tableContainer);
+        createTable(Array.from(samples.values()), tableContainer);
     })
 
+}
+/**
+ * @param {HTMLDivElement} container  - The container that contains the table
+ * @returns {null}
+ */
+function deleteTable(container){
+    const table = document.getElementById("results-table");
+    if(table) container.removeChild(table);  
+    
+    return null;
+}
+
+/**
+ * @param {Sample[]} samples - A list of sample objects to display in the table
+ * @param {Element} container - The element to append the table element to as a child
+ * @returns {null}
+ */
+function createTable(samples, container){
+    const table = document.createElement("table");
+    table.id = "results-table";
+    const headerContainer = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    const headers = ["Sample Name", "Sample Type", "Average Y","Interpolated Protein Concentration"];
+    for(let header of headers){
+        const row = document.createElement("th");
+        row.textContent = header;
+        headerRow.appendChild(row);
+    }
+
+
+    const body = document.createElement("tbody");
+    headerContainer.appendChild(headerRow);
+    for(let sample of samples){        
+        const row = document.createElement("tr");
+        for (let data of sample.getData()){
+            const td =document.createElement("td");
+            td.textContent = data;
+            row.appendChild(td);
+        }
+        body.appendChild(row);
+    }
+    table.appendChild(headerContainer);
+    table.appendChild(body);
+    container.appendChild(table);
 }
 
 /**
@@ -15244,4 +16793,4 @@ function parseTemplateFile(file){
 
 
 main()
-},{"chart.js/auto":2,"papaparse":5,"simple-statistics":6}]},{},[7]);
+},{"chart.js/auto":2,"chartjs-plugin-datalabels":7,"papaparse":8,"simple-statistics":9}]},{},[10]);

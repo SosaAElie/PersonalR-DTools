@@ -1,0 +1,16 @@
+THIS,IS,THE,EMPTY,96,WELL,PLATE,TEMPLATE.,PLEASE,EDIT,WITH,YOUR,LAYOUT.
+,1,2,3,4,5,6,7,8,9,10,11,12
+A,Standard-2000ug/mL,Standard-0ug/mL,Sample-8,None,None,None,None,None,None,None,None,None
+B,Standard-1500ug/mL,Sample-1,Sample-9,None,None,None,None,None,None,None,None,None
+C,Standard-1000ug/mL,Sample-2,Sample-10,None,None,None,None,None,None,None,None,None
+D,Standard-750ug/mL,Sample-3,Sample-11,None,None,None,None,None,None,None,None,None
+E,Standard-500ng/mL,Sample-4,Sample-12,None,None,None,None,None,None,None,None,None
+F,Standard-250ug/mL,Sample-5,None,None,None,None,None,None,None,None,None,None
+G,Standard-125ug/mL,Sample-6,None,None,None,None,None,None,None,None,None,None
+H,Standard-25ug/mL,Sample-7,None,None,None,None,None,None,None,None,None,None
+,,,,,,,,,,,,
+"KEY: Please Prefix all items in the plate with any of the below prefixes, using a dash ""-"" to separate the prefix from the rest of the name",,,,,,,,,,,,
+None,No sample is in the well,,,,,,,,,,,
+Sample,Refers to any sample on the plate that is not a standard or a control,,,,,,,,,,,
+Standard,Refers to the standard used for regression analysis,,,,,,,,,,,
+Control,Refers to the positive or negative control on the plate,,,,,,,,,,,
