@@ -16558,11 +16558,15 @@ let CHART = null;
  * 
 */
 
-
-
 /**
- * @returns {null}
+ * @typedef {Object} RegressionObject
+ * @property {number} b - The y-intercept
+ * @property {number} m - The slope
+ * @property {number} rSquared - The coerrelation coefficient, the closer to 1 the better the model
+ * @property {CallableFunction} eq - The regression model equation, takes in x, returns y
+ * @property {CallableFunction} invEq - The inverse regression model equation, takes in y returns x
  */
+
 function main(){    
     document.getElementById("process-button").addEventListener("click", handleClick);
 }
@@ -16630,7 +16634,8 @@ async function merge(rawdataFile, templateFile){
 function parseSampleName(sampleName){
     const parsed = new Map();
     let [type,name] = sampleName.split("-");
-    switch (type.toLowerCase()){
+    type = type.toLowerCase();
+    switch (type){
         case "standard":
             const units = name.slice(-5);
             const x = parseFloat(name.slice(0,-5));
@@ -16639,13 +16644,11 @@ function parseSampleName(sampleName){
             break;     
     }
 
-    parsed.set("type", type.toLowerCase());
+    parsed.set("type", type);
     if(name === undefined) name = type;
     parsed.set("name", name);
     return parsed;
 }
-
-
 
 /**
  * @param {Event} e
@@ -16659,67 +16662,80 @@ function handleClick(e){
     if(CHART !== null) CHART.destroy()
     if(!rawdataFile || !templateFile) return;
     merge(rawdataFile, templateFile)
-    .then(samples =>{
-        const standards = Array.from(samples.values()).filter(sample=>sample.type === "standard").map(sample=>[sample.x, sample.averageY]);
-        const {m,b} = ss.linearRegression(standards);
-        const eq = x => m*x+b;
-        const invEq = y => (y-b)/m;
-        const rSquared = ss.rSquared(standards, eq);
-        
-        //Iterpolate the concentration of all the samples using the regression model generated
-        for(let sample of samples.values()) sample.interpolatedX = invEq(sample.averageY);
+    .then(allSamples =>{
+        const samples = Array.from(allSamples.values());
+        const standards = samples.filter(sample => sample.type === "standard");
+        const unknowns = samples.filter(sample => sample.type === "sample");
+        const xAndYStandards = standards.map(standard => [standard.x, standard.averageY]);
+        let regressionObject;
+        //Get user inputs for x-scale type and regression type
+        const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
+        const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
 
-        CHART = new chartjs.Chart(chartCanvas, {
-            type:"scatter",
-            data:{
-                labels:[],
-                datasets:[
-                    {
-                        label:"Standards",
-                        data:standards.map(standard => {return {x:standard[0], y:standard[1]}}),
+        //Obtain the parameters of best fit using selected regression type
+        if(regressionType === "log") regressionObject = getLogRegression(xAndYStandards);
+        else regressionObject = getLinearRegression(xAndYStandards);
+        const {m, b, rSquared, eq, invEq} = regressionObject;
 
-                    },
-                    {
-                        label:`Regression Model: R-Squared: ${rSquared.toFixed(3)}`,
-                        data: Array.from(samples.values()).filter(sample=>sample.type ==="standard").sort((first, second)=>first.averageY-second.averageY).map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
-                        showLine:true,
-                    },
-                    {
-                        label:"Unknowns",                        
-                        data: Array.from(samples.values()).filter(sample=>sample.type !== "standard").map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
-                    }
-                ]
-            },
-            options:{
-                scales:{
-                    x:{
-                        type:"logarithmic",
-                        position:"bottom",
-                        title:{
-                            display:true,
-                            text:"Protein [ug/mL]",
-                        },
-                    },
-                    y:{
-                        position:"left",
-                        title:{
-                            display:true,
-                            text:"Absorbance @ 562nm"
-                        }                        
-                    }
-                },
-                plugins:{
-                    title:{
-                        display:true,
-                        text: `${new Date().getMonth()}/${new Date().getDate()}/${new Date().getFullYear()} Interpolation of Unknowns Using Linear Regression`,
-                    },                   
-                }
-            }
-        })  
-        // console.log(samples)
+        //Interpolate the concentration of all the samples using the regression model generated
+        for(let sample of samples) sample.interpolatedX = invEq(sample.averageY);        
+
+        //Create chart
+        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale);
+        CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
+
+        //Create table with the results
         deleteTable(tableContainer);
-        createTable(Array.from(samples.values()), tableContainer);
+        createTable(samples, tableContainer);
     })
+/**
+ * @param {HTMLDivElement} container
+ * @returns {string}
+ */
+function getSelectedRadioButton(container){
+    const selectedRadio = Array.from(container.children).filter(element=>element.tagName === "INPUT" && element.checked === true);    
+    return selectedRadio[0].defaultValue;
+}
+
+/**
+ * @param {number[][]} xyValues
+ * @returns {RegressionObject}
+ */
+function getLinearRegression(xyValues){
+    const {m,b} = ss.linearRegression(xyValues);
+    const eq = x => m*x+b;
+    const invEq = y => (y-b)/m;
+    const rSquared = ss.rSquared(xyValues, eq);
+    return {
+        m,
+        b,
+        eq,
+        invEq,
+        rSquared,
+    }
+}
+
+/**
+ * @param {number[][]} xyValues
+ * @returns {RegressionObject}
+ */
+function getLogRegression(xyValues){
+    const logXYValues = xyValues.filter(xy => xy[0] !== 0).map(xy => [Math.log10(xy[0]), xy[1]]);
+    console.log(logXYValues);
+    const {m,b} = ss.linearRegression(logXYValues);
+    const eq = x => m*Math.log10(x)+b;
+    const invEq = y => 10**((y-b)/m);
+    const rSquared = ss.rSquared(logXYValues, eq);
+    return {
+        m,
+        b,
+        eq,
+        invEq,
+        rSquared,
+    }
+}
+
+
 
 }
 /**
@@ -16728,8 +16744,7 @@ function handleClick(e){
  */
 function deleteTable(container){
     const table = document.getElementById("results-table");
-    if(table) container.removeChild(table);  
-    
+    if(table) container.removeChild(table);   
     return null;
 }
 
@@ -16791,6 +16806,62 @@ function parseTemplateFile(file){
     })
 };
 
+/**
+ * @param {Sample[]} unknowns
+ * @param {Sample[]} standards
+ * @param {number} rSquared
+ * @param {string} xScale
+ * @returns {Object}
+ */
+function createChartOptionsAndData(unknowns, standards, rSquared, xScale){
+    
+    return {
+        type:"scatter",
+        data:{
+            datasets:[
+                {
+                    label:"Standards",
+                    data:standards.map(standard => {return {x:standard.x, y:standard.averageY}}),
+                },
+                {
+                    label:`Regression Model: R-Squared: ${rSquared.toFixed(3)}`,
+                    data: standards.sort((first, second)=>first.averageY-second.averageY).map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
+                    showLine:true,
+                },
+                {
+                    label:"Unknowns",                        
+                    data: unknowns.map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
+                }
+            ]
+        },
+        options:{
+            maintainAspectRatio:false,
+            scales:{
+                x:{
+                    type:xScale,
+                    position:"bottom",
+                    title:{
+                        display:true,
+                        text:"Protein [ug/mL]",
+                    },
+                },
+                y:{
+                    position:"left",
+                    title:{
+                        display:true,
+                        text:"Absorbance @ 562nm"
+                    }                        
+                }
+            },
+            plugins:{
+                title:{
+                    display:true,
+                    text: `${new Date().getMonth()}/${new Date().getDate()}/${new Date().getFullYear()} Interpolation of Unknowns Using Linear Regression`,
+                },                   
+            }
+        }
+    }
+}
 
 main()
 },{"chart.js/auto":2,"chartjs-plugin-datalabels":7,"papaparse":8,"simple-statistics":9}]},{},[10]);

@@ -98,3 +98,10 @@ body{
     grid-column: span 2;
     width: auto;
 }
+
+.chart-container{
+    position: relative;
+    margin: auto;
+    height: 60vh;
+    width: 100vh;
+}

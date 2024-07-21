@@ -22,13 +22,21 @@
             <input id = "template-input" type="file" accept=".csv" required>
             <div id = "regression-inputs">
                 <label for = "linear">Linear Regression</label>
-                <input id = "linear" type = "radio">
+                <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
                 <label for = "log">Logarithmic Regression</label>
-                <input id = "log" type = "radio">                
+                <input id = "log" type = "radio" name = "regression" value="log">
+            </div>
+            <div id = "x-scale">
+                <label for = "linear-scale">Linear X-Scale</label>
+                <input id = "linear-scale" value="linear" type = "radio" name = "scale" checked>
+                <label for = "logarithmic-scale">Logarithmic X-Scale</label>
+                <input id = "logarithmic-scale" value="logarithmic" type = "radio" name = "scale"> 
             </div>
             <button id = "process-button" type = "button">Interpolate</button>
-        </div>        
-        <canvas id = "regression-chart"></canvas>
+        </div>
+        <div class = "chart-container">            
+            <canvas id = "regression-chart"></canvas>
+        </div>
         <div id = "table-container"></div>        
         <script src="script.js" async defer></script>
     </body>
