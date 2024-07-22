@@ -1,7 +1,8 @@
 const ss = require("simple-statistics");
 const chartjs = require("chart.js/auto");
 const papa = require("papaparse");
-const chartJsPtLabels = require("chartjs-plugin-datalabels");
+// const chartJsPtLabels = require("chartjs-plugin-datalabels");
+const xlsx = require("xlsx");
 
 //Global variable to store the reference to the created chart
 let CHART = null;
@@ -29,6 +30,14 @@ let CHART = null;
  * @property {CallableFunction} invEq - The inverse regression model equation, takes in y returns x
  */
 
+/**
+ * @typedef {Object} ParsedData
+ * @property {Sample[]} samples
+ * @property {string} filename
+ * @property {string[][]} rawdata
+ * @property {string[][]} template
+ */
+
 function main(){    
     document.getElementById("process-button").addEventListener("click", handleClick);
 }
@@ -36,7 +45,7 @@ function main(){
 /**
  * @param {File} rawdataFile
  * @param {File} templateFile
- * @returns {Promise<Map<string, Sample>>}
+ * @returns {Promise<ParsedData>}
  */
 async function merge(rawdataFile, templateFile){
     const rawdata = await parseRawDataFile(rawdataFile);
@@ -52,6 +61,14 @@ async function merge(rawdataFile, templateFile){
     //Grabs the names in the 96-well template
     const template = rawTemplate.slice(2,10).map(row=>row.slice(1));
 
+    //Function definition for a property of the Sample object
+    /**
+     * @returns {string[]}
+     */
+    function getData(){
+        return [this.name, this.type, this.averageY, this.interpolatedX];
+    }
+
     //Iterate through each inner array and create a sample, only adding the sample to the sample list if it doesn't exist already
     const rows = data.length;
     const columns = data[0].length;
@@ -62,21 +79,24 @@ async function merge(rawdataFile, templateFile){
             const parsedSample = parseSampleName(template[i][j]);
             const y = Number(data[i][j]);            
             const name = parsedSample.get("name");
+
+            //Skip over the samples labeled as none
+            if(name.toLowerCase() === "none") continue;
+
             const type = parsedSample.get("type");
             if(samples.has(name)){
                 const sample = samples.get(name);
                 sample.ys.push(y);
                 sample.wellPositions.push(wellPosition);
-
             }
             else{
                 if(parsedSample.has("units")){
                     const units = parsedSample.get("units");
                     const x = parsedSample.get("x");
-                    samples.set(name, {name, type, units, wellPositions:[wellPosition], x, ys:[y], getData:function(){return [this.name, this.type, this.averageY, this.interpolatedX]}})
+                    samples.set(name, {name, type, units, wellPositions:[wellPosition], x, ys:[y], getData});
                 }
                 else{
-                    samples.set(name, {name, type, wellPositions:[wellPosition], ys:[y], getData:function(){return [this.name, this.type, this.averageY, this.interpolatedX]}})
+                    samples.set(name, {name, type, wellPositions:[wellPosition], ys:[y], getData});
                 }
             }
         }
@@ -85,8 +105,8 @@ async function merge(rawdataFile, templateFile){
     samples.forEach((v,k, m) => v.averageY = ss.average(v.ys));
 
     //Provide the filename so that it can be used to create the results xlsx file
-    // samples.set("filename", filename);
-    return samples;
+
+    return {samples,filename,rawdata, template};
 }
 
 /**
@@ -103,7 +123,7 @@ function parseSampleName(sampleName){
             const x = parseFloat(name.slice(0,-5));
             parsed.set("units", units);
             parsed.set("x", x);
-            break;     
+            break;
     }
 
     parsed.set("type", type);
@@ -121,34 +141,59 @@ function handleClick(e){
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
     const chartCanvas = document.getElementById("regression-chart");
     const tableContainer = document.getElementById("table-container");
-    if(CHART !== null) CHART.destroy()
+    const fileContainer = document.getElementById("file-container");
+
+    //Delete current chart & table & download anchor
+    if(CHART !== null){
+        CHART.destroy();
+        deleteTable(tableContainer);
+        window.URL.revokeObjectURL(fileContainer.firstChild.href);
+        fileContainer.removeChild(fileContainer.firstChild);
+    } 
     if(!rawdataFile || !templateFile) return;
     merge(rawdataFile, templateFile)
-    .then(allSamples =>{
-        const samples = Array.from(allSamples.values());
+    .then(parsedData =>{
+        const samples = Array.from(parsedData.samples.values());
         const standards = samples.filter(sample => sample.type === "standard");
         const unknowns = samples.filter(sample => sample.type === "sample");
         const xAndYStandards = standards.map(standard => [standard.x, standard.averageY]);
         let regressionObject;
+        
         //Get user inputs for x-scale type and regression type
         const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
         const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
-
+        
         //Obtain the parameters of best fit using selected regression type
         if(regressionType === "log") regressionObject = getLogRegression(xAndYStandards);
         else regressionObject = getLinearRegression(xAndYStandards);
         const {m, b, rSquared, eq, invEq} = regressionObject;
-
+        
         //Interpolate the concentration of all the samples using the regression model generated
         for(let sample of samples) sample.interpolatedX = invEq(sample.averageY);        
-
-        //Create chart
+        
+        //Sort samples according to their y values
+        standards.sort((first, second)=>second.averageY-first.averageY);
+        unknowns.sort((first,second)=>second.averageY-first.averageY);
+        
+        //Create chart & table
         const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale);
         CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
+        createTable(unknowns,standards,tableContainer);
 
-        //Create table with the results
-        deleteTable(tableContainer);
-        createTable(samples, tableContainer);
+        //create an excel file in memory with the desired data
+        const wkbk = createWkbk(parsedData.template);
+        const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
+        const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+        
+        //Create a download link and associated anchor element
+        const link = window.URL.createObjectURL(blob);
+        const anchorElem = document.createElement("a");
+        anchorElem.href = link;
+        anchorElem.download = parsedData.filename+".xlsx";
+        anchorElem.innerText = parsedData.filename+".xlsx";
+        
+        document.getElementById("file-container").appendChild(anchorElem);
+
     })
 /**
  * @param {HTMLDivElement} container
@@ -183,7 +228,6 @@ function getLinearRegression(xyValues){
  */
 function getLogRegression(xyValues){
     const logXYValues = xyValues.filter(xy => xy[0] !== 0).map(xy => [Math.log10(xy[0]), xy[1]]);
-    console.log(logXYValues);
     const {m,b} = ss.linearRegression(logXYValues);
     const eq = x => m*Math.log10(x)+b;
     const invEq = y => 10**((y-b)/m);
@@ -197,8 +241,6 @@ function getLogRegression(xyValues){
     }
 }
 
-
-
 }
 /**
  * @param {HTMLDivElement} container  - The container that contains the table
@@ -211,29 +253,42 @@ function deleteTable(container){
 }
 
 /**
- * @param {Sample[]} samples - A list of sample objects to display in the table
+ * @param {Sample[]} unknowns - A list of sample objects to display in the table
+ * @param {Sample[]} standards - A list of sample objects to display in the table
  * @param {Element} container - The element to append the table element to as a child
  * @returns {null}
  */
-function createTable(samples, container){
+function createTable(unknowns, standards, container){
     const table = document.createElement("table");
     table.id = "results-table";
     const headerContainer = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    const headers = ["Sample Name", "Sample Type", "Average Y","Interpolated Protein Concentration"];
+    const headers = ["Name", "Sample Type", "Average Absorbance/Luminescence","Interpolated Protein Concentration"];
     for(let header of headers){
         const row = document.createElement("th");
         row.textContent = header;
         headerRow.appendChild(row);
     }
 
-
     const body = document.createElement("tbody");
     headerContainer.appendChild(headerRow);
-    for(let sample of samples){        
+    
+    for(let standard of standards){        
         const row = document.createElement("tr");
-        for (let data of sample.getData()){
-            const td =document.createElement("td");
+        for (let data of standard.getData()){
+            const td = document.createElement("td");
+            if(typeof data === "number")data = data.toFixed(2);
+            td.textContent = data;
+            row.appendChild(td);
+        }
+        body.appendChild(row);
+    };
+
+    for(let unknown of unknowns){        
+        const row = document.createElement("tr");
+        for (let data of unknown.getData()){
+            const td = document.createElement("td");
+            if(typeof data === "number") data = data.toFixed(2);
             td.textContent = data;
             row.appendChild(td);
         }
@@ -286,14 +341,15 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale){
                     data:standards.map(standard => {return {x:standard.x, y:standard.averageY}}),
                 },
                 {
-                    label:`Regression Model: R-Squared: ${rSquared.toFixed(3)}`,
-                    data: standards.sort((first, second)=>first.averageY-second.averageY).map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
-                    showLine:true,
-                },
-                {
                     label:"Unknowns",                        
                     data: unknowns.map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
-                }
+                },
+                {
+                    label:`Regression Model: R-Squared: ${rSquared.toFixed(2)}`,
+                    data: standards.map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
+                    showLine:true,
+
+                },
             ]
         },
         options:{
@@ -324,5 +380,39 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale){
         }
     }
 }
+
+/**
+ * @param {xlsx.WorkBook} wkbk
+ * @param {string[][]} data
+ * @returns {xlsx.WorkBook}
+ */
+function appendToExcel(wkbk, data){
+    const wkst = xlsx.utils.aoa_to_sheet(data);
+    xlsx.utils.book_append_sheet(wkbk, wkst);
+    return wkbk;
+}
+
+/**
+ * @param {string[][]} data
+ * @returns {xlsx.WorkBook}
+ */
+function createWkbk(data){
+    const wkbk = xlsx.utils.book_new();
+    const wkst = xlsx.utils.aoa_to_sheet(data);
+    xlsx.utils.book_append_sheet(wkbk, wkst);
+    return wkbk;
+}
+
+// /**
+//  * @param {Sample[]} standards
+//  * @param {Sample[]} unknowns
+//  * @param {string[][]} rawData
+//  * @param {RegressionObject} regressionObject
+//  * @returns {string[][]}
+//  */
+// function formatForExcel(standards, unknowns, rawData,regressionObject){
+//     // console.log(samples, rawData,regressionObject)
+      
+// }
 
 main()

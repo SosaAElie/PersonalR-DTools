@@ -105,3 +105,15 @@ body{
     height: 60vh;
     width: 100vh;
 }
+#table-container{
+    display: flex;
+    position: relative;
+    justify-content: center;
+}
+
+table{
+    border-style: solid;    
+}
+body{
+    background-color: rgba(240, 248, 255, 0.658);
+}
