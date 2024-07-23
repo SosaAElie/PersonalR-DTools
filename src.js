@@ -32,6 +32,7 @@ let CHART = null;
  * @property {string} wellPosition - The well position the sample was loaded in
  * @property {number} wellNumber - The well number the same was loaded in
  * @property {string} name - The name of the sample
+ * @property {string} type - The type of the sample
  */
 
 /**
@@ -165,14 +166,14 @@ async function merge(rawdataFile, templateFile){
             const parsedSample = parseSampleName(template[i][j]);
             const y = Number(data[i][j]);            
             const name = parsedSample.get("name");
+            const type = parsedSample.get("type");
 
             //Create a light sample object for each item in the template
-            lightSamples.push({name, wellNumber, wellPosition});
+            lightSamples.push({name, wellNumber, wellPosition, type});
 
             //Skip over the samples labeled as none
             if(name.toLowerCase() === "none") continue;
 
-            const type = parsedSample.get("type");
             if(samples.has(name)){
                 const sample = samples.get(name);
                 sample.ys.push(y);
@@ -465,6 +466,8 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                 {
                     label:"Standards",
                     data:standards.map(standard => {return {x:standard.x, y:standard.averageY}}),
+                    pointBackgroundColor:"#D6EFD8",
+                    pointBorderColor:"black"
                 },
                 {
                     label:"Unknowns",
@@ -701,7 +704,12 @@ function diagram96Well(lightSamples, parent){
         circularDiv.className = "well";
         circularDiv.appendChild(hoverText);
         circularDiv.appendChild(wellPosition)
-        circularDiv.style.backgroundColor = sample.name.toUpperCase()==="NONE"?"white":"";
+        if(sample.name.toUpperCase()==="NONE"){
+            circularDiv.style.backgroundColor = "white";
+        }
+        else if(sample.type.toUpperCase()==="STANDARD"){
+            circularDiv.style.backgroundColor = "#D6EFD8";
+        }
         // circularDiv.addEventListener("click", function (event){
         //     this.firstChild.style.visibility = "hidden";
         //     this.firstChild.nextSibling.style.visibility = "hidden"; 

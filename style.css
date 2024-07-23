@@ -101,11 +101,10 @@ body{
 
 .chart-container{
     position: relative;
-    /* display: flex; */
-    /* flex-direction: row; */
     margin: auto;
     height: 60vh;
-    width: 100vh;
+    width: 45vw;
+
 }
 #table-container{
     display: flex;
@@ -114,7 +113,7 @@ body{
 }
 
 table{
-    border-style: solid;    
+    border-style: solid;
 }
 
 td{
@@ -144,7 +143,6 @@ td{
     grid-template-columns: repeat(12, auto);
     gap: 1%;
     width: fit-content;
-    padding-bottom: 2%;
     padding-left: 2%;
 }
 #template-diagram>div{
@@ -160,12 +158,12 @@ td{
 .well{ 
     font-weight: bolder;
     justify-content: center;
-    background-color: #77abe75d;
+    background-color: #ff69695c;
 }
 .well .hovertext{
     visibility: hidden;
     width: 120px;
-    background-color: black;
+    background-color: rgba(53, 48, 48, 0.709);
     color: #fff;
     text-align: center;
     border-radius: 6px;
@@ -180,7 +178,10 @@ td{
 }
 #chart-template-container{
     padding-top: 1%;
+    padding-bottom: 1%;
     display: flex;
     flex-direction: row;
-    flex-wrap: nowrap;
+    width: 100%;
+    
+    /* flex-wrap: nowrap; */
 }
