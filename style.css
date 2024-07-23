@@ -72,7 +72,7 @@
 
 body{
     font-family: "Roboto", sans-serif;
-    font-weight: 100;
+    font-weight: normal;
     font-style: normal;
     text-align: center;
 }
@@ -114,9 +114,6 @@ body{
 table{
     border-style: solid;    
 }
-body{
-    background-color: rgba(240, 248, 255, 0.658);
-}
 
 td{
     width: 20vh;
@@ -131,10 +128,11 @@ td{
 
 .description>p{
     width: 40%;
-    border-style: dashed;
-    border-color: rgba(255, 0, 0, 0.52);
 }
 
 .description>img{
     width:40%;
+}
+#header{
+    border-bottom: dashed;
 }

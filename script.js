@@ -42603,6 +42603,7 @@ async function merge(rawdataFile, templateFile){
     const rawdata = await parseRawDataFile(rawdataFile);
     const rawTemplate = await parseTemplateFile(templateFile);
     const samples = new Map();
+    
     //Grabs only the raw data assuming the data is in a 96-well plate layout
     const data = rawdata.slice(3,11).map(row => row.slice(2, -1));
     const unparsedFilename = rawdata.at(-2)[0];
@@ -42740,7 +42741,7 @@ function handleClick(e){
         const units = standards[0].units;
         
         //Create chart & table
-        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units);
+        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, parsedData.filename);
         CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
         createTable(unknowns,standards,tableContainer, units);
 
@@ -42907,9 +42908,10 @@ function parseTemplateFile(file){
  * @param {number} rSquared
  * @param {string} xScale
  * @param {string} units
+ * @param {string} title
  * @returns {chartjs.ChartConfiguration}
  */
-function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units){
+function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, title){
     
     return {
         type:"scatter",
@@ -42941,21 +42943,36 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units)
                     title:{
                         display:true,
                         text:`Protein [${units}]`,
+                        font:{
+                            size:14,
+                            weight:"bold",
+                        },
+                        color: "#000000",
                     },
                 },
                 y:{
                     position:"left",
                     title:{
                         display:true,
-                        text:"Absorbance or Luminescence"
-                    }                        
+                        text:"Absorbance or Luminescence",
+                        font:{
+                            size:14,
+                            weight:"bold",
+                        },
+                        color: "#000000", 
+                    },
+                               
                 }
             },
             plugins:{
                 title:{
                     display:true,
-                    text: `${new Date().getMonth()}/${new Date().getDate()}/${new Date().getFullYear()} Interpolation of Unknowns Using Linear Regression`,
-                },         
+                    text: title,
+                    font:{
+                        size:16,
+                    },
+                    color: "#000000",
+                },
             }
         }
     }
