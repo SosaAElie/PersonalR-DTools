@@ -115,7 +115,6 @@ body{
 table{
     border-style: solid;
 }
-
 td{
     width: 20vh;
 }
@@ -168,7 +167,7 @@ td{
     text-align: center;
     border-radius: 6px;
     font-size: medium;
-
+    
     /* Position the tooltip */
     position: absolute;
     z-index: 1;
@@ -182,6 +181,4 @@ td{
     display: flex;
     flex-direction: row;
     width: 100%;
-    
-    /* flex-wrap: nowrap; */
 }

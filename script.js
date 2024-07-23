@@ -42825,13 +42825,13 @@ function handleClick(e){
         //Create chart & table
         const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, parsedData.filename);
         CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
-        createTable(unknowns,standards,tableContainer, units, targetUnits);
+        createTable(unknowns,standards,tableContainer, units, targetUnits, dilutionFactor);
 
         //Create pseudoExcels in memory in order to write to excel and create downloadable link
         const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
         psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
         const startingCol = psuedoExcel.columns;
-        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", "Average(Stdev)", `Interpolated Concentration [${units}]`, `"Actual" Concentration [${units}]`, `Converted Concentration [${targetUnits}]`]);
+        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", "Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`]);
         standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
         unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
 
@@ -42917,15 +42917,16 @@ function deleteTable(container){
  * @param {Sample[]} standards - A list of sample objects to display in the table
  * @param {string} units - The units of the samples
  * @param {string} convertedUnits - The converted units of the samples
+ * @param {string} dilutionFactor - The dilution factor of the samples
  * @param {Element} container - The element to append the table element to as a child
  * @returns {null}
  */
-function createTable(unknowns, standards, container, units, convertedUnits){
+function createTable(unknowns, standards, container, units, convertedUnits, dilutionFactor){
     const table = document.createElement("table");
     table.id = "results-table";
     const headerContainer = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    const headers = ["Name", "Sample Type", "Average Absorbance or Luminescence",`Interpolated Concentration [${units}]`, `"Actual" Concentration [${units}]`, `Converted Concentration [${convertedUnits}]`];
+    const headers = ["Name", "Sample Type", "Average Absorbance or Luminescence",`Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${convertedUnits}]`];
     for(let header of headers){
         const row = document.createElement("th");
         row.textContent = header;
@@ -43248,42 +43249,47 @@ function diagram96Well(lightSamples, parent){
         else if(sample.type.toUpperCase()==="STANDARD"){
             circularDiv.style.backgroundColor = "#D6EFD8";
         }
-        // circularDiv.addEventListener("click", function (event){
-        //     this.firstChild.style.visibility = "hidden";
-        //     this.firstChild.nextSibling.style.visibility = "hidden"; 
-        //     const sampleNameInput = document.createElement("input");
-        //     this.appendChild(sampleNameInput);
-        //     sampleNameInput.style.zIndex = "1";
-        //     this.lastChild.focus();
-            
-        //     sampleNameInput.addEventListener("change", event=>{
-                
-        //         well.sampleName = sampleNameInput.value;
-        //         well.sampleColor = sampleNameInput.value.toUpperCase() === "EMPTY"?'"""RGB(255,255,255)"""':"";
-        //         this.style.backgroundColor = sampleNameInput.value.toUpperCase()==="EMPTY"?"white":"";
-        //         hoverText.textContent = sampleNameInput.value;
-        //         try {
-        //             this.removeChild(this.lastChild);
-        //         } catch (error) {
-        //             console.log("The focus out event has already removed the input element")
-        //         }
-                
-        //         this.firstChild.style.visibility = "";
-        //         this.firstChild.nextSibling.style.visibility = ""; 
-        //     })
-
-            // sampleNameInput.addEventListener("focusout", event=>{
-            //     this.removeChild(this.lastChild);
-            //     this.firstChild.style.visibility = "";             
-            //     this.firstChild.nextSibling.style.visibility = "";  
-            // })
-            
-        // })
-        
         parent.appendChild(circularDiv);
     }
 }
 
+/** 
+ * @param {Sample[]} unknowns
+ * @param {Element} parent
+ * @returns {void}
+**/
+function createProteinGelLoadingTable(unknowns, parent){
+    const table = document.createElement("table");
+    table.id = "protein-loading-table";
+    const headerContainer = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    // const headers = ["Name", `${}Concentration [${units}]`, `Converted Concentration [${convertedUnits}]`];
+    
+    for(let header of headers){
+        const row = document.createElement("th");
+        row.textContent = header;
+        headerRow.appendChild(row);
+    }
+
+    const body = document.createElement("tbody");
+    headerContainer.appendChild(headerRow);
+    
+
+    for(let unknown of unknowns){        
+        const row = document.createElement("tr");
+        for (let data of unknown.getData()){
+            const td = document.createElement("td");
+            if(typeof data === "number") data = data.toFixed(2);
+            td.textContent = data;
+            row.appendChild(td);
+        }
+        body.appendChild(row);
+    }
+    table.appendChild(headerContainer);
+    table.appendChild(body);
+    container.appendChild(table);
+
+}
 
 main()
 },{"chart.js/auto":2,"chartjs-plugin-datalabels":7,"papaparse":8,"simple-statistics":9,"xlsx":11}],13:[function(require,module,exports){
