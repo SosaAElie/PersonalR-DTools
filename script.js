@@ -42703,6 +42703,9 @@ function handleClick(e){
     const tableContainer = document.getElementById("table-container");
     const fileContainer = document.getElementById("file-container");
 
+    //If there is no template or raw data file selected return null
+    if(!rawdataFile || !templateFile) return null;
+
     //Delete current chart & table & download anchor
     if(CHART !== null){
         CHART.destroy();
@@ -42710,7 +42713,7 @@ function handleClick(e){
         window.URL.revokeObjectURL(fileContainer.firstChild.href);
         fileContainer.removeChild(fileContainer.firstChild);
     } 
-    if(!rawdataFile || !templateFile) return;
+    
     merge(rawdataFile, templateFile)
     .then(parsedData =>{
         const samples = Array.from(parsedData.samples.values());
@@ -42956,17 +42959,6 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units)
             }
         }
     }
-}
-
-/**
- * @param {xlsx.WorkBook} wkbk
- * @param {string[][]} data
- * @returns {xlsx.WorkBook}
- */
-function appendToExcel(wkbk, data){
-    const wkst = xlsx.utils.aoa_to_sheet(data);
-    xlsx.utils.book_append_sheet(wkbk, wkst);
-    return wkbk;
 }
 
 /**

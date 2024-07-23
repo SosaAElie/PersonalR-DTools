@@ -121,3 +121,16 @@ body{
 td{
     width: 20vh;
 }
+
+.description{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+}
+
+.description>p{
+    width: 40%;
+    border-style: dashed;
+    border-color: rgba(255, 0, 0, 0.52);
+}

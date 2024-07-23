@@ -1,0 +1,16 @@
+THIS,IS,THE,EMPTY,96,WELL,PLATE,TEMPLATE.,PLEASE,EDIT,WITH,YOUR,LAYOUT.
+,1,2,3,4,5,6,7,8,9,10,11,12
+A,None,None,None,None,None,None,None,None,None,None,None,None
+B,None,None,None,None,None,None,None,None,None,None,None,None
+C,None,None,None,None,None,None,None,None,None,None,None,None
+D,None,None,None,None,None,None,None,None,None,None,None,None
+E,None,None,None,None,None,None,None,None,None,None,None,None
+F,None,None,None,None,None,None,None,None,None,None,None,None
+G,None,None,None,None,None,None,None,None,None,None,None,None
+H,None,None,None,None,None,None,None,None,None,None,None,None
+,,,,,,,,,,,,
+"KEY: Please Prefix all items in the plate with any of the below prefixes, using a dash ""-"" to separate the prefix from the rest of the name",,,,,,,,,,,,
+None,No sample is in the well,,,,,,,,,,,
+Sample,Refers to any sample on the plate that is not a standard or a control,,,,,,,,,,,
+Standard,Refers to the standard used for regression analysis,,,,,,,,,,,
+Control,Refers to the positive or negative control on the plate,,,,,,,,,,,

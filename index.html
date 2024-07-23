@@ -15,30 +15,47 @@
             <h1 class="roboto-bold">Personal R&D Tools</h1>
             <p>A set of personal R&D tools I use to automate my lab work.</p>
         </div>
-        <div id = file-inputs>
-            <label for = "rawdata-input">Select Your SoftMax Pro Raw Data Input</label>
-            <input id = "rawdata-input" type="file" accept=".txt" required>
-            <label for = "template-input" >Select your 96-Well Plate Template</label>
-            <input id = "template-input" type="file" accept=".csv" required>
-            <div id = "regression-inputs">
-                <label for = "linear">Linear Regression</label>
-                <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
-                <label for = "log">Logarithmic Regression</label>
-                <input id = "log" type = "radio" name = "regression" value="log">
+        <!-- <div id = "page-sections">
+            <p>Click any of the links below to jump that section of the webpage</p>
+            <ul>
+                <li><a href="#regression-section">Regression Section</a></li>
+                <li><a href="#regression-section">Regression Section</a></li>
+            </ul>
+        </div> -->
+        <div id = "regression-section">
+            <div class = "description">
+                <p>
+                    Interpolate the concentration of unknowns using either linear or logarithmic regression
+                    The raw data file accepted has to be exported from a SoftMaxPro in text and plate format.
+                    If you don't have a csv template, you can download, edit and reupload this one: 
+                    <a href = "Downloadables/template.csv" download="template.csv">96 Well Template</a>.
+                </p>
             </div>
-            <div id = "x-scale">
-                <label for = "linear-scale">Linear X-Scale</label>
-                <input id = "linear-scale" value="linear" type = "radio" name = "scale" checked>
-                <label for = "logarithmic-scale">Logarithmic X-Scale</label>
-                <input id = "logarithmic-scale" value="logarithmic" type = "radio" name = "scale"> 
+            <div id = file-inputs>
+                <label for = "rawdata-input">Select Your SoftMaxPro Raw Data Input</label>
+                <input id = "rawdata-input" type="file" accept=".txt" required>
+                <label for = "template-input" >Select Your 96-Well Plate Template</label>
+                <input id = "template-input" type="file" accept=".csv" required>
+                <div id = "regression-inputs">
+                    <label for = "linear">Linear Regression</label>
+                    <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
+                    <label for = "log">Logarithmic Regression</label>
+                    <input id = "log" type = "radio" name = "regression" value="log">
+                </div>
+                <div id = "x-scale">
+                    <label for = "linear-scale">Linear X-Scale</label>
+                    <input id = "linear-scale" value="linear" type = "radio" name = "scale" checked>
+                    <label for = "logarithmic-scale">Logarithmic X-Scale</label>
+                    <input id = "logarithmic-scale" value="logarithmic" type = "radio" name = "scale"> 
+                </div>
+                <button id = "process-button" type = "button">Interpolate</button>
             </div>
-            <button id = "process-button" type = "button">Interpolate</button>
+            <div id = "file-container"></div>
+            <div class = "chart-container">            
+                <canvas id = "regression-chart"></canvas>
+            </div>
+            <div id = "table-container"></div>        
         </div>
-        <div id = "file-container"></div>
-        <div class = "chart-container">            
-            <canvas id = "regression-chart"></canvas>
-        </div>
-        <div id = "table-container"></div>        
         <script src="script.js" async defer></script>
     </body>
 </html>
