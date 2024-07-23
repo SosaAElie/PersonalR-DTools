@@ -1,7 +1,7 @@
 const ss = require("simple-statistics");
 const chartjs = require("chart.js/auto");
 const papa = require("papaparse");
-// const chartJsPtLabels = require("chartjs-plugin-datalabels");
+require("chartjs-plugin-datalabels");
 const xlsx = require("xlsx");
 
 //Global variable to store the reference to the created chart
@@ -17,7 +17,9 @@ let CHART = null;
  * @property {string} units - The units of x i.e ug/mL, ng/mL, ug/uL, etc.
  * @property {string[]} wellPositions - The wells the sample was loaded in i.e A1, B1, C1, etc.
  * @property {number} averageY - The average of y if sample was loaded in replicates 
+ * @property {number|string} stdev - The standard deviation of y if sample was loaded in replicates 
  * @property {Function} getData - Function that returns a list of important data for the same that can be used to display in a table
+ * @property {Function} getExcelData - Function that returns a list of data to write to excel
  * 
 */
 
@@ -36,6 +38,18 @@ let CHART = null;
  * @property {string} filename
  * @property {string[][]} rawdata
  * @property {string[][]} template
+ */
+
+/**
+ * @typedef {Object} PsuedoExcel
+ * @property {number} rows
+ * @property {number} columns
+ * @property {string[][]} data
+ * @property {CallableFunction} appendCol
+ * @property {CallableFunction} appendRow
+ * @property {CallableFunction} at
+ * @property {CallableFunction} combine
+ * @property {CallableFunction} appendAt
  */
 
 function main(){    
@@ -63,10 +77,17 @@ async function merge(rawdataFile, templateFile){
 
     //Function definition for a property of the Sample object
     /**
-     * @returns {string[]}
+     * @returns {string[]|number[]|boolean[]}
      */
     function getData(){
         return [this.name, this.type, this.averageY, this.interpolatedX];
+    }
+
+    /**
+     * @returns {string[]|number[]|boolean[]}
+     */
+    function getExcelData(){
+        return [this.name, this.type, this.ys, `${this.averageY}(${this.stdev})`, this.interpolatedX.toFixed(3)];
     }
 
     //Iterate through each inner array and create a sample, only adding the sample to the sample list if it doesn't exist already
@@ -93,16 +114,17 @@ async function merge(rawdataFile, templateFile){
                 if(parsedSample.has("units")){
                     const units = parsedSample.get("units");
                     const x = parsedSample.get("x");
-                    samples.set(name, {name, type, units, wellPositions:[wellPosition], x, ys:[y], getData});
+                    samples.set(name, {name, type, units, wellPositions:[wellPosition], x, ys:[y], getData, getExcelData});
                 }
                 else{
-                    samples.set(name, {name, type, wellPositions:[wellPosition], ys:[y], getData});
+                    samples.set(name, {name, type, wellPositions:[wellPosition], ys:[y], getData, getExcelData});
                 }
             }
         }
     }
     //Iterate through the samples after they have all been mapped and add the averageY property
-    samples.forEach((v,k, m) => v.averageY = ss.average(v.ys));
+    samples.forEach((v, k, m) => v.averageY = ss.average(v.ys));
+    samples.forEach((v, k, m)=> v.stdev = v.ys.length > 1?ss.standardDeviation(v.ys):"N/A")
 
     //Provide the filename so that it can be used to create the results xlsx file
 
@@ -174,26 +196,40 @@ function handleClick(e){
         //Sort samples according to their y values
         standards.sort((first, second)=>second.averageY-first.averageY);
         unknowns.sort((first,second)=>second.averageY-first.averageY);
+        const units = standards[0].units;
         
         //Create chart & table
-        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale);
+        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units);
         CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
-        createTable(unknowns,standards,tableContainer);
+        createTable(unknowns,standards,tableContainer, units);
+
+        //Create pseudoExcels in memory in order to write to excel and create downloadable link
+        const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
+        psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
+        const startingCol = psuedoExcel.columns;
+        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", "Average(Stdev)", `Interpolated Concentration [${units}]`]);
+        standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
+        unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
+
+        //Add regression model parameters of best fit to pseudoExcel
+        psuedoExcel.appendCol(psuedoExcel.columns, [""]);
+        psuedoExcel.appendCol(psuedoExcel.columns,["R-Squared", "Slope", "Y-Intercept"]);
+        psuedoExcel.appendCol(psuedoExcel.columns,[rSquared, m, b]);
+
 
         //create an excel file in memory with the desired data
-        const wkbk = createWkbk(parsedData.template);
+        const wkbk = createWkbk(psuedoExcel.data);
         const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
         const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
-        
+
         //Create a download link and associated anchor element
         const link = window.URL.createObjectURL(blob);
         const anchorElem = document.createElement("a");
         anchorElem.href = link;
         anchorElem.download = parsedData.filename+".xlsx";
         anchorElem.innerText = parsedData.filename+".xlsx";
-        
         document.getElementById("file-container").appendChild(anchorElem);
-
+        
     })
 /**
  * @param {HTMLDivElement} container
@@ -255,15 +291,16 @@ function deleteTable(container){
 /**
  * @param {Sample[]} unknowns - A list of sample objects to display in the table
  * @param {Sample[]} standards - A list of sample objects to display in the table
+ * @param {string} units - The units of the standards
  * @param {Element} container - The element to append the table element to as a child
  * @returns {null}
  */
-function createTable(unknowns, standards, container){
+function createTable(unknowns, standards, container, units){
     const table = document.createElement("table");
     table.id = "results-table";
     const headerContainer = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    const headers = ["Name", "Sample Type", "Average Absorbance/Luminescence","Interpolated Protein Concentration"];
+    const headers = ["Name", "Sample Type", "Average Absorbance or Luminescence",`Interpolated Concentration [${units}]`];
     for(let header of headers){
         const row = document.createElement("th");
         row.textContent = header;
@@ -328,20 +365,22 @@ function parseTemplateFile(file){
  * @param {Sample[]} standards
  * @param {number} rSquared
  * @param {string} xScale
- * @returns {Object}
+ * @param {string} units
+ * @returns {chartjs.ChartConfiguration}
  */
-function createChartOptionsAndData(unknowns, standards, rSquared, xScale){
+function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units){
     
     return {
         type:"scatter",
         data:{
-            datasets:[
+            datasets:[  
+
                 {
                     label:"Standards",
                     data:standards.map(standard => {return {x:standard.x, y:standard.averageY}}),
                 },
                 {
-                    label:"Unknowns",                        
+                    label:"Unknowns",
                     data: unknowns.map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
                 },
                 {
@@ -360,14 +399,14 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale){
                     position:"bottom",
                     title:{
                         display:true,
-                        text:"Protein [ug/mL]",
+                        text:`Protein [${units}]`,
                     },
                 },
                 y:{
                     position:"left",
                     title:{
                         display:true,
-                        text:"Absorbance @ 562nm"
+                        text:"Absorbance or Luminescence"
                     }                        
                 }
             },
@@ -375,7 +414,7 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale){
                 title:{
                     display:true,
                     text: `${new Date().getMonth()}/${new Date().getDate()}/${new Date().getFullYear()} Interpolation of Unknowns Using Linear Regression`,
-                },                   
+                },         
             }
         }
     }
@@ -403,16 +442,140 @@ function createWkbk(data){
     return wkbk;
 }
 
-// /**
-//  * @param {Sample[]} standards
-//  * @param {Sample[]} unknowns
-//  * @param {string[][]} rawData
-//  * @param {RegressionObject} regressionObject
-//  * @returns {string[][]}
-//  */
-// function formatForExcel(standards, unknowns, rawData,regressionObject){
-//     // console.log(samples, rawData,regressionObject)
-      
-// }
+
+/**
+ * @param {number} rows
+ * @param {number} columns
+ * @param {string[][]} startingData
+ * @returns {PsuedoExcel}
+ */
+function createPsuedoExcel(rows, columns, startingData = null){
+    let data; 
+
+    if(startingData && startingData.length !== 0){
+        data = startingData;
+        rows = startingData.length;
+        columns = ss.max(startingData.map(inner => inner.length));
+    }
+    else{
+        data = [];
+        for (let i = 0; i < rows; i++) data.push(new Array(columns).fill(null));
+    }
+    
+
+
+
+    /**
+     * @param {number} row
+     * @param {number} column
+     * @param {number|string|boolean} val
+     * @returns {string|null}
+     */
+    function at(row, column, val){
+        while(this.rows <= row) {
+            this.data.push(new Array(column+1).fill(null));
+            this.rows+=1;
+        };
+        const currentRow = this.data[row];
+        while(currentRow.length <= column){ 
+            currentRow.push(null);
+        };
+        if(this.columns < currentRow.length) this.columns = currentRow.length;
+        if(val) this.data[row][column] = val.toString();
+        else return this.data[row][column];
+        
+    }
+
+    /**
+     * @param {string[]|number[]|boolean[]} data
+     * @returns {number} - Returns the new number of total rows
+     */
+    function appendRow(data){
+        this.data.push(data.map(val => val.toString()));
+        this.rows+=1;
+        return this.rows;
+    }
+    
+    /**
+     * @param {number} startingCol
+     * @param {string[]|number[]|boolean[]} data
+     * @returns {number} - Returns the new number of total columns
+     */
+    function appendCol(startingCol = null, data){
+        // for(let i = 0; i < data.length; i++){
+        //     if(i >= this.rows) this.data.push(new Array(this.columns).fill(null));
+        //     this.data[i].push(data[i].toString());
+        // };
+        // this.columns+=1;
+        if(!startingCol) startingCol = this.columns;
+        for(let i = 0; i < data.length; i++){
+            this.at(i, startingCol, data[i]);
+        };
+        return this.columns;
+    }
+
+    /**
+     * @param {PsuedoExcel} psuedoExcel
+     * @param {boolean} overwrite
+     * @param {number} startingRow
+     * @param {number} startingCol
+     * @param {string} seperator
+     * @returns {ThisType<PsuedoExcel>} 
+     */
+    function combine(psuedoExcel, startingRow = 0, startingCol = 0, overwrite = true, seperator = ":"){
+        const newData = psuedoExcel.data;
+        if(overwrite){
+            for(let row = 0; row < newData.length; row++){
+                for(let col = 0; col < newData[row].length; col++){
+                    this.at(startingRow+row,startingCol+col, newData[row][col]);
+                }
+            }
+        }
+        else{    
+            for(let row = 0; row < newData.length; row++){
+                for(let col = 0; col < newData[row].length; col++){
+                    const currentVal = this.at(startingRow+row,startingCol+col);
+                    if(currentVal) this.at(startingRow+row,startingCol+col, currentVal + seperator + newData[row][col])
+                    else this.at(startingRow+row,startingCol+col, newData[row][col]);
+                }
+            }
+        }
+        return this;
+    }
+
+    /**
+     * @param {number} startingRow
+     * @param {number} startingCol
+     * @param {boolean} horizontal
+     * @param {boolean} overwrite
+     * @param {string[]|number[]|boolean[]} data
+     * @returns {null}
+     */
+    function appendAt(startingRow, startingCol, horizontal, data){
+        if(horizontal){
+            for(let i = 0; i < data.length; i++){
+                this.at(startingRow, startingCol+i, data[i]);
+            }
+        }
+        else{
+            for(let i = 0; i < data.length; i++){
+                this.at(startingRow+i, startingCol, data[i]);
+            }            
+        }
+    }
+
+
+
+    return {
+        rows,
+        columns,
+        data,
+        appendRow,
+        appendCol,
+        at,
+        combine,
+        appendAt,
+    }
+}
 
 main()
