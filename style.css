@@ -101,6 +101,8 @@ body{
 
 .chart-container{
     position: relative;
+    /* display: flex; */
+    /* flex-direction: row; */
     margin: auto;
     height: 60vh;
     width: 100vh;
@@ -135,4 +137,50 @@ td{
 }
 #header{
     border-bottom: dashed;
+}
+
+#template-diagram{
+    display: grid;
+    grid-template-columns: repeat(12, auto);
+    gap: 1%;
+    width: fit-content;
+    padding-bottom: 2%;
+    padding-left: 2%;
+}
+#template-diagram>div{
+    height: 50px;
+    width: 50px;
+    border-style: solid;
+    border-color: black;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+}
+
+.well{ 
+    font-weight: bolder;
+    justify-content: center;
+    background-color: #77abe75d;
+}
+.well .hovertext{
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    font-size: medium;
+
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+}
+.well:hover .hovertext {
+    visibility: visible;
+}
+#chart-template-container{
+    padding-top: 1%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
 }

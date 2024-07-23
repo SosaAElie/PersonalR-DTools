@@ -37,7 +37,11 @@
                 <label for = "rawdata-input">Select Your SoftMaxPro Raw Data Input</label>
                 <input id = "rawdata-input" type="file" accept=".txt" required>
                 <label for = "template-input" >Select Your 96-Well Plate Template</label>
-                <input id = "template-input" type="file" accept=".csv" required>
+                <input id = "template-input" type="file" accept=".csv" required> 
+                <label for = "dilution-factor" >Enter the Dilution Factor of Your Samples</label>
+                <input id = "dilution-factor" type = "number" min="1" value="1">
+                <label for = "units-conversion" >Enter The Units To Convert To</label>
+                <input id = "units-conversion" type = "text" value="ug/uL">
                 <div id = "regression-inputs">
                     <label for = "linear">Linear Regression</label>
                     <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
@@ -53,8 +57,11 @@
                 <button id = "process-button" type = "button">Interpolate</button>
             </div>
             <div id = "file-container"></div>
-            <div class = "chart-container">            
-                <canvas id = "regression-chart"></canvas>
+            <div id = "chart-template-container">
+                <div id = "template-diagram"></div>
+                <div class = "chart-container">   
+                    <canvas id = "regression-chart"></canvas>
+                </div>
             </div>
             <div id = "table-container"></div>        
         </div>

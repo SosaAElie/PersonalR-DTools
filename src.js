@@ -14,14 +14,25 @@ let CHART = null;
  * @property {number[]} ys - The OD(s)
  * @property {number} x - The concentration
  * @property {number} interpolatedX - The interpolated concentration
+ * @property {number} actualX - The interpolated concentration times the dilution factor
+ * @property {number} convertedX - The converted concentration of the actual x to the desired units
  * @property {string} units - The units of x i.e ug/mL, ng/mL, ug/uL, etc.
+ * @property {string} convertedUnits - The units to convert to of x i.e ug/mL, ng/mL, ug/uL, etc.
  * @property {string[]} wellPositions - The wells the sample was loaded in i.e A1, B1, C1, etc.
+ * @property {number[]} wellNumbers - The well numbers the sample was loaded in i.e 1 2,3,4, etc.
  * @property {number} averageY - The average of y if sample was loaded in replicates 
  * @property {number|string} stdev - The standard deviation of y if sample was loaded in replicates 
  * @property {Function} getData - Function that returns a list of important data for the same that can be used to display in a table
  * @property {Function} getExcelData - Function that returns a list of data to write to excel
  * 
 */
+
+/**
+ * @typedef {Object} LightSample
+ * @property {string} wellPosition - The well position the sample was loaded in
+ * @property {number} wellNumber - The well number the same was loaded in
+ * @property {string} name - The name of the sample
+ */
 
 /**
  * @typedef {Object} RegressionObject
@@ -38,6 +49,7 @@ let CHART = null;
  * @property {string} filename
  * @property {string[][]} rawdata
  * @property {string[][]} template
+ * @property {LightSample[]} lightSamples
  */
 
 /**
@@ -54,7 +66,57 @@ let CHART = null;
 
 function main(){    
     document.getElementById("process-button").addEventListener("click", handleClick);
+    document.getElementById("dilution-factor").addEventListener("input", handleDilutionInput);
+    document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
 }
+
+/**
+ * @param {InputEvent} e
+*/
+function handleDilutionInput(e){
+    if(parseInt(e.target.value) < 1){
+        this.setCustomValidity("The Dilution Factor Has To Be Greater Than or Equal to 1");
+        this.reportValidity();
+        document.getElementById("process-button").removeEventListener("click", handleClick);
+    }
+    else{        
+        this.setCustomValidity("");
+        document.getElementById("process-button").addEventListener("click", handleClick);
+    }
+}
+
+/**
+ * @param {InputEvent} e
+*/
+function handleConversionInput(e){
+    const masses = ["g", "mg", "ug", "ng", "fg"];
+    const volumes = ["L", "mL", "uL", "nL", "fL"];
+    const unit = e.target.value;
+    if(unit.indexOf("/") < 0){
+        document.getElementById("process-button").removeEventListener("click", handleClick);
+        this.setCustomValidity("Enter the units in the correct format, i.e. mass/volume");
+        this.reportValidity();
+    }
+    else{
+        this.setCustomValidity("");
+        const [mass, volume] = unit.split("/");
+        if(masses.indexOf(mass) < 0){
+            document.getElementById("process-button").removeEventListener("click", handleClick);
+            this.setCustomValidity("Not a Supported Unit of Mass, i.e. g, mg, ug, ng, fg");
+            this.reportValidity();
+        }
+        else if(volumes.indexOf(volume) < 0){
+            document.getElementById("process-button").removeEventListener("click", handleClick);
+            this.setCustomValidity("Not a Supported Unit of Volume, i.e. L, mL, uL, nL, fL");
+            this.reportValidity();            
+        }
+        else{
+            document.getElementById("process-button").addEventListener("click", handleClick);
+            this.setCustomValidity("");            
+        }
+    }
+}
+
 
 /**
  * @param {File} rawdataFile
@@ -65,6 +127,7 @@ async function merge(rawdataFile, templateFile){
     const rawdata = await parseRawDataFile(rawdataFile);
     const rawTemplate = await parseTemplateFile(templateFile);
     const samples = new Map();
+    const lightSamples = [];
     
     //Grabs only the raw data assuming the data is in a 96-well plate layout
     const data = rawdata.slice(3,11).map(row => row.slice(2, -1));
@@ -81,19 +144,20 @@ async function merge(rawdataFile, templateFile){
      * @returns {string[]|number[]|boolean[]}
      */
     function getData(){
-        return [this.name, this.type, this.averageY, this.interpolatedX];
+        return [this.name, this.type, this.averageY, this.interpolatedX, this.actualX, this.convertedX];
     }
 
     /**
      * @returns {string[]|number[]|boolean[]}
      */
     function getExcelData(){
-        return [this.name, this.type, this.ys, `${this.averageY}(${this.stdev})`, this.interpolatedX.toFixed(3)];
+        return [this.name, this.type, this.ys, `${this.averageY}(${this.stdev})`, this.interpolatedX.toFixed(3), this.actualX.toFixed(3), this.convertedX.toFixed(3)];
     }
 
     //Iterate through each inner array and create a sample, only adding the sample to the sample list if it doesn't exist already
     const rows = data.length;
     const columns = data[0].length;
+    let wellNumber = 1;
     for(let i = 0; i < rows; i++){
         const columnLetter = String.fromCharCode("A".charCodeAt(0) + i);
         for(let j = 0; j < columns; j++){
@@ -101,6 +165,9 @@ async function merge(rawdataFile, templateFile){
             const parsedSample = parseSampleName(template[i][j]);
             const y = Number(data[i][j]);            
             const name = parsedSample.get("name");
+
+            //Create a light sample object for each item in the template
+            lightSamples.push({name, wellNumber, wellPosition});
 
             //Skip over the samples labeled as none
             if(name.toLowerCase() === "none") continue;
@@ -110,15 +177,16 @@ async function merge(rawdataFile, templateFile){
                 const sample = samples.get(name);
                 sample.ys.push(y);
                 sample.wellPositions.push(wellPosition);
+                sample.wellNumbers.push(wellNumber);
             }
             else{
                 if(parsedSample.has("units")){
                     const units = parsedSample.get("units");
                     const x = parsedSample.get("x");
-                    samples.set(name, {name, type, units, wellPositions:[wellPosition], x, ys:[y], getData, getExcelData});
+                    samples.set(name, {name, type, units, wellPositions:[wellPosition], wellNumbers:[wellNumber], x, ys:[y], getData, getExcelData});
                 }
                 else{
-                    samples.set(name, {name, type, wellPositions:[wellPosition], ys:[y], getData, getExcelData});
+                    samples.set(name, {name, type, wellPositions:[wellPosition],wellNumbers:[wellNumber], ys:[y], getData, getExcelData});
                 }
             }
         }
@@ -129,7 +197,7 @@ async function merge(rawdataFile, templateFile){
 
     //Provide the filename so that it can be used to create the results xlsx file
 
-    return {samples,filename,rawdata, template};
+    return {samples,filename,rawdata, template, lightSamples};
 }
 
 /**
@@ -165,7 +233,9 @@ function handleClick(e){
     const chartCanvas = document.getElementById("regression-chart");
     const tableContainer = document.getElementById("table-container");
     const fileContainer = document.getElementById("file-container");
-
+    const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
+    const targetUnits = document.getElementById("units-conversion").value;
+    const diagramContainer = document.getElementById("template-diagram");
     //If there is no template or raw data file selected return null
     if(!rawdataFile || !templateFile) return null;
 
@@ -175,8 +245,9 @@ function handleClick(e){
         deleteTable(tableContainer);
         window.URL.revokeObjectURL(fileContainer.firstChild.href);
         fileContainer.removeChild(fileContainer.firstChild);
+        diagramContainer.innerHTML = "";
     } 
-    
+        
     merge(rawdataFile, templateFile)
     .then(parsedData =>{
         const samples = Array.from(parsedData.samples.values());
@@ -184,6 +255,9 @@ function handleClick(e){
         const unknowns = samples.filter(sample => sample.type === "sample");
         const xAndYStandards = standards.map(standard => [standard.x, standard.averageY]);
         let regressionObject;
+
+        //Create a 96 well diagram of the template
+        diagram96Well(parsedData.lightSamples, diagramContainer);
         
         //Get user inputs for x-scale type and regression type
         const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
@@ -194,31 +268,38 @@ function handleClick(e){
         else regressionObject = getLinearRegression(xAndYStandards);
         const {m, b, rSquared, eq, invEq} = regressionObject;
         
-        //Interpolate the concentration of all the samples using the regression model generated
-        for(let sample of samples) sample.interpolatedX = invEq(sample.averageY);        
-        
         //Sort samples according to their y values
         standards.sort((first, second)=>second.averageY-first.averageY);
         unknowns.sort((first,second)=>second.averageY-first.averageY);
         const units = standards[0].units;
         
+        //Interpolate the concentration of all the samples using the regression model generated
+        for(let sample of samples){
+            sample.interpolatedX = invEq(sample.averageY);
+            sample.actualX = sample.interpolatedX*dilutionFactor;
+            sample.units = units;
+            sample.convertedUnits = targetUnits;
+            sample.convertedX = convertConcentration(sample.actualX, units, targetUnits);
+        };
+        
+        
         //Create chart & table
         const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, parsedData.filename);
         CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
-        createTable(unknowns,standards,tableContainer, units);
+        createTable(unknowns,standards,tableContainer, units, targetUnits);
 
         //Create pseudoExcels in memory in order to write to excel and create downloadable link
         const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
         psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
         const startingCol = psuedoExcel.columns;
-        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", "Average(Stdev)", `Interpolated Concentration [${units}]`]);
+        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", "Average(Stdev)", `Interpolated Concentration [${units}]`, `"Actual" Concentration [${units}]`, `Converted Concentration [${targetUnits}]`]);
         standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
         unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
 
         //Add regression model parameters of best fit to pseudoExcel
         psuedoExcel.appendCol(psuedoExcel.columns, [""]);
-        psuedoExcel.appendCol(psuedoExcel.columns,["R-Squared", "Slope", "Y-Intercept"]);
-        psuedoExcel.appendCol(psuedoExcel.columns,[rSquared, m, b]);
+        psuedoExcel.appendCol(psuedoExcel.columns,["R-Squared", "Slope", "Y-Intercept", "Dilution Factor"]);
+        psuedoExcel.appendCol(psuedoExcel.columns,[rSquared, m, b, dilutionFactor]);
 
 
         //create an excel file in memory with the desired data
@@ -295,16 +376,17 @@ function deleteTable(container){
 /**
  * @param {Sample[]} unknowns - A list of sample objects to display in the table
  * @param {Sample[]} standards - A list of sample objects to display in the table
- * @param {string} units - The units of the standards
+ * @param {string} units - The units of the samples
+ * @param {string} convertedUnits - The converted units of the samples
  * @param {Element} container - The element to append the table element to as a child
  * @returns {null}
  */
-function createTable(unknowns, standards, container, units){
+function createTable(unknowns, standards, container, units, convertedUnits){
     const table = document.createElement("table");
     table.id = "results-table";
     const headerContainer = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    const headers = ["Name", "Sample Type", "Average Absorbance or Luminescence",`Interpolated Concentration [${units}]`];
+    const headers = ["Name", "Sample Type", "Average Absorbance or Luminescence",`Interpolated Concentration [${units}]`, `"Actual" Concentration [${units}]`, `Converted Concentration [${convertedUnits}]`];
     for(let header of headers){
         const row = document.createElement("th");
         row.textContent = header;
@@ -586,5 +668,75 @@ function createPsuedoExcel(rows, columns, startingData = null){
         appendAt,
     }
 }
+
+/**
+ * @param {number} conc
+ * @param {string} startingUnits
+ * @param {string} targetUnits
+ * @returns {number}
+ */
+function convertConcentration(conc, startingUnits, targetUnits){
+    const masses = ["g", "mg", "ug", "ng", "fg"];
+    const volumes = ["L", "mL", "uL", "nL", "fL"];
+    const thousands = 3;
+    const [currMass, currVol] = startingUnits.split("/");
+    const [targetMass, targetVol] = targetUnits.split("/");
+
+    return conc * (10**(thousands*(masses.indexOf(targetMass)-masses.indexOf(currMass))))* (10**(thousands*(volumes.indexOf(currVol)-volumes.indexOf(targetVol))));
+}
+
+/** 
+ * @param {LightSample[]} lightSamples
+ * @param {Element} parent
+ * @returns {void}
+**/
+function diagram96Well(lightSamples, parent){
+    for(let sample of lightSamples){
+        const circularDiv = document.createElement("div");
+        const wellPosition = document.createElement("p");
+        wellPosition.textContent = sample.wellPosition;
+        const hoverText = document.createElement("span");
+        hoverText.textContent = sample.name;
+        hoverText.className = "hovertext"
+        circularDiv.className = "well";
+        circularDiv.appendChild(hoverText);
+        circularDiv.appendChild(wellPosition)
+        circularDiv.style.backgroundColor = sample.name.toUpperCase()==="NONE"?"white":"";
+        // circularDiv.addEventListener("click", function (event){
+        //     this.firstChild.style.visibility = "hidden";
+        //     this.firstChild.nextSibling.style.visibility = "hidden"; 
+        //     const sampleNameInput = document.createElement("input");
+        //     this.appendChild(sampleNameInput);
+        //     sampleNameInput.style.zIndex = "1";
+        //     this.lastChild.focus();
+            
+        //     sampleNameInput.addEventListener("change", event=>{
+                
+        //         well.sampleName = sampleNameInput.value;
+        //         well.sampleColor = sampleNameInput.value.toUpperCase() === "EMPTY"?'"""RGB(255,255,255)"""':"";
+        //         this.style.backgroundColor = sampleNameInput.value.toUpperCase()==="EMPTY"?"white":"";
+        //         hoverText.textContent = sampleNameInput.value;
+        //         try {
+        //             this.removeChild(this.lastChild);
+        //         } catch (error) {
+        //             console.log("The focus out event has already removed the input element")
+        //         }
+                
+        //         this.firstChild.style.visibility = "";
+        //         this.firstChild.nextSibling.style.visibility = ""; 
+        //     })
+
+            // sampleNameInput.addEventListener("focusout", event=>{
+            //     this.removeChild(this.lastChild);
+            //     this.firstChild.style.visibility = "";             
+            //     this.firstChild.nextSibling.style.visibility = "";  
+            // })
+            
+        // })
+        
+        parent.appendChild(circularDiv);
+    }
+}
+
 
 main()
