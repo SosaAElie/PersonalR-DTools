@@ -100,16 +100,18 @@ body{
 }
 
 .chart-container{
-    position: relative;
+    /* position: relative; */
     margin: auto;
-    height: 60vh;
-    width: 45vw;
-
+    height: 70vh;
+    width: 50vw;
+    padding-right: 0;
+    margin-right: 2%;
 }
 #table-container{
     display: flex;
     position: relative;
     justify-content: center;
+
 }
 
 table{
@@ -145,9 +147,10 @@ td{
     padding-left: 2%;
 }
 #template-diagram>div{
-    height: 50px;
-    width: 50px;
-    border-style: solid;
+    height: 6vh;
+    width: 3vw;
+    border-style:solid;
+    border-width: 2px;
     border-color: black;
     border-radius: 50%;
     display: flex;
