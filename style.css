@@ -100,10 +100,10 @@ body{
 }
 
 .chart-container{
-    margin: auto;
+
     height: 70vh;
     width: 50vw;
-    margin-right: 1%;
+
 }
 #table-container{
     display: flex;
@@ -184,13 +184,19 @@ body{
 
 table{
     border-style: solid;
-    width: 50vw;
 }
 thead{
     background-color: #dddddd7c;
 }
-
 .container{
     display: flex;
     flex-direction: row;
+}
+input[type="text"] {
+    width: 75px;
+    text-align: center;
+}
+input[type="number"] {
+    width: 75px;
+    text-align: center;
 }
