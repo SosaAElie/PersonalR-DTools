@@ -110,6 +110,11 @@ body{
     position: relative;
     justify-content: center;
 }
+#gel-table-container{
+    display: flex;
+    position: relative;
+    justify-content: center;
+}
 
 .description{
     display: flex;
@@ -183,4 +188,9 @@ table{
 }
 thead{
     background-color: #dddddd7c;
+}
+
+.container{
+    display: flex;
+    flex-direction: row;
 }
