@@ -100,32 +100,21 @@ body{
 }
 
 .chart-container{
-    /* position: relative; */
     margin: auto;
     height: 70vh;
     width: 50vw;
-    padding-right: 0;
-    margin-right: 2%;
+    margin-right: 1%;
 }
 #table-container{
     display: flex;
     position: relative;
     justify-content: center;
-
-}
-
-table{
-    border-style: solid;
-}
-td{
-    width: 20vh;
 }
 
 .description{
     display: flex;
     flex-direction: column;
     align-items: center;
-    
 }
 
 .description>p{
@@ -144,7 +133,7 @@ td{
     grid-template-columns: repeat(12, auto);
     gap: 1%;
     width: fit-content;
-    padding-left: 2%;
+    margin-left: 1%;
 }
 #template-diagram>div{
     height: 6vh;
@@ -179,9 +168,19 @@ td{
     visibility: visible;
 }
 #chart-template-container{
-    padding-top: 1%;
-    padding-bottom: 1%;
+    margin-top: 1%;
+    margin-bottom: 1%;
     display: flex;
     flex-direction: row;
     width: 100%;
+    justify-content: space-between;
+    align-items: center;
+}
+
+table{
+    border-style: solid;
+    width: 50vw;
+}
+thead{
+    background-color: #dddddd7c;
 }
