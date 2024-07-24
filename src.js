@@ -23,6 +23,11 @@ let CHART = null;
  * @property {number[]} wellNumbers - The well numbers the sample was loaded in i.e 1 2,3,4, etc.
  * @property {number} averageY - The average of y if sample was loaded in replicates 
  * @property {number|string} stdev - The standard deviation of y if sample was loaded in replicates 
+ * @property {number|string} totalGelProtein - The total protein to load into the protein gel
+ * @property {number|string} totalVolume - The total desired volume to load into the protein gel
+ * @property {number|string} stockProteinVol - The total stock protein volume required
+ * @property {number|string} laemmliVol - The volume of 4x laemmli required
+ * @property {number|string} bufferVol - The volume of buffer required to reach total volume
  * @property {Function} getData - Function that returns a list of important data for the same that can be used to display in a table
  * @property {Function} getGelData - Function that returns a list of important data for the same that can be used to display in a gel loading table
  * @property {Function} getExcelData - Function that returns a list of data to write to excel
@@ -69,16 +74,18 @@ let CHART = null;
 
 function main(){    
     document.getElementById("process-button").addEventListener("click", handleClick);
-    document.getElementById("dilution-factor").addEventListener("input", handleDilutionInput);
+    document.getElementById("dilution-factor").addEventListener("input", handleNumericalInput);
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
+    document.getElementById("total-volume").addEventListener("input", handleNumericalInput);
+    document.getElementById("total-protein").addEventListener("input", handleNumericalInput);
 }
 
 /**
  * @param {InputEvent} e
 */
-function handleDilutionInput(e){
+function handleNumericalInput(e){
     if(parseInt(e.target.value) < 1){
-        this.setCustomValidity("The Dilution Factor Has To Be Greater Than or Equal to 1");
+        this.setCustomValidity("The Value Has To Be Greater Than or Equal to 1");
         this.reportValidity();
         document.getElementById("process-button").removeEventListener("click", handleClick);
     }
@@ -154,7 +161,7 @@ async function merge(rawdataFile, templateFile){
      * @returns {string[]|number[]|boolean[]}
      */
     function getExcelData(){
-        return [this.name, this.type, this.ys, `${this.averageY}(${this.stdev})`, this.interpolatedX.toFixed(3), this.actualX.toFixed(3), this.convertedX.toFixed(3)];
+        return [this.name, this.type, this.ys, `${this.averageY}(${this.stdev})`, this.interpolatedX.toFixed(3), this.actualX.toFixed(3), this.convertedX.toFixed(3), this.totalGelProtein, this.totalVolume, this.stockProteinVol, this.laemmliVol, this.bufferVol];
     }
 
     /**
@@ -247,6 +254,10 @@ function handleClick(e){
     const targetUnits = document.getElementById("units-conversion").value;
     const diagramContainer = document.getElementById("template-diagram");
     const gelTableContainer = document.getElementById("gel-table-container");
+    const totalProtein = parseInt(document.getElementById("total-protein").value);
+    const totalVolume = parseInt(document.getElementById("total-volume").value);
+
+
     //If there is no template or raw data file selected return null
     if(!rawdataFile || !templateFile) return null;
 
@@ -300,12 +311,15 @@ function handleClick(e){
         const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, parsedData.filename);
         CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
         createTable(unknowns,standards,tableContainer, units, targetUnits, dilutionFactor);
+        
+        //Create Gel Loading table
+        createProteinGelLoadingTable(unknowns, gelTableContainer,totalProtein, totalVolume);
 
         //Create pseudoExcels in memory in order to write to excel and create downloadable link
         const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
         psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
         const startingCol = psuedoExcel.columns;
-        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", "Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`]);
+        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", "Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Desired Vol [uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "Buffer [uL]"]);
         standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
         unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
 
@@ -326,11 +340,7 @@ function handleClick(e){
         anchorElem.href = link;
         anchorElem.download = parsedData.filename+".xlsx";
         anchorElem.innerText = parsedData.filename+".xlsx";
-        document.getElementById("file-container").appendChild(anchorElem);
-
-        //Create Gel Loading table
-        createProteinGelLoadingTable(unknowns, gelTableContainer);
-        
+        document.getElementById("file-container").appendChild(anchorElem);  
     })
 /**
  * @param {HTMLDivElement} container
@@ -489,12 +499,12 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                 {
                     label:"Unknowns",
                     data: unknowns.map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
+                    pointBorderColor:"black"
                 },
                 {
                     label:`Regression Model: R-Squared: ${rSquared.toFixed(2)}`,
                     data: standards.map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
                     showLine:true,
-
                 },
             ]
         },
@@ -734,9 +744,11 @@ function diagram96Well(lightSamples, parent){
 /** 
  * @param {Sample[]} unknowns
  * @param {Element} parent
+ * @param {number} totalProtein
+ * @param {number} totalVolume
  * @returns {void}
 **/
-function createProteinGelLoadingTable(unknowns, parent){
+function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolume){
     const units = unknowns[0].convertedUnits;
     const dilutionFactor = unknowns[0].dilutionFactor;
     const desiredVolEles = [];
@@ -776,7 +788,7 @@ function createProteinGelLoadingTable(unknowns, parent){
                 if(headers[i] === "Protein [ug]"){
                     targetProteinEles.push(inputEle);
                     inputEle.id = `Protein [ug]-${unknown.name}`;
-                    inputEle.value = "20";
+                    inputEle.value = totalProtein;
                     inputEle.addEventListener("input", e=>{
                         const targetProteinAmount = parseFloat(e.target.value);
                         if(targetProteinAmount < 0 || targetProteinAmount === undefined) return;
@@ -798,7 +810,7 @@ function createProteinGelLoadingTable(unknowns, parent){
                 else if(headers[i] === "Desired Vol [uL]"){
                     desiredVolEles.push(inputEle);
                     inputEle.id = `Desired Vol [uL]-${unknown.name}`;
-                    inputEle.value = "12";
+                    inputEle.value = totalVolume;
                     inputEle.addEventListener("input", e=>{
                         const desiredVol = parseFloat(e.target.value);
                         if(desiredVol < 0 || desiredVol === undefined) return;
@@ -837,6 +849,12 @@ function createProteinGelLoadingTable(unknowns, parent){
         const proteinVol = (targetProtein/unknown.convertedX).toFixed(2);
         const laemmliVol = (desiredVol/4).toFixed(2);
         const bufferVol = (desiredVol - proteinVol - laemmliVol).toFixed(2);
+
+        unknown.totalGelProtein = targetProtein;
+        unknown.totalVolume = desiredVol;
+        unknown.stockProteinVol = proteinVol;
+        unknown.laemmliVol = laemmliVol;
+        unknown.bufferVol = bufferVol;
 
         document.getElementById(`4X Laemmli [uL]-${unknown.name}`).textContent = laemmliVol;
         document.getElementById(`Stock Protein [uL]-${unknown.name}`).textContent = proteinVol;

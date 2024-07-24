@@ -38,10 +38,14 @@
                 <input id = "rawdata-input" type="file" accept=".txt" required>
                 <label for = "template-input" >Select Your 96-Well Plate Template</label>
                 <input id = "template-input" type="file" accept=".csv" required> 
-                <label for = "dilution-factor" >Enter the Dilution Factor of Your Samples</label>
+                <label for = "dilution-factor" >Enter the Dilution Factor of Your Unknowns</label>
                 <input id = "dilution-factor" type = "number" min="1" value="1">
                 <label for = "units-conversion" >Enter The Units To Convert To</label>
                 <input id = "units-conversion" type = "text" value="ug/uL">
+                <label for = "total-protein" >Enter The Total Protein Per Unknown [ug]</label>
+                <input id = "total-protein" type = "number" value="20">
+                <label for = "total-volume" >Enter The Total Gel Loading Volume [uL]</label>
+                <input id = "total-volume" type = "number" value="12">
                 <div id = "regression-inputs">
                     <label for = "linear">Linear Regression</label>
                     <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
