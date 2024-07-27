@@ -200,3 +200,7 @@ input[type="number"] {
     width: 75px;
     text-align: center;
 }
+caption{
+    font-weight: bold;
+    border: inherit;
+}
