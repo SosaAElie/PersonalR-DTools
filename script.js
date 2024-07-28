@@ -41083,8 +41083,7 @@ let CHART = null;
 
 /**
  * @typedef {Object} RegressionObject
- * @property {number} b - The y-intercept
- * @property {number} m - The slope
+ * @property {Map<string,number>} parameters - The parameters of the regression model, for linear and log its m and b, for 4PL its a,d,c,b
  * @property {number} rSquared - The coerrelation coefficient, the closer to 1 the better the model
  * @property {CallableFunction} eq - The regression model equation, takes in x, returns y
  * @property {CallableFunction} invEq - The inverse regression model equation, takes in y returns x
@@ -41110,6 +41109,7 @@ let CHART = null;
  * @property {CallableFunction} combine
  * @property {CallableFunction} appendAt
  */
+
 
 function main(){    
     document.getElementById("process-button").addEventListener("click", handleClick);
@@ -41327,9 +41327,10 @@ function handleClick(e){
         
         //Obtain the parameters of best fit using selected regression type
         if(regressionType === "log") regressionObject = getLogRegression(xAndYStandards);
-        else regressionObject = getLinearRegression(xAndYStandards);
-        const {m, b, rSquared, eq, invEq} = regressionObject;
-        
+        else if(regressionType === "linear") regressionObject = getLinearRegression(xAndYStandards);
+        else regressionObject = get4ParameterHillRegression(xAndYStandards);
+        const {parameters, rSquared, eq, invEq} = regressionObject;
+
         //Sort samples according to their y values
         standards.sort((first, second)=>second.averageY-first.averageY);
         unknowns.sort((first,second)=>second.averageY-first.averageY);
@@ -41364,8 +41365,8 @@ function handleClick(e){
 
         //Add regression model parameters of best fit to pseudoExcel
         psuedoExcel.appendCol(psuedoExcel.columns, [""]);
-        psuedoExcel.appendCol(psuedoExcel.columns,["R-Squared", "Slope", "Y-Intercept", "Dilution Factor"]);
-        psuedoExcel.appendCol(psuedoExcel.columns,[rSquared, m, b, dilutionFactor]);
+        psuedoExcel.appendCol(psuedoExcel.columns,["R-Squared", ...Array.from(parameters.keys()), "Dilution Factor"]);
+        psuedoExcel.appendCol(psuedoExcel.columns,[rSquared, ...Array.from(parameters.values()), dilutionFactor]);
 
 
         //create an excel file in memory with the desired data
@@ -41400,8 +41401,7 @@ function getLinearRegression(xyValues){
     const invEq = y => (y-b)/m;
     const rSquared = ss.rSquared(xyValues, eq);
     return {
-        m,
-        b,
+        parameters:new Map([["m", m], ["b", b]]),
         eq,
         invEq,
         rSquared,
@@ -41419,13 +41419,40 @@ function getLogRegression(xyValues){
     const invEq = y => 10**((y-b)/m);
     const rSquared = ss.rSquared(logXYValues, eq);
     return {
-        m,
-        b,
+        parameters:new Map([["m", m], ["b", b]]),
         eq,
         invEq,
         rSquared,
     }
 }
+
+/**
+ * @param {number[][]} xyValues
+ * @returns {RegressionObject}
+ */
+function get4ParameterHillRegression(xyValues){
+    //Pass in the inital guesses for the paratemers of best fit as follows, a,b,c,d
+    //a is minimum response at x = 0
+    //b is the hill slope of the curve at c
+    //c is the point of inflection, EC50/IC50
+    //d is the max response at x = infinite
+    function model(x,p){
+        return x.map(function(x_i){return p[3]+((p[0]-p[3])/(1+((x_i/p[2])**p[1])))})
+    }
+    const ys = xyValues.map(xyValue => xyValue[1]);
+    const xs = xyValues.map(xyValue => xyValue[0]); 
+    const params = [ss.min(xs), 1, ss.mean(xs), ss.max(ys)]
+    const bestParams = fminsearch(model, params, xs, ys);
+    const [A,B,C,D] = bestParams;
+    return {
+        parameters:new Map([["A",A], ["B", B], ["C", C], ["D", D]]),
+        rSquared:NaN,
+        eq: x=> D + ((A-D)/(1+((x/C)**B))),
+        invEq: y => C*((((A-D)/(y-D))-1)**(1/B)),
+    }
+}
+
+
 
 }
 /**
@@ -41912,6 +41939,58 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
     }
     
 }
+
+function fminsearch(fun,Parm0,x,y,Opt){
+    //Github source: https://github.com/jonasalmeida/fminsearch/blob/gh-pages/fminsearch.js
+    // fun = function(x,Parm)
+	// example
+	//
+	// x = [32,37,42,47,52,57,62,67,72,77,82,87,92];y=[749,1525,1947,2201,2380,2537,2671,2758,2803,2943,3007,2979,2992]
+	// fun = function(x,P){return x.map(function(xi){return (P[0]+1/(1/(P[1]*(xi-P[2]))+1/P[3]))})}
+	// Parms=jmat.fminsearch(fun,[100,30,10,5000],x,y)
+	//
+	// Another test:
+	// x=[32,37,42,47,52,57,62,67,72,77,82,87,92];y=[0,34,59,77,99,114,121,133,146,159,165,173,170];
+	//
+	// Opt is an object will all other parameters, from the objective function (cost function), to the 
+	// number of iterations, initial step vector and the display switch, for example
+	// Parms=fminsearch(fun,[100,30,10,5000],x,y,{maxIter:10000,display:false})
+	
+	if(!Opt){Opt={}};
+	if(!Opt.maxIter){Opt.maxIter=1000};
+	if(!Opt.step){// initial step is 1/100 of initial value (remember not to use zero in Parm0)
+		Opt.step=Parm0.map(function(p){return p/100});
+		Opt.step=Opt.step.map(function(si){if(si==0){return 1}else{ return si}}); // convert null steps into 1's
+	};
+	if(typeof(Opt.display)=='undefined'){Opt.display=true};
+	if(!Opt.objFun){Opt.objFun=function(y,yp){return y.map(function(yi,i){return Math.pow((yi-yp[i]),2)}).reduce(function(a,b){return a+b})}} //SSD
+	
+	var cloneVector=function(V){return V.map(function(v){return v})};
+	var ya,y0,yb,fP0,fP1;
+	var P0=cloneVector(Parm0),P1=cloneVector(Parm0);
+	var n = P0.length;
+	var step=Opt.step;
+	var funParm=function(P){return Opt.objFun(y,fun(x,P))}//function (of Parameters) to minimize
+	// silly multi-univariate screening
+	for(var i=0;i<Opt.maxIter;i++){
+		for(var j=0;j<n;j++){ // take a step for each parameter
+			P1=cloneVector(P0);
+			P1[j]+=step[j];
+			if(funParm(P1)<funParm(P0)){ // if parm value going in the righ direction
+				step[j]=1.2*step[j]; // then go a little faster
+				P0=cloneVector(P1);
+			}
+			else{
+				step[j]=-(0.5*step[j]); // otherwiese reverse and go slower
+			}	
+		}
+		if(Opt.display){if(i>(Opt.maxIter-10)){console.log(i+1,funParm(P0),P0)}}
+	}
+	if (!!document.getElementById('plot')){ // if there is then use it
+		fminsearch.plot(x,y,fun(x,P0),P0);
+	}
+	return P0
+};
 
 main()
 },{"chart.js/auto":2,"papaparse":5,"simple-statistics":6,"xlsx":8}],10:[function(require,module,exports){
