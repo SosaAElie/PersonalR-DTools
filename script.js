@@ -41111,12 +41111,12 @@ let CHART = null;
  */
 
 
-function main(){    
+function main(){
     document.getElementById("process-button").addEventListener("click", handleClick);
     document.getElementById("dilution-factor").addEventListener("input", handleNumericalInput);
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
     document.getElementById("total-volume").addEventListener("input", handleNumericalInput);
-    document.getElementById("total-protein").addEventListener("input", handleNumericalInput);
+    document.getElementById("total-protein").addEventListener("input", handleNumericalInput);    
 }
 
 /**
@@ -41166,7 +41166,6 @@ function handleConversionInput(e){
     }
 }
 
-
 /**
  * @param {File} rawdataFile
  * @param {File} templateFile
@@ -41180,10 +41179,9 @@ async function merge(rawdataFile, templateFile){
     
     //Grabs only the raw data assuming the data is in a 96-well plate layout
     const data = rawdata.slice(3,11).map(row => row.slice(2, -1));
-    const unparsedFilename = rawdata.at(-2)[0];
-    const startIndex = unparsedFilename.indexOf(":")+2;
-    const endIndex = unparsedFilename.indexOf(";");
-    const filename = unparsedFilename.substring(startIndex, endIndex);    
+
+    //Use the raw data filename stem
+    const filename = rawdataFile.name.split(".")[0];
 
     //Grabs the names in the 96-well template
     const template = rawTemplate.slice(2,10).map(row=>row.slice(1));
@@ -41305,8 +41303,8 @@ function handleClick(e){
         CHART.destroy();
         deleteTable(tableContainer, "results-table");
         deleteTable(gelTableContainer, "protein-loading-table");
-        window.URL.revokeObjectURL(fileContainer.firstChild.href);
-        fileContainer.removeChild(fileContainer.firstChild);
+        window.URL.revokeObjectURL(fileContainer.lastChild.href);
+        fileContainer.removeChild(fileContainer.lastChild);
         diagramContainer.innerHTML = "";
     } 
         
@@ -41348,7 +41346,7 @@ function handleClick(e){
         
         
         //Create chart & table
-        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, parsedData.filename);
+        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, parsedData.filename, eq);
         CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
         createTable(unknowns,standards,tableContainer, units, targetUnits, dilutionFactor);
         
@@ -41441,7 +41439,7 @@ function get4ParameterHillRegression(xyValues){
     }
     const ys = xyValues.map(xyValue => xyValue[1]);
     const xs = xyValues.map(xyValue => xyValue[0]); 
-    const params = [ss.min(xs), 1, ss.mean(xs), ss.max(ys)]
+    const params = [ss.min(xs), 0, ss.mean(xs), ss.max(ys)]
     const bestParams = fminsearch(model, params, xs, ys);
     const [A,B,C,D] = bestParams;
     return {
@@ -41451,8 +41449,6 @@ function get4ParameterHillRegression(xyValues){
         invEq: y => C*((((A-D)/(y-D))-1)**(1/B)),
     }
 }
-
-
 
 }
 /**
@@ -41555,10 +41551,27 @@ function parseTemplateFile(file){
  * @param {string} xScale
  * @param {string} units
  * @param {string} title
+ * @param {CallableFunction} eq
  * @returns {chartjs.ChartConfiguration}
  */
-function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, title){
+function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, title, eq){
     
+    //Give regression model line a smooth curve
+    const standardXs = standards.map(standard => standard.x);
+    const standardYs = standards.map(standard => standard.averageY);
+    const minX = ss.min(standardXs);
+    const minY = ss.min(standardYs);
+    const maxX = ss.max(standardXs);
+    const minMaxDiff = (maxX-minX)/1000;
+    const mockData = [{x:minX, y:minY}];
+
+    for(let i = 0; i < 1000; i++){
+        const mockX = mockData[i].x + minMaxDiff;
+        const mockY = eq(mockX);
+        mockData.push({x:mockX, y:mockY});
+    }
+
+    //Return the chart options object
     return {
         type:"scatter",
         data:{
@@ -41577,8 +41590,10 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                 },
                 {
                     label:`Regression Model: R-Squared: ${rSquared.toFixed(2)}`,
-                    data: standards.map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
+                    // data: standards.map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
+                    data:mockData,
                     showLine:true,
+                    pointRadius:0,
                 },
             ]
         },
@@ -41621,6 +41636,9 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                     },
                     color: "#000000",
                 },
+                tooltip:{
+                    enabled:false,
+                }
             }
         }
     }
