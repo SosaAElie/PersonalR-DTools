@@ -306,7 +306,7 @@ function handleClick(e){
         
         
         //Create chart & table
-        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, parsedData.filename, eq);
+        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, parsedData.filename, eq, regressionType);
         CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
         createTable(unknowns,standards,tableContainer, units, targetUnits, dilutionFactor);
         
@@ -512,23 +512,26 @@ function parseTemplateFile(file){
  * @param {string} units
  * @param {string} title
  * @param {CallableFunction} eq
+ * @param {string} regressionType
  * @returns {chartjs.ChartConfiguration}
  */
-function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, title, eq){
+function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, title, eq, regressionType){
     
-    //Give regression model line a smooth curve
-    const standardXs = standards.map(standard => standard.x);
-    const standardYs = standards.map(standard => standard.averageY);
-    const minX = ss.min(standardXs);
-    const minY = ss.min(standardYs);
-    const maxX = ss.max(standardXs);
-    const minMaxDiff = (maxX-minX)/1000;
-    const mockData = [{x:minX, y:minY}];
-
-    for(let i = 0; i < 1000; i++){
-        const mockX = mockData[i].x + minMaxDiff;
-        const mockY = eq(mockX);
-        mockData.push({x:mockX, y:mockY});
+    //Give regression model line a smooth curve if regression type is 4PL
+    if(regressionType === "4pl"){
+        const standardXs = standards.map(standard => standard.x);
+        const standardYs = standards.map(standard => standard.averageY);
+        const minX = ss.min(standardXs);
+        const minY = ss.min(standardYs);
+        const maxX = ss.max(standardXs);
+        const minMaxDiff = (maxX-minX)/1000;
+        var mockData = [{x:minX, y:minY}];
+    
+        for(let i = 0; i < 1000; i++){
+            const mockX = mockData[i].x + minMaxDiff;
+            const mockY = eq(mockX);
+            mockData.push({x:mockX, y:mockY});
+        }
     }
 
     //Return the chart options object
@@ -550,10 +553,9 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                 },
                 {
                     label:`Regression Model: R-Squared: ${rSquared.toFixed(2)}`,
-                    // data: standards.map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
-                    data:mockData,
+                    data: regressionType === "4pl"?mockData:standards.map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
                     showLine:true,
-                    pointRadius:0,
+                    pointRadius:regressionType === "4pl"?0:3,
                 },
             ]
         },
@@ -596,9 +598,6 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                     },
                     color: "#000000",
                 },
-                tooltip:{
-                    enabled:false,
-                }
             }
         }
     }
