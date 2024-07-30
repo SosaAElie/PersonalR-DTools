@@ -95,10 +95,8 @@ body{
 }
 
 .chart-container{
-
     height: 70vh;
     width: 50vw;
-
 }
 #table-container{
     display: flex;
@@ -143,18 +141,18 @@ body{
 }
 
 .well{ 
-    font-weight: bolder;
+    font-weight: normal;
     justify-content: center;
     background-color: #ff69695c;
 }
 .well .hovertext{
     visibility: hidden;
     width: 120px;
-    background-color: rgba(53, 48, 48, 0.709);
+    background-color: rgba(53, 48, 48, 0.885);
     color: #fff;
     text-align: center;
     border-radius: 6px;
-    font-size: medium;
+    font-weight: lighter;
     
     /* Position the tooltip */
     position: absolute;
@@ -175,13 +173,15 @@ body{
 
 table{
     border-style: solid;
+    width: min-content;
 }
 thead{
     background-color: #dddddd7c;
 }
 .container{
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: space-around;
 }
 input[type="text"] {
     width: 75px;

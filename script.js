@@ -41812,6 +41812,7 @@ function convertConcentration(conc, startingUnits, targetUnits){
  * @returns {void}
 **/
 function diagram96Well(lightSamples, parent){
+
     for(let sample of lightSamples){
         const circularDiv = document.createElement("div");
         const wellPosition = document.createElement("p");
