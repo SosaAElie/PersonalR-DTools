@@ -2,74 +2,34 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <meta name="description" content="">
+        <title>BioLab R&D Tools Home</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="style.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
-        <title>BioLab R&D Tools</title>
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
         <div id = "header">
-            <!-- <img id = "banner" src = "Images/banner.jpg" > -->
-            <h1 class="roboto-bold">BioLab R&D Tools</h1>
-            <p>A set of personal R&D tools I use to automate my lab work.</p>
+            <h1 class="roboto-bold"><a href="index.html">BioLab <b>R&D</b> Tools</a></h1>
+            <p>A set of personal R&D tools I use to automate my lab work.
+                Click any of the figures below to take you to the corresponding automation.
+            </p>
         </div>
-        <div id = "regression-section">
-            <div class = "description">
-                <p>
-                    Interpolate the concentration of unknowns using a regression model on a set of standards.
-                    The raw data file accepted has to be exported from the SoftMaxPro software in text and plate format as shown below.
-                    If you don't have a csv template, you can download, edit and reupload this one: 
-                    <a href = "Downloadables/template.csv" download="template.csv">96 Well Template</a>.
-                </p>
-                <img src = "Images/ExportExample.gif" alt="Gif of how to export the text data from the SoftMaxPro">
-                <br>
-            </div>
-            <div id = file-inputs>
-                <label for = "rawdata-input">Select Your SoftMaxPro Raw Data Input</label>
-                <input id = "rawdata-input" type="file" accept=".txt" required>
-                <label for = "template-input" >Select Your 96-Well Plate Template</label>
-                <input id = "template-input" type="file" accept=".csv" required> 
-                <label for = "dilution-factor" >Enter the Dilution Factor of Your Unknowns</label>
-                <input id = "dilution-factor" type = "number" min="1" value="10">
-                <label for = "units-conversion" >Enter The Units To Convert To</label>
-                <input id = "units-conversion" type = "text" value="ug/uL">
-                <label for = "total-protein" >Enter The Total Protein Per Unknown [ug]</label>
-                <input id = "total-protein" type = "number" value="20">
-                <label for = "total-volume" >Enter The Total Gel Loading Volume [uL]</label>
-                <input id = "total-volume" type = "number" value="12">
-                <div id = "regression-inputs">
-                    <label for = "linear">Linear Regression</label>
-                    <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
-                    <label for = "log">Logarithmic Regression</label>
-                    <input id = "log" type = "radio" name = "regression" value="log">
-                    <label for = "4pl">4-Parameter Hill Equation</label>
-                    <input id = "4pl" type = "radio" name = "regression" value="4pl">
-                </div>
-                <div id = "x-scale">
-                    <label for = "linear-scale">Linear X-Scale</label>
-                    <input id = "linear-scale" value="linear" type = "radio" name = "scale" checked>
-                    <label for = "logarithmic-scale">Logarithmic X-Scale</label>
-                    <input id = "logarithmic-scale" value="logarithmic" type = "radio" name = "scale"> 
-                </div>
-                <button id = "process-button" type = "button">Interpolate</button>
-            </div>
-            <div id = "file-container">
-                <h4>Analyzed Results:</h4>
-            </div>
-            <div id = "chart-template-container">
-                <div id = "template-diagram"></div>
-                <div class = "chart-container">   
-                    <canvas id = "regression-chart"></canvas>
-                </div>
-            </div>
-            <div class = "container">
-                <div id = "table-container"></div>    
-                <div id = "gel-table-container"></div>    
-            </div>
+        <div id = "figure-container">
+            <a class = "figures" href="regression.html">
+                <h3>Regression Analysis</h3>
+                <img src="Images/regression.jpg">
+            </a>
+            <a class = "figures">
+                <h3>Work in Progress</h3>
+                <img src="Images/workinprogress.jpg">
+            </a>
+            <a class = "figures">
+                <h3>Work in Progress</h3>
+                <img src="Images/workinprogress.jpg">
+            </a>
         </div>
-        <script src="script.js" async defer></script>
+        <script src="" async defer></script>
     </body>
 </html>
