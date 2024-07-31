@@ -291,7 +291,7 @@ function handleClick(e){
 
         //Sort samples according to their y values
         standards.sort((first, second)=>second.averageY-first.averageY);
-        unknowns.sort((first,second)=>second.averageY-first.averageY);
+        // unknowns.sort((first,second)=>ss.sum(second.wellNumbers)-ss.sum(first.wellNumbers));
         const units = standards[0].units;
         
         //Interpolate the concentration of all the samples using the regression model generated

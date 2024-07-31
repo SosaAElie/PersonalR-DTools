@@ -173,10 +173,13 @@ body{
 
 table{
     border-style: solid;
-    width: min-content;
+    /* width: min-content; */
 }
 thead{
     background-color: #dddddd7c;
+}
+td{
+    border-bottom: dashed;
 }
 .container{
     display: grid;
