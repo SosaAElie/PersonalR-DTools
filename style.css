@@ -1,80 +1,10 @@
-/* .roboto-thin {
-    font-family: "Roboto", sans-serif;
-    font-weight: 100;
-    font-style: normal;
-}
-
-.roboto-light {
-    font-family: "Roboto", sans-serif;
-    font-weight: 300;
-    font-style: normal;
-}
-
-.roboto-regular {
-    font-family: "Roboto", sans-serif;
-    font-weight: 400;
-    font-style: normal;
-}
-
-.roboto-medium {
-    font-family: "Roboto", sans-serif;
-    font-weight: 500;
-    font-style: normal;
-}
-
-.roboto-bold {
-    font-family: "Roboto", sans-serif;
-    font-weight: 700;
-    font-style: normal;
-}
-
-.roboto-black {
-    font-family: "Roboto", sans-serif;
-    font-weight: 900;
-    font-style: normal;
-}
-
-.roboto-thin-italic {
-    font-family: "Roboto", sans-serif;
-    font-weight: 100;
-    font-style: italic;
-}
-
-.roboto-light-italic {
-    font-family: "Roboto", sans-serif;
-    font-weight: 300;
-    font-style: italic;
-}
-
-.roboto-regular-italic {
-    font-family: "Roboto", sans-serif;
-    font-weight: 400;
-    font-style: italic;
-}
-
-.roboto-medium-italic {
-    font-family: "Roboto", sans-serif;
-    font-weight: 500;
-    font-style: italic;
-}
-
-.roboto-bold-italic {
-    font-family: "Roboto", sans-serif;
-    font-weight: 700;
-    font-style: italic;
-}
-
-.roboto-black-italic {
-    font-family: "Roboto", sans-serif;
-    font-weight: 900;
-    font-style: italic;
-} */
-
 body{
     font-family: "Roboto", sans-serif;
     font-weight: normal;
     font-style: normal;
     text-align: center;
+    accent-color: black;
+    background-image: linear-gradient(to top, rgba(59, 121, 142, 0), #8b888834);
 }
 #file-inputs{
     display: grid;
@@ -86,7 +16,6 @@ body{
 #regression-inputs{
     position:relative;
     align-self: center;
-
 }
 
 #process-button{
@@ -109,19 +38,6 @@ body{
     justify-content: center;
 }
 
-.description{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.description>p{
-    width: 40%;
-}
-
-.description>img{
-    width:40%;
-}
 #template-diagram{
     display: grid;
     grid-template-columns: repeat(12, auto);
@@ -180,6 +96,10 @@ thead{
 }
 td{
     border-bottom: dashed;
+    border-right: dashed;
+    border-width: 1px;
+    margin: 0;
+    padding: 0;
 }
 .container{
     display: grid;
@@ -218,10 +138,19 @@ h1>a{
     color: black;
     text-decoration: none;
 }
+
+h1>a:hover{
+    font-size: 102%;
+}
+
 #figure-container{
     display: grid;
     grid-template-columns: auto auto auto;
     justify-items:center;
+}
+
+.figures:hover{
+    background-color: #dddddd7c;
 }
 .figures>img{
     border-style: solid;
@@ -236,9 +165,49 @@ h1>a{
     color: black;
     text-decoration: none;
     width: min-content;
+    padding: 1%;
 }
 h1{
     font-weight: lighter;
-    font-size: 6vh;
+    font-size: 7vh;
     margin-bottom: 0;
+}
+p>b{
+    font-size: 18px;
+}
+h3{
+    text-decoration: underline;
+    font-family: "Roboto", sans-serif;
+    font-weight: bolder;
+    margin: 0;
+    padding: 0;
+}
+.steps>p{
+    width: 40%;
+}
+ol{
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-items: center;
+    row-gap: 0px;
+}
+ol>li::marker{
+    font-weight: bolder;
+    font-size: large;
+}
+li{
+    margin: 1vh;
+    width: 40vw;
+    text-align: justify;
+}
+li>img{
+    width:100%;
+    align-self: center;
+    justify-self: center;
+}
+#description{
+    font-style: oblique;
+    font-size: large;
 }

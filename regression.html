@@ -13,18 +13,61 @@
     <body>
         <div id = "header">
             <h1 class="roboto-bold"><a href="index.html">BioLab <b>R&D</b> Tools</a></h1>
-            <p>Interpolate the concentration of unknowns using a regression model on a set of standards.</p>
+            <p id = "description">
+                <b>Purpose: </b>
+                To determine the concentration of unknowns using a regression model that best fits the standards.
+            </p>
         </div>
-        <div id = "regression-section">
-            <div class = "description">
-                <p>
-                    The raw data file has to be exported from the SoftMaxPro software in text and plate format as shown below.
-                    If you don't have a csv template, you can download, edit and reupload this one: 
-                    <a href = "Downloadables/template.csv" download="template.csv">96 Well Template</a>.
-                </p>
-                <img src = "Images/ExportExample.gif" alt="Gif of how to export the text data from the SoftMaxPro">
-                <br>
-            </div>
+        <div class = "steps">
+            <h3>Follow the Steps Below</h3>
+            <ol>
+                <li>
+                    Edit your 96-Well template to represent the manner in which you loaded your samples in the 96 well plate.
+                    <br>
+                    <br>
+                    Download the template here: <a href = "Downloadables/template.csv" download="template.csv">96 Well Template</a>.
+                    <br>
+                    <br>
+                    Prefix each unknown with <b>"Sample"</b> each standard with <b>"Standard"</b> and control
+                    with <b>"Control"</b> followed by a hyphen as such: <b>Standard-2000ug/mL</b>.
+                    <br>
+                    <br>
+                    Any empty wells should contain the text <b>"None"</b>.
+                    <br>
+                    <br>
+                    Repeated names will be considered replicates.
+                    <br>
+                    <br>
+                    The units of the standards should all be the same, i.e they should all be ug/mL, mg/mL, ug/uL, etc.
+                </li>
+                <li>
+                    Export the data from the SoftMaxPro software in text and plate format as shown below:
+                    <img src = "Images/ExportExample.gif" alt="Gif of how to export the text data from the SoftMaxPro">
+                </li>
+                <li>
+                    Upload the raw exported data and template.
+                </li>
+                <li>
+                    If the dilution factor of your samples and standards are the <b>same</b>, enter the dilution factor to calculate the actual concentration of your samples.
+                </li>
+                <li>
+                    If you wish to convert the results of the interpolation to other units, enter them in the appropriate field.
+                </li>
+                <li>
+                    For SDS-PAGE Gel Electrophoresis enter the total amount of protein you wish to load in <b>micrograms [ug]</b>
+                    and the total amount of volume you wish to load in <b>microliter [uL]</b>.
+                </li>
+                <li>
+                    Select the regression model that will best fit your standards and select the scale of your x-axis.
+                    <br>
+                    <i>For values of standards that differ by a large magnitude, a logarithmic scale x-axis will allow better visualization</i>
+                </li>
+                <li>
+                    Interpolate your data and download the produced excel file for record keeping.
+                </li>
+            </ol>
+        </div>
+        <div id = "regression-section"> 
             <div id = file-inputs>
                 <label for = "rawdata-input">Select Your SoftMaxPro Raw Data Input</label>
                 <input id = "rawdata-input" type="file" accept=".txt" required>

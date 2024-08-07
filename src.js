@@ -76,9 +76,23 @@ function main(){
     document.getElementById("dilution-factor").addEventListener("input", handleNumericalInput);
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
     document.getElementById("total-volume").addEventListener("input", handleNumericalInput);
-    document.getElementById("total-protein").addEventListener("input", handleNumericalInput);    
+    document.getElementById("total-protein").addEventListener("input", handleNumericalInput);
+    Array.from(document.getElementById("x-scale").children)
+    .filter(element=>element.tagName === "INPUT")
+    .map(element=>element.addEventListener("change", handleXScale));
 }
 
+
+
+/**
+ * @param {InputEvent} e
+*/
+function handleXScale(e){
+    if(CHART){
+        CHART.options.scales.x.type = e.target.value;
+        CHART.update();
+    }
+}
 /**
  * @param {InputEvent} e
 */
@@ -340,6 +354,8 @@ function handleClick(e){
         anchorElem.innerText = parsedData.filename+".xlsx";
         document.getElementById("file-container").appendChild(anchorElem);  
     })
+}
+
 /**
  * @param {HTMLDivElement} container
  * @returns {string}
@@ -410,7 +426,6 @@ function get4ParameterHillRegression(xyValues){
     }
 }
 
-}
 /**
  * @param {HTMLDivElement} container  - The container that contains the table
  * @param {string} id  - The id of the table
