@@ -4,7 +4,7 @@ body{
     font-style: normal;
     text-align: center;
     accent-color: black;
-    background-image: linear-gradient(to top, rgba(59, 121, 142, 0), #8b888834);
+    background-image: linear-gradient(to bottom, rgba(174, 219, 234, 0.998), #8b888800);
 }
 #file-inputs{
     display: grid;
@@ -12,10 +12,18 @@ body{
     gap: 10px 5%;    
     justify-content: center;
 }
-
+#x-scale{
+    display: flex;
+    flex-direction: column;
+}
 #regression-inputs{
-    position:relative;
-    align-self: center;
+    display: flex;
+    flex-direction: column;
+    width: 70%;
+}
+.radio{
+    display: flex;
+    justify-content: space-between;
 }
 
 #process-button{

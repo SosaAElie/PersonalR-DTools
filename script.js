@@ -41118,10 +41118,26 @@ function main(){
     document.getElementById("total-volume").addEventListener("input", handleNumericalInput);
     document.getElementById("total-protein").addEventListener("input", handleNumericalInput);
     Array.from(document.getElementById("x-scale").children)
-    .filter(element=>element.tagName === "INPUT")
-    .map(element=>element.addEventListener("change", handleXScale));
+        .forEach(div=>{
+            Array.from(div.children).filter(element=>element.tagName === "INPUT")
+            .forEach(element=>element.addEventListener("change", handleXScale));
+        });
+    document.getElementById("hideExtrapoled").addEventListener("change", handleHideExtrapolated)
 }
 
+/**
+ * @param {InputEvent} e
+*/
+function handleHideExtrapolated(e){
+    if(CHART === null) return;
+    if(e.target.checked){
+        CHART.data.datasets.filter(dataset => dataset.label === "Unknowns")[0].data = CHART.data.storage.filteredUnknowns;
+    }
+    else{
+        CHART.data.datasets.filter(dataset => dataset.label === "Unknowns")[0].data = CHART.data.storage.allUnknowns;
+    }
+    CHART.update();
+}
 
 
 /**
@@ -41336,7 +41352,7 @@ function handleClick(e){
         //Get user inputs for x-scale type and regression type
         const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
         const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
-        
+        console.log(xScale, regressionType)
         //Obtain the parameters of best fit using selected regression type
         if(regressionType === "log") regressionObject = getLogRegression(xAndYStandards);
         else if(regressionType === "linear") regressionObject = getLinearRegression(xAndYStandards);
@@ -41345,7 +41361,6 @@ function handleClick(e){
 
         //Sort samples according to their y values
         standards.sort((first, second)=>second.averageY-first.averageY);
-        // unknowns.sort((first,second)=>ss.sum(second.wellNumbers)-ss.sum(first.wellNumbers));
         const units = standards[0].units;
         
         //Interpolate the concentration of all the samples using the regression model generated
@@ -41392,17 +41407,22 @@ function handleClick(e){
         anchorElem.href = link;
         anchorElem.download = parsedData.filename+".xlsx";
         anchorElem.innerText = parsedData.filename+".xlsx";
-        document.getElementById("file-container").appendChild(anchorElem);  
+        document.getElementById("file-container").appendChild(anchorElem);
     })
 }
 
 /**
  * @param {HTMLDivElement} container
+ * @param {boolean} valueOnly
  * @returns {string}
  */
-function getSelectedRadioButton(container){
-    const selectedRadio = Array.from(container.children).filter(element=>element.tagName === "INPUT" && element.checked === true);    
-    return selectedRadio[0].defaultValue;
+function getSelectedRadioButton(container, valueOnly = true){
+    const radioDivs = Array.from(container.querySelectorAll(".radio"));
+    const selected = [];
+    for(let radioDiv of radioDivs){
+        selected.push(...Array.from(radioDiv.children).filter(element=>element.tagName === "INPUT" && element.checked === true))
+    }
+    return valueOnly?selected[0].defaultValue:selected[0];
 }
 
 /**
@@ -41571,11 +41591,11 @@ function parseTemplateFile(file){
  * @returns {chartjs.ChartConfiguration}
  */
 function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, title, eq, regressionType){
-    
+    const standardYs = standards.map(standard => standard.averageY);
+    const maxY = ss.max(standardYs);
     //Give regression model line a smooth curve if regression type is 4PL
     if(regressionType === "4pl"){
         const standardXs = standards.map(standard => standard.x);
-        const standardYs = standards.map(standard => standard.averageY);
         const minX = ss.min(standardXs);
         const minY = ss.min(standardYs);
         const maxX = ss.max(standardXs);
@@ -41593,6 +41613,10 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
     return {
         type:"scatter",
         data:{
+            storage:{
+                allUnknowns: unknowns.map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
+                filteredUnknowns: unknowns.map(sample => {return sample.averageY <= maxY ? {x:sample.interpolatedX, y:sample.averageY}:{x:null, y:null}}),
+            },
             datasets:[  
 
                 {

@@ -81,19 +81,41 @@
                 <input id = "total-protein" type = "number" value="20">
                 <label for = "total-volume" >Enter The Total Gel Loading Volume [uL]</label>
                 <input id = "total-volume" type = "number" value="12">
-                <div id = "regression-inputs">
-                    <label for = "linear">Linear Regression</label>
-                    <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
-                    <label for = "log">Logarithmic Regression</label>
-                    <input id = "log" type = "radio" name = "regression" value="log">
-                    <label for = "4pl">4-Parameter Hill Equation</label>
-                    <input id = "4pl" type = "radio" name = "regression" value="4pl">
+                <div class = "chart-inputs">
+                    <div id = "regression-inputs">
+                        <h3>Regression Model</h3>
+                        <div class = "radio">
+                            <label for = "linear">Linear Regression</label>
+                            <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
+                        </div>
+                        <div class = "radio">
+                            <label for = "log">Logarithmic Regression</label>
+                            <input id = "log" type = "radio" name = "regression" value="log">
+                        </div>
+                        <div class = "radio">
+                            <label for = "4pl">4-Parameter Hill Equation</label>
+                            <input id = "4pl" type = "radio" name = "regression" value="4pl">
+                        </div>
+                    </div>
                 </div>
-                <div id = "x-scale">
-                    <label for = "linear-scale">Linear X-Scale</label>
-                    <input id = "linear-scale" value="linear" type = "radio" name = "scale" checked>
-                    <label for = "logarithmic-scale">Logarithmic X-Scale</label>
-                    <input id = "logarithmic-scale" value="logarithmic" type = "radio" name = "scale"> 
+                <div id = "chart-settings">
+                    <h3>Chart Settings</h3>
+                    <div id = "x-scale">
+                        <div class="radio">
+                            <label for = "linear-scale">Linear X-Scale</label>
+                            <input id = "linear-scale" value="linear" type = "radio" name = "scale" checked>
+                        </div>
+                        <div class="radio">
+                            <label for = "logarithmic-scale">Logarithmic X-Scale</label>
+                            <input id = "logarithmic-scale" value="logarithmic" type = "radio" name = "scale"> 
+                        </div>
+                    </div>
+                    <div id = "extrapolated">
+                        <div class="radio">
+                            <label for = "hideExtrapolated">Hide Extrapolated Unknowns?</label>
+                            <input id = "hideExtrapoled" type="checkbox">
+                        </div>
+                    </div>
                 </div>
                 <button id = "process-button" type = "button">Interpolate</button>
             </div>
