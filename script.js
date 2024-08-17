@@ -41122,7 +41122,7 @@ function main(){
             Array.from(div.children).filter(element=>element.tagName === "INPUT")
             .forEach(element=>element.addEventListener("change", handleXScale));
         });
-    document.getElementById("hideExtrapoled").addEventListener("change", handleHideExtrapolated)
+    document.getElementById("hideExtrapoled").addEventListener("change", handleHideExtrapolated);
 }
 
 /**
@@ -41323,6 +41323,7 @@ function handleClick(e){
     const gelTableContainer = document.getElementById("gel-table-container");
     const totalProtein = parseInt(document.getElementById("total-protein").value);
     const totalVolume = parseInt(document.getElementById("total-volume").value);
+    const subtractBlank = document.getElementById("subtract-blank").checked;
 
 
     //If there is no template or raw data file selected return null
@@ -41343,6 +41344,11 @@ function handleClick(e){
         const samples = Array.from(parsedData.samples.values());
         const standards = samples.filter(sample => sample.type === "standard");
         const unknowns = samples.filter(sample => sample.type === "sample");
+        
+        if(subtractBlank){
+            const blank = ss.min(standards.map(standard => standard.averageY));
+            samples.forEach(sample=> sample.averageY-=blank)
+        }
         const xAndYStandards = standards.map(standard => [standard.x, standard.averageY]);
         let regressionObject;
 
@@ -41386,7 +41392,7 @@ function handleClick(e){
         const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
         psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
         const startingCol = psuedoExcel.columns;
-        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", "Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Desired Vol [uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "Buffer [uL]"]);
+        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Desired Vol [uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "Buffer [uL]"]);
         standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
         unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
 
