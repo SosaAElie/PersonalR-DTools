@@ -199,7 +199,7 @@ async function merge(rawdataFile, templateFile){
      * @returns {string[]|number[]|boolean[]}
      */
     function getExcelData(){
-        return [this.name, this.type, this.ys, `${this.averageY.toFixed(2)}(${this.stdev.toFixed(2)})`, this.interpolatedX.toFixed(2), this.actualX.toFixed(2), this.convertedX.toFixed(2), this.totalGelProtein, this.totalVolume, this.stockProteinVol, this.laemmliVol, this.bufferVol];
+        return [this.name, this.type, this.ys, `${this.averageY.toFixed(2)}(${typeof this.stdev === "string"?this.stdev:this.stdev.toFixed(2)})`, this.interpolatedX.toFixed(2), this.actualX.toFixed(2), this.convertedX.toFixed(2), this.totalGelProtein, this.totalVolume, this.stockProteinVol, this.laemmliVol, this.bufferVol];
     }
 
     /**
@@ -713,9 +713,6 @@ function createPsuedoExcel(rows, columns, startingData = null){
         data = [];
         for (let i = 0; i < rows; i++) data.push(new Array(columns).fill(null));
     }
-    
-
-
 
     /**
      * @param {number} row
