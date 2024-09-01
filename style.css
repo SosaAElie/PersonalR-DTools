@@ -219,3 +219,8 @@ li>img{
     font-style: oblique;
     font-size: large;
 }
+
+.outsideUnknown>td{
+    color: rgb(255, 0, 0);
+    border-color: black;
+}

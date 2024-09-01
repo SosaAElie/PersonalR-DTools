@@ -12,9 +12,10 @@ let CHART = null;
  * @property {string} type - The type of the sample i.e standard, unknown, control, etc.
  * @property {number[]} ys - The OD(s)
  * @property {number} x - The concentration
+ * @property {RegressionAnalysis} regressionAnalysis - 
  * @property {number} interpolatedX - The interpolated concentration
  * @property {number} actualX - The interpolated concentration times the dilution factor
- * @property {number} convertedX - The converted concentration of the actual x to the desired units
+ * @property {number} convertedX - The converted concentration of the actual or interpolated x to the desired units
  * @property {number} dilutionFactor - The dilution factor of the sample
  * @property {string} units - The units of x i.e ug/mL, ng/mL, ug/uL, etc.
  * @property {string} convertedUnits - The units to convert to of x i.e ug/mL, ng/mL, ug/uL, etc.
@@ -34,7 +35,16 @@ let CHART = null;
 */
 
 /**
- * @typedef {Object} LightSample
+ * @typedef {Object} RegressionAnalysis
+ * @property {string} regressionType - The name of the regression model used, eg. linear, log, 4PL
+ * @property {number} interpolatedX - The interpolated concentration obtained from the regression model
+ * @property {number} actualX - The interpolated concentration times the dilution factor
+ * @property {number} convertedX - The actual concentration converted to the desired units
+ * @property {number|string} stockProteinVol - The total stock protein volume required
+ */
+
+/**
+ * @typedef {Object} LightweightSample
  * @property {string} wellPosition - The well position the sample was loaded in
  * @property {number} wellNumber - The well number the same was loaded in
  * @property {string} name - The name of the sample
@@ -54,8 +64,9 @@ let CHART = null;
  * @property {Sample[]} samples
  * @property {string} filename
  * @property {string[][]} rawdata
+ * @property {string[][]} rawTemplate
  * @property {string[][]} template
- * @property {LightSample[]} lightSamples
+ * @property {LightweightSample[]} lightweightSamples
  */
 
 /**
@@ -181,14 +192,14 @@ async function merge(rawdataFile, templateFile){
      * @returns {string[]|number[]|boolean[]}
      */
     function getData(){
-        return [this.name, this.type, this.averageY, this.interpolatedX, this.actualX, this.convertedX];
+        return [this.name, this.type, this.averageY, this.stdev, this.interpolatedX, this.actualX, this.convertedX];
     }
 
     /**
      * @returns {string[]|number[]|boolean[]}
      */
     function getExcelData(){
-        return [this.name, this.type, this.ys, `${this.averageY}(${this.stdev})`, this.interpolatedX.toFixed(3), this.actualX.toFixed(3), this.convertedX.toFixed(3), this.totalGelProtein, this.totalVolume, this.stockProteinVol, this.laemmliVol, this.bufferVol];
+        return [this.name, this.type, this.ys, `${this.averageY.toFixed(2)}(${this.stdev.toFixed(2)})`, this.interpolatedX.toFixed(2), this.actualX.toFixed(2), this.convertedX.toFixed(2), this.totalGelProtein, this.totalVolume, this.stockProteinVol, this.laemmliVol, this.bufferVol];
     }
 
     /**
@@ -241,7 +252,7 @@ async function merge(rawdataFile, templateFile){
 
     //Provide the filename so that it can be used to create the results xlsx file
 
-    return {samples,filename,rawdata, template, lightSamples};
+    return {samples,filename,rawdata, template, rawTemplate, lightweightSamples: lightSamples};
 }
 
 /**
@@ -313,19 +324,18 @@ function handleClick(e){
         let regressionObject;
 
         //Create a 96 well diagram of the template
-        diagram96Well(parsedData.lightSamples, diagramContainer);
+        diagram96Well(parsedData.lightweightSamples, diagramContainer);
         
         //Get user inputs for x-scale type and regression type
         const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
         const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
-        console.log(xScale, regressionType)
         //Obtain the parameters of best fit using selected regression type
         if(regressionType === "log") regressionObject = getLogRegression(xAndYStandards);
         else if(regressionType === "linear") regressionObject = getLinearRegression(xAndYStandards);
         else regressionObject = get4ParameterHillRegression(xAndYStandards);
         const {parameters, rSquared, eq, invEq} = regressionObject;
 
-        //Sort samples according to their y values
+        //Sort standards according to their y values
         standards.sort((first, second)=>second.averageY-first.averageY);
         const units = standards[0].units;
         
@@ -364,6 +374,9 @@ function handleClick(e){
 
         //create an excel file in memory with the desired data
         const wkbk = createWkbk(psuedoExcel.data);
+        appendWorksheet(wkbk, parsedData.rawdata, "rawdata");
+        appendWorksheet(wkbk, parsedData.rawTemplate, "template");
+
         const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
         const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 
@@ -417,7 +430,7 @@ function getLogRegression(xyValues){
     const {m,b} = ss.linearRegression(logXYValues);
     const eq = x => m*Math.log10(x)+b;
     const invEq = y => 10**((y-b)/m);
-    const rSquared = ss.rSquared(logXYValues, eq);
+    const rSquared = ss.rSquared(xyValues.filter(xy => xy[0] !== 0), eq);
     return {
         parameters:new Map([["m", m], ["b", b]]),
         eq,
@@ -485,15 +498,21 @@ function createTable(unknowns, standards, container, units, convertedUnits, dilu
     //Create column headers
     const headerContainer = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    const headers = ["Name", "Sample Type", "Average Absorbance or Luminescence",`Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${convertedUnits}]`];
+    const headers = ["Name", "Sample Type", "Average","StDev", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${convertedUnits}]`];
     for(let header of headers){
         const row = document.createElement("th");
         row.textContent = header;
         headerRow.appendChild(row);
     }
 
+    //Create table body
     const body = document.createElement("tbody");
     headerContainer.appendChild(headerRow);
+
+    //Determine the lowest & highest standard in order to change the text to red if the sample is outside the standard curve 
+    const standardYs = standards.map(standard => standard.averageY);
+    const lowest = ss.min(standardYs)
+    const highest = ss.max(standardYs)
     
     for(let standard of standards){        
         const row = document.createElement("tr");
@@ -506,8 +525,12 @@ function createTable(unknowns, standards, container, units, convertedUnits, dilu
         body.appendChild(row);
     };
 
-    for(let unknown of unknowns){        
+    for(let unknown of unknowns){       
         const row = document.createElement("tr");
+        
+        //If unknown y value is outside the standard curve change text to red
+        if(unknown.averageY <= lowest || unknown.averageY >= highest) row.className = "outsideUnknown";
+
         for (let data of unknown.getData()){
             const td = document.createElement("td");
             if(typeof data === "number") data = data.toFixed(2);
@@ -659,6 +682,18 @@ function createWkbk(data){
     return wkbk;
 }
 
+/**
+ * @param {xlsx.WorkBook} wkbk
+ * @param {string[][]} data
+ * @param {string} wkstName
+ * @returns {null}
+ */
+function appendWorksheet(wkbk, data, wkstName){
+    const wkst = xlsx.utils.aoa_to_sheet(data);
+    xlsx.utils.book_append_sheet(wkbk, wkst, wkstName);
+    return null;
+}
+
 
 /**
  * @param {number} rows
@@ -670,7 +705,7 @@ function createPsuedoExcel(rows, columns, startingData = null){
     let data; 
 
     if(startingData && startingData.length !== 0){
-        data = startingData;
+        data = structuredClone(startingData);
         rows = startingData.length;
         columns = ss.max(startingData.map(inner => inner.length));
     }
@@ -719,11 +754,6 @@ function createPsuedoExcel(rows, columns, startingData = null){
      * @returns {number} - Returns the new number of total columns
      */
     function appendCol(startingCol = null, data){
-        // for(let i = 0; i < data.length; i++){
-        //     if(i >= this.rows) this.data.push(new Array(this.columns).fill(null));
-        //     this.data[i].push(data[i].toString());
-        // };
-        // this.columns+=1;
         if(!startingCol) startingCol = this.columns;
         for(let i = 0; i < data.length; i++){
             this.at(i, startingCol, data[i]);
@@ -812,7 +842,7 @@ function convertConcentration(conc, startingUnits, targetUnits){
 }
 
 /** 
- * @param {LightSample[]} lightSamples
+ * @param {LightweightSample[]} lightSamples
  * @param {Element} parent
  * @returns {void}
 **/
