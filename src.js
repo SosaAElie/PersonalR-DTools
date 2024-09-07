@@ -177,9 +177,8 @@ async function merge(rawdataFile, templateFile){
     const rawTemplate = await parseTemplateFile(templateFile);
     const samples = new Map();
     const lightSamples = [];
-    
     //Grabs only the raw data assuming the data is in a 96-well plate layout
-    const data = rawdata.slice(3,11).map(row => row.slice(2, -1));
+    const data = rawdata.slice(3,11).map(row => row.slice(2, 14));
 
     //Use the raw data filename stem
     const filename = rawdataFile.name.split(".")[0];
@@ -309,7 +308,7 @@ function handleClick(e){
         fileContainer.removeChild(fileContainer.lastChild);
         diagramContainer.innerHTML = "";
     } 
-        
+
     merge(rawdataFile, templateFile)
     .then(parsedData =>{
         const samples = Array.from(parsedData.samples.values());
@@ -550,7 +549,7 @@ function createTable(unknowns, standards, container, units, convertedUnits, dilu
  */
 function parseRawDataFile(file){
     return new Promise((resolve, reject)=>{
-        papa.parse(file, {encoding:"utf-16", delimiter:"\t", complete:(results, file)=>{
+        papa.parse(file, {complete:(results, file)=>{
             resolve(results.data)
         }})
     })
@@ -562,7 +561,7 @@ function parseRawDataFile(file){
  */
 function parseTemplateFile(file){
     return new Promise((resolve, reject)=>{
-        papa.parse(file, {encoding:"utf-8", delimiter:",", complete:(results, file)=>{
+        papa.parse(file, {complete:(results, file)=>{
             resolve(results.data)
         }})
     })
