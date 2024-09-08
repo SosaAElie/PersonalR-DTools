@@ -1,6 +1,6 @@
 body{
     font-family: "Roboto", sans-serif;
-    font-weight: normal;
+    font-weight: 300;
     font-style: normal;
     text-align: center;
     accent-color: black;
@@ -9,23 +9,25 @@ body{
 #file-inputs{
     display: grid;
     grid-template: auto /auto auto;
-    gap: 10px 5%;    
+    gap: 10px;    
     justify-content: center;
-    font-size: larger;
+    text-align: left;
+    font-size:large;
     font-weight: 300;
 }
 #x-scale{
     display: flex;
     flex-direction: column;
+
 }
 #regression-inputs{
     display: flex;
     flex-direction: column;
-    width: 70%;
 }
 .radio{
     display: flex;
     justify-content: space-between;
+    margin-right: 100px;
 }
 
 #process-button{
@@ -47,6 +49,25 @@ body{
     position: relative;
     justify-content: center;
 }
+input[type = "file"]::file-selector-button {
+    display: none;
+}
+input{
+    background-color: inherit;
+    border-style: none;
+    font-size: medium;
+    font-family: "Roboto", sans-serif;
+    font-weight: 500;
+    font-style: italic;
+}
+input:hover{
+    background-color: rgb(139, 176, 188);
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
 #template-diagram{
     display: grid;
@@ -64,6 +85,11 @@ body{
     border-radius: 50%;
     display: flex;
     align-items: center;
+}
+#diagram-title{
+    grid-column: span 12;
+    text-decoration: none;
+    margin-bottom: 10px;
 }
 
 .well{ 
@@ -99,7 +125,6 @@ body{
 
 table{
     border-style: solid;
-    /* width: min-content; */
 }
 thead{
     background-color: #dddddd7c;
@@ -226,3 +251,35 @@ li>img{
     color: rgb(255, 0, 0);
     border-color: black;
 }
+#chart-inputs{
+    display: flex;
+    margin-top: 1%;
+    text-wrap:nowrap;
+    align-self: center;
+    text-align: left;
+    font-size: large;
+}
+#regression-section{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+#buttons{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+button{
+    font-size: large;
+    border-style:solid;
+    border-radius: 20px;
+    border-width: 2px;
+    font-family: "Roboto", sans-serif;
+    font-weight: normal;
+    background-color: inherit;
+    padding: 10px;
+}
+button:hover{
+    background-color: rgb(139, 176, 188);
+}
+

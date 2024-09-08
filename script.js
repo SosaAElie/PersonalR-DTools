@@ -41049,7 +41049,7 @@ let CHART = null;
 /**
  * @typedef {Object} Sample
  * @property {string} name - The name of the sample
- * @property {string} type - The type of the sample i.e standard, unknown, control, etc.
+ * @property {string} type - The type of the sample i.e standard, sample, control, etc.
  * @property {number[]} ys - The OD(s)
  * @property {number} x - The concentration
  * @property {RegressionAnalysis} regressionAnalysis - 
@@ -41068,9 +41068,9 @@ let CHART = null;
  * @property {number|string} stockProteinVol - The total stock protein volume required
  * @property {number|string} laemmliVol - The volume of 4x laemmli required
  * @property {number|string} bufferVol - The volume of buffer required to reach total volume
- * @property {Function} getData - Function that returns a list of important data for the same that can be used to display in a table
- * @property {Function} getGelData - Function that returns a list of important data for the same that can be used to display in a gel loading table
- * @property {Function} getExcelData - Function that returns a list of data to write to excel
+ * @property {Function} getData - returns a list of important data for the same that can be used to display in a table
+ * @property {Function} getGelData - returns a list containing the sample name, converted concentration to display in the gel loading table
+ * @property {Function} getExcelData - returns a list of data to write to excel
  * 
 */
 
@@ -41103,6 +41103,7 @@ let CHART = null;
  * @typedef {Object} ParsedData
  * @property {Sample[]} samples
  * @property {string} filename
+ * @property {string} templateFilename
  * @property {string[][]} rawdata
  * @property {string[][]} rawTemplate
  * @property {string[][]} template
@@ -41133,7 +41134,7 @@ function main(){
             Array.from(div.children).filter(element=>element.tagName === "INPUT")
             .forEach(element=>element.addEventListener("change", handleXScale));
         });
-    document.getElementById("hideExtrapoled").addEventListener("change", handleHideExtrapolated);
+    document.getElementById("hideExtrapolated").addEventListener("change", handleHideExtrapolated);
 }
 
 /**
@@ -41220,8 +41221,9 @@ async function merge(rawdataFile, templateFile){
     //Grabs only the raw data assuming the data is in a 96-well plate layout
     const data = rawdata.slice(3,11).map(row => row.slice(2, 14));
 
-    //Use the raw data filename stem
+    //Use the filenames' stem
     const filename = rawdataFile.name.split(".")[0];
+    const templateFilename = templateFile.name.split(".")[0];
 
     //Grabs the names in the 96-well template
     const template = rawTemplate.slice(2,10).map(row=>row.slice(1));
@@ -41238,14 +41240,22 @@ async function merge(rawdataFile, templateFile){
      * @returns {string[]|number[]|boolean[]}
      */
     function getExcelData(){
-        return [this.name, this.type, this.ys, `${this.averageY.toFixed(2)}(${typeof this.stdev === "string"?this.stdev:this.stdev.toFixed(2)})`, this.interpolatedX.toFixed(2), this.actualX.toFixed(2), this.convertedX.toFixed(2), this.totalGelProtein, this.totalVolume, this.stockProteinVol, this.laemmliVol, this.bufferVol];
+        return this.type === "sample"?[
+            this.name, this.type, this.ys, `${this.averageY.toFixed(2)}(${typeof this.stdev === "string"?this.stdev:this.stdev.toFixed(2)})`, 
+            this.interpolatedX.toFixed(2), this.actualX.toFixed(2), this.convertedX.toFixed(2), this.totalGelProtein, this.totalVolume, 
+            this.stockProteinVol.toFixed(2), this.laemmliVol.toFixed(2), this.bufferVol.toFixed(2)
+        ]:[
+            this.name, this.type, this.ys, `${this.averageY.toFixed(2)}(${typeof this.stdev === "string"?this.stdev:this.stdev.toFixed(2)})`, 
+            this.interpolatedX.toFixed(2), this.actualX.toFixed(2), this.convertedX.toFixed(2), this.totalGelProtein, this.totalVolume, 
+            "", "", ""
+        ];
     }
 
     /**
-     * @returns {string[]|number[]|boolean[]}
+     * @returns {string[]}
      */
     function getGelData(){
-        return [this.name, this.convertedX];
+        return [this.name, this.convertedX.toFixed(2)];
     }
 
     //Iterate through each inner array and create a sample, only adding the sample to the sample list if it doesn't exist already
@@ -41291,7 +41301,7 @@ async function merge(rawdataFile, templateFile){
 
     //Provide the filename so that it can be used to create the results xlsx file
 
-    return {samples,filename,rawdata, template, rawTemplate, lightweightSamples: lightSamples};
+    return {samples,filename, templateFilename, rawdata, template, rawTemplate, lightweightSamples: lightSamples};
 }
 
 /**
@@ -41318,15 +41328,23 @@ function parseSampleName(sampleName){
 }
 
 /**
+ * @param {Event} e 
+ * @returns {null}
+ */
+function intiateDownload(e){
+    this.lastChild.click();
+}
+
+/**
  * @param {Event} e
  * @returns {null}
  */
 function handleClick(e){
+    const excelDownloadButton = document.getElementById("download-button");
     const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
     const chartCanvas = document.getElementById("regression-chart");
     const tableContainer = document.getElementById("table-container");
-    const fileContainer = document.getElementById("file-container");
     const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
     const targetUnits = document.getElementById("units-conversion").value;
     const diagramContainer = document.getElementById("template-diagram");
@@ -41334,23 +41352,27 @@ function handleClick(e){
     const totalProtein = parseInt(document.getElementById("total-protein").value);
     const totalVolume = parseInt(document.getElementById("total-volume").value);
     const subtractBlank = document.getElementById("subtract-blank").checked;
-
-
+    
+    
+    
     //If there is no template or raw data file selected return null
     if(!rawdataFile || !templateFile) return null;
-
+    
     //Delete current chart & table & download anchor
     if(CHART !== null){
         CHART.destroy();
         deleteTable(tableContainer, "results-table");
         deleteTable(gelTableContainer, "protein-loading-table");
-        window.URL.revokeObjectURL(fileContainer.lastChild.href);
-        fileContainer.removeChild(fileContainer.lastChild);
+        // window.URL.revokeObjectURL(excelDownloadButton.lastChild.href);
+        // excelDownloadButton.removeEventListener("click", handleExcelDownload);
+        // excelDownloadButton.removeChild(excelDownloadButton.lastChild);
+        excelDownloadButton.replaceWith(excelDownloadButton.cloneNode(true));
         diagramContainer.innerHTML = "";
     } 
-
+    
     merge(rawdataFile, templateFile)
     .then(parsedData =>{
+        const excelDownloadButton = document.getElementById("download-button");
         const samples = Array.from(parsedData.samples.values());
         const standards = samples.filter(sample => sample.type === "standard");
         const unknowns = samples.filter(sample => sample.type === "sample");
@@ -41363,7 +41385,7 @@ function handleClick(e){
         let regressionObject;
 
         //Create a 96 well diagram of the template
-        diagram96Well(parsedData.lightweightSamples, diagramContainer);
+        diagram96Well(parsedData.lightweightSamples, diagramContainer, parsedData.templateFilename);
         
         //Get user inputs for x-scale type and regression type
         const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
@@ -41396,39 +41418,94 @@ function handleClick(e){
         
         //Create Gel Loading table
         createProteinGelLoadingTable(unknowns, gelTableContainer,totalProtein, totalVolume);
+        excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e,parsedData, standards, unknowns, dilutionFactor, units, targetUnits, subtractBlank, parameters, rSquared));
+        // //Create pseudoExcels in memory in order to write to excel and create downloadable link
+        // const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
+        // psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
+        // const startingCol = psuedoExcel.columns;
+        // psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Desired Vol [uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "Buffer [uL]"]);
+        // standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
+        // unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
 
-        //Create pseudoExcels in memory in order to write to excel and create downloadable link
-        const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
-        psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
-        const startingCol = psuedoExcel.columns;
-        psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Desired Vol [uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "Buffer [uL]"]);
-        standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
-        unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
-
-        //Add regression model parameters of best fit to pseudoExcel
-        psuedoExcel.appendCol(psuedoExcel.columns, [""]);
-        psuedoExcel.appendCol(psuedoExcel.columns,["R-Squared", ...Array.from(parameters.keys()), "Dilution Factor"]);
-        psuedoExcel.appendCol(psuedoExcel.columns,[rSquared, ...Array.from(parameters.values()), dilutionFactor]);
+        // //Add regression model parameters of best fit to pseudoExcel
+        // psuedoExcel.appendCol(psuedoExcel.columns, [""]);
+        // psuedoExcel.appendCol(psuedoExcel.columns,["R-Squared", ...Array.from(parameters.keys()), "Dilution Factor"]);
+        // psuedoExcel.appendCol(psuedoExcel.columns,[rSquared, ...Array.from(parameters.values()), dilutionFactor]);
 
 
-        //create an excel file in memory with the desired data
-        const wkbk = createWkbk(psuedoExcel.data);
-        appendWorksheet(wkbk, parsedData.rawdata, "rawdata");
-        appendWorksheet(wkbk, parsedData.rawTemplate, "template");
+        // //create an excel file in memory with the desired data
+        // const wkbk = createWkbk(psuedoExcel.data, "results");
+        // appendWorksheet(wkbk, parsedData.rawdata, "rawdata");
+        // appendWorksheet(wkbk, parsedData.rawTemplate, "template");
 
-        const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
-        const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+        // const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
+        // const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+        
+        // //Create a download link and associated anchor element
+        // const link = window.URL.createObjectURL(blob);
+        // const anchorElem = document.createElement("a");
+        // anchorElem.href = link;
+        // anchorElem.download = parsedData.filename+".xlsx";
 
-        //Create a download link and associated anchor element
-        const link = window.URL.createObjectURL(blob);
-        const anchorElem = document.createElement("a");
-        anchorElem.href = link;
-        anchorElem.download = parsedData.filename+".xlsx";
-        anchorElem.innerText = parsedData.filename+".xlsx";
-        document.getElementById("file-container").appendChild(anchorElem);
+        // //Prevent the bubbling of the click event that is initiated when the parent button element is clicked
+        // anchorElem.addEventListener("click", e => e.stopPropagation())
+        
+        // //Append to download button
+        // excelDownloadButton.appendChild(anchorElem);
+        // excelDownloadButton.addEventListener("click", intiateDownload);
     })
 }
+/**
+ * @param {Event} e
+ * @param {ParsedData} parsedData
+ * @param {Sample[]} standards
+ * @param {Sample[]} unknowns
+ * @param {number} dilutionFactor
+ * @param {string} units
+ * @param {string} targetUnits
+ * @param {boolean} subtractBlank
+ * @param {Map<string, number>} parameters
+ * @param {number} rSquared
+ */
+function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor, units, targetUnits, subtractBlank, parameters, rSquared){
+    //Create pseudoExcels in memory in order to write to excel and create downloadable link
+    const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
+    psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
+    const startingCol = psuedoExcel.columns;
+    psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Desired Vol [uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "Buffer [uL]"]);
+    standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
+    unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
 
+    //Add regression model parameters of best fit to pseudoExcel
+    psuedoExcel.appendCol(psuedoExcel.columns, [""]);
+    psuedoExcel.appendCol(psuedoExcel.columns,["R-Squared", ...Array.from(parameters.keys()), "Dilution Factor"]);
+    psuedoExcel.appendCol(psuedoExcel.columns,[rSquared, ...Array.from(parameters.values()), dilutionFactor]);
+
+
+    //create an excel file in memory with the desired data
+    const wkbk = createWkbk(psuedoExcel.data, "results");
+    appendWorksheet(wkbk, parsedData.rawdata, "rawdata");
+    appendWorksheet(wkbk, parsedData.rawTemplate, "template");
+
+    const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
+    const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    
+    //Create a download link and associated anchor element
+    const link = window.URL.createObjectURL(blob);
+    const anchorElem = document.createElement("a");
+    anchorElem.href = link;
+    anchorElem.download = parsedData.filename+".xlsx";
+
+    //Prevent the bubbling of the click event that is initiated when the parent button element is clicked
+    anchorElem.addEventListener("click", e => e.stopPropagation())
+    anchorElem.click();
+
+    //Clean up
+    window.URL.revokeObjectURL(link)
+    //Append to download button
+    // this.appendChild(anchorElem);
+    // this.addEventListener("click", intiateDownload);
+}
 /**
  * @param {HTMLDivElement} container
  * @param {boolean} valueOnly
@@ -41621,11 +41698,11 @@ function parseTemplateFile(file){
 function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units, title, eq, regressionType){
     const standardYs = standards.map(standard => standard.averageY);
     const maxY = ss.max(standardYs);
+    const minY = ss.min(standardYs);
     //Give regression model line a smooth curve if regression type is 4PL
     if(regressionType === "4pl"){
         const standardXs = standards.map(standard => standard.x);
         const minX = ss.min(standardXs);
-        const minY = ss.min(standardYs);
         const maxX = ss.max(standardXs);
         const minMaxDiff = (maxX-minX)/1000;
         var mockData = [{x:minX, y:minY}];
@@ -41643,7 +41720,7 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
         data:{
             storage:{
                 allUnknowns: unknowns.map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
-                filteredUnknowns: unknowns.map(sample => {return sample.averageY <= maxY ? {x:sample.interpolatedX, y:sample.averageY}:{x:null, y:null}}),
+                filteredUnknowns: unknowns.map(sample => {return sample.averageY <= maxY && sample.averageY >= minY ? {x:sample.interpolatedX, y:sample.averageY}:{x:null, y:null}}),
             },
             datasets:[  
 
@@ -41712,12 +41789,13 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
 
 /**
  * @param {string[][]} data
+ * @param {string} sheetname
  * @returns {xlsx.WorkBook}
  */
-function createWkbk(data){
+function createWkbk(data, sheetname = "sheet1"){
     const wkbk = xlsx.utils.book_new();
     const wkst = xlsx.utils.aoa_to_sheet(data);
-    xlsx.utils.book_append_sheet(wkbk, wkst);
+    xlsx.utils.book_append_sheet(wkbk, wkst, sheetname);
     return wkbk;
 }
 
@@ -41880,10 +41958,14 @@ function convertConcentration(conc, startingUnits, targetUnits){
 /** 
  * @param {LightweightSample[]} lightSamples
  * @param {Element} parent
+ * @param {string} diagramTitle
  * @returns {void}
 **/
-function diagram96Well(lightSamples, parent){
-
+function diagram96Well(lightSamples, parent, diagramTitle){
+    const title = document.createElement("h3");
+    title.id = "diagram-title";
+    title.textContent = diagramTitle;
+    parent.appendChild(title);
     for(let sample of lightSamples){
         const circularDiv = document.createElement("div");
         const wellPosition = document.createElement("p");
@@ -41947,22 +42029,20 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
         for(let i = 0; i < headers.length; i++){
             const td = document.createElement("td");
             let data = unknownsGelData[i];
-            if(i < unknownsGelData.length){
-                if(typeof data === "number") data = data.toFixed(2);
-                td.textContent = data;
-            }
+            if(i < unknownsGelData.length) td.textContent = data;
             else{
                 const inputEle = document.createElement("input");
                 inputEle.type = "number";
+
                 if(headers[i] === `Protein [${mass}]`){
                     targetProteinEles.push(inputEle);
                     inputEle.id = `Protein [${mass}]-${unknown.name}`;
                     inputEle.value = totalProtein;
                     inputEle.addEventListener("input", e=>{
-                        const targetProteinAmount = parseFloat(e.target.value);
-                        if(targetProteinAmount < 0 || targetProteinAmount === undefined) return;
-                        const reqVol = targetProteinAmount/unknown.convertedX;
-                        document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent = reqVol.toFixed(2);
+                        const targetProtein = parseFloat(e.target.value);
+                        if(targetProtein < 0 || targetProtein === undefined) return;
+                        const proteinVol = targetProtein/unknown.convertedX;
+                        document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent = proteinVol.toFixed(2);
                         const laemmliEle = document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`);
                         const desiredVolEle = document.getElementById(`Desired Vol [${vol}]-${unknown.name}`);
                         const bufferEle = document.getElementById(`Buffer [${vol}]-${unknown.name}`);
@@ -41970,8 +42050,14 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
                             const desiredVol = parseFloat(desiredVolEle.value);
                             const laemmliVol = desiredVol/4;
                             const bufferVol = desiredVol - laemmliVol - parseFloat(document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent);
+                            
                             laemmliEle.textContent = laemmliVol.toFixed(2);
                             bufferEle.textContent = bufferVol.toFixed(2);
+                            
+                            unknown.laemmliVol = laemmliVol;
+                            unknown.bufferVol = bufferVol;
+                            unknown.totalGelProtein = targetProtein;
+                            unknown.stockProteinVol = proteinVol;
                         }
                     })
                     td.appendChild(inputEle);
@@ -41985,8 +42071,13 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
                         if(desiredVol < 0 || desiredVol === undefined) return;
                         const laemmliVol = desiredVol/4;
                         const bufferVol = desiredVol - laemmliVol - parseFloat(document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent);
+                        
                         document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`).textContent = laemmliVol.toFixed(2);
                         document.getElementById(`Buffer [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
+                        
+                        unknown.laemmliVol = laemmliVol;
+                        unknown.bufferVol = bufferVol;
+                        unknown.totalVolume = desiredVol;
                     })
                     td.appendChild(inputEle);
                 }
@@ -42012,9 +42103,9 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
         const targetProtein = parseFloat(targetProteinEles[i].value);
         const desiredVol = parseFloat(desiredVolEles[i].value);
         const unknown = unknowns[i];
-        const proteinVol = (targetProtein/unknown.convertedX).toFixed(2);
-        const laemmliVol = (desiredVol/4).toFixed(2);
-        const bufferVol = (desiredVol - proteinVol - laemmliVol).toFixed(2);
+        const proteinVol = (targetProtein/unknown.convertedX);
+        const laemmliVol = (desiredVol/4);
+        const bufferVol = (desiredVol - proteinVol - laemmliVol);
 
         unknown.totalGelProtein = targetProtein;
         unknown.totalVolume = desiredVol;
@@ -42022,9 +42113,9 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
         unknown.laemmliVol = laemmliVol;
         unknown.bufferVol = bufferVol;
 
-        document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`).textContent = laemmliVol;
-        document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent = proteinVol;
-        document.getElementById(`Buffer [${vol}]-${unknown.name}`).textContent = bufferVol;
+        document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`).textContent = laemmliVol.toFixed(2);
+        document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent = proteinVol.toFixed(2);
+        document.getElementById(`Buffer [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
     }
     
 }

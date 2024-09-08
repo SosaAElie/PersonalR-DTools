@@ -8,11 +8,11 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="style.css">
-        <title>BioLab R&D Tools</title>
+        <title>BioTech R&D Tools</title>
     </head>
     <body>
         <div id = "header">
-            <h1 class="roboto-bold"><a href="index.html">BioLab <b>R&D</b> Tools</a></h1>
+            <h1 class="roboto-bold"><a href="index.html">BioTech <b>R&D</b> Tools</a></h1>
             <p id = "description">
                 <b>Purpose: </b>
                 To determine the concentration of unknowns using a regression model that best fits the standards.
@@ -68,38 +68,39 @@
             </ol>
         </div>
         <div id = "regression-section"> 
+            <br>
             <div id = file-inputs>
-                <label for = "rawdata-input">Select Your SoftMaxPro Raw Data Input</label>
+                <label for = "rawdata-input">SoftMaxPro Raw Data Input</label>
                 <input id = "rawdata-input" type="file" accept=".txt" required>
-                <label for = "template-input" >Select Your 96-Well Plate Template</label>
+                <label for = "template-input" >96-Well Plate Template</label>
                 <input id = "template-input" type="file" accept=".csv" required> 
-                <label for = "dilution-factor" >Enter the Dilution Factor of Your Unknowns</label>
+                <label for = "dilution-factor" >Dilution Factor of Your Unknowns</label>
                 <input id = "dilution-factor" type = "number" min="1" value="10">
-                <label for = "units-conversion" >Enter The Units To Convert To</label>
+                <label for = "units-conversion" >Units To Convert To</label>
                 <input id = "units-conversion" type = "text" value="ug/uL">
-                <label for = "total-protein" >Enter The Total Protein Per Unknown [ug]</label>
+                <label for = "total-protein" >Total Protein Per Unknown [ug]</label>
                 <input id = "total-protein" type = "number" value="20">
-                <label for = "total-volume" >Enter The Total Gel Loading Volume [uL]</label>
+                <label for = "total-volume" >Total Gel Loading Volume [uL]</label>
                 <input id = "total-volume" type = "number" value="12">
-                <div class = "chart-inputs">
-                    <div id = "regression-inputs">
-                        <h3>Regression Model</h3>
-                        <div class = "radio">
-                            <label for = "linear">Linear Regression</label>
-                            <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
-                        </div>
-                        <div class = "radio">
-                            <label for = "log">Logarithmic Regression</label>
-                            <input id = "log" type = "radio" name = "regression" value="log">
-                        </div>
-                        <div class = "radio">
-                            <label for = "4pl">4-Parameter Hill Equation</label>
-                            <input id = "4pl" type = "radio" name = "regression" value="4pl">
-                        </div>
-                        <div class = "radio">
-                            <label for ="subtract-blank">Subtract Blank?</label>
-                            <input id = "subtract-blank"type="checkbox">
-                        </div>
+            </div>
+            <div id = "chart-inputs">
+                <div id = "regression-inputs">
+                    <h3>Regression Model</h3>
+                    <div class = "radio">
+                        <label for = "linear">Linear Regression</label>
+                        <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
+                    </div>
+                    <div class = "radio">
+                        <label for = "log">Logarithmic Regression</label>
+                        <input id = "log" type = "radio" name = "regression" value="log">
+                    </div>
+                    <div class = "radio">
+                        <label for = "4pl">4-Parameter Hill Equation</label>
+                        <input id = "4pl" type = "radio" name = "regression" value="4pl">
+                    </div>
+                    <div class = "radio">
+                        <label for ="subtract-blank">Subtract Blank?</label>
+                        <input id = "subtract-blank"type="checkbox">
                     </div>
                 </div>
                 <div id = "chart-settings">
@@ -117,14 +118,15 @@
                     <div id = "extrapolated">
                         <div class="radio">
                             <label for = "hideExtrapolated">Hide Extrapolated Unknowns?</label>
-                            <input id = "hideExtrapoled" type="checkbox">
+                            <input id = "hideExtrapolated" type="checkbox">
                         </div>
                     </div>
+                    
                 </div>
-                <button id = "process-button" type = "button">Interpolate</button>
-            </div>
-            <div id = "file-container">
-                <h4>Analyzed Results:</h4>
+                <div id = "buttons">
+                    <button id = "process-button" type = "button">Interpolate Data</button>
+                    <button id = "download-button" type = "button">Download Excel</button>
+                </div>
             </div>
             <div id = "chart-template-container">
                 <div id = "template-diagram"></div>
