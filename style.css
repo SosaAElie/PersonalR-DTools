@@ -5,6 +5,8 @@ body{
     text-align: center;
     accent-color: black;
     background-image: linear-gradient(to bottom, rgba(174, 219, 234, 0.998), #8b888800);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }
 #file-inputs{
     display: grid;
@@ -49,8 +51,11 @@ body{
     position: relative;
     justify-content: center;
 }
-input[type = "file"]::file-selector-button {
+input[type = "file"]::-webkit-file-upload-button{
     display: none;
+}
+label:hover{
+    background-color: rgb(139, 176, 188);
 }
 input{
     background-color: inherit;

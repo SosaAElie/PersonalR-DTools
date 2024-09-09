@@ -89,12 +89,28 @@ function main(){
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
     document.getElementById("total-volume").addEventListener("input", handleNumericalInput);
     document.getElementById("total-protein").addEventListener("input", handleNumericalInput);
+    // document.getElementById("rawdata-input").addEventListener("input", updateLabel);
+    // document.getElementById("template-input").addEventListener("input", updateLabel);
+
     Array.from(document.getElementById("x-scale").children)
         .forEach(div=>{
             Array.from(div.children).filter(element=>element.tagName === "INPUT")
             .forEach(element=>element.addEventListener("change", handleXScale));
         });
     document.getElementById("hideExtrapolated").addEventListener("change", handleHideExtrapolated);
+}
+
+/**
+ * @param {Event} e
+ */
+function updateLabel(e){
+    const selectedFiles = this.files;
+    if(selectedFiles.length > 0) this.previousElementSibling.textContent = selectedFiles[0].name;
+    else{
+        if(this.id = "rawdata-input") this.previousElementSibling.textContent = "SoftMaxPro Raw Data File";
+        else this.previousElementSibling.textContent = "96-Well Plate Template File";
+    }   
+    return null
 }
 
 /**
@@ -285,14 +301,6 @@ function parseSampleName(sampleName){
     if(name === undefined) name = type;
     parsed.set("name", name);
     return parsed;
-}
-
-/**
- * @param {Event} e 
- * @returns {null}
- */
-function intiateDownload(e){
-    this.lastChild.click();
 }
 
 /**
