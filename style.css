@@ -3,8 +3,9 @@ body{
     font-weight: 300;
     font-style: normal;
     text-align: center;
-    accent-color: black;
-    background-image: linear-gradient(to bottom, rgba(174, 219, 234, 0.998), #8b888800);
+    color: rgba(255, 252, 252, 0.818);
+    accent-color: white;
+    background-image: linear-gradient(to bottom, rgba(8, 1, 56, 0.531), #252222);
     background-repeat: no-repeat;
     background-attachment: fixed;
 }
@@ -55,7 +56,7 @@ input[type = "file"]::-webkit-file-upload-button{
     display: none;
 }
 label:hover{
-    background-color: rgb(139, 176, 188);
+    background-color: rgba(204, 219, 224, 0.404);
 }
 input{
     background-color: inherit;
@@ -64,9 +65,10 @@ input{
     font-family: "Roboto", sans-serif;
     font-weight: 500;
     font-style: italic;
+    color: rgba(255, 252, 252, 0.818);
 }
 input:hover{
-    background-color: rgb(139, 176, 188);
+    background-color: rgba(204, 219, 224, 0.404);
 }
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -101,6 +103,7 @@ input::-webkit-inner-spin-button {
     font-weight: normal;
     justify-content: center;
     background-color: #ff69695c;
+    color: black;
 }
 .well .hovertext{
     visibility: hidden;
@@ -159,6 +162,7 @@ caption{
     border: inherit;
 }
 
+
 #header{
     text-align: center;
     height: min-content;
@@ -178,7 +182,6 @@ h1>a{
     color: black;
     text-decoration: none;
 }
-
 h1>a:hover{
     font-size: 102%;
 }
@@ -283,8 +286,9 @@ button{
     font-weight: normal;
     background-color: inherit;
     padding: 10px;
+    color: rgba(255, 252, 252, 0.818);
+    border-color:rgba(255, 252, 252, 0.818);
 }
 button:hover{
-    background-color: rgb(139, 176, 188);
+    background-color: rgba(204, 219, 224, 0.404);
 }
-

@@ -41756,6 +41756,14 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
             scales:{
                 x:{
                     type:xScale,
+                    grid:{
+                        color:"white",
+                        tickColor:"white",
+                    },
+                    ticks:{
+                        textStrokeColor:"white",
+                        color:"white",
+                    },
                     position:"bottom",
                     title:{
                         display:true,
@@ -41764,11 +41772,20 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                             size:14,
                             weight:"bold",
                         },
-                        color: "#000000",
+                        color: "white",
                     },
+                    
                 },
                 y:{
                     position:"left",
+                    grid:{
+                        color:"white",
+                        tickColor:"white",
+                    },
+                    ticks:{
+                        textStrokeColor:"white",
+                        color:"white",
+                    },
                     title:{
                         display:true,
                         text:"Absorbance or Luminescence",
@@ -41776,10 +41793,10 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                             size:14,
                             weight:"bold",
                         },
-                        color: "#000000", 
+                        color: "white", 
                     },
                                
-                }
+                },
             },
             plugins:{
                 title:{
@@ -41788,8 +41805,14 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                     font:{
                         size:16,
                     },
-                    color: "#000000",
+                    color: "white",
                 },
+                legend:{
+                    labels:{
+                        color:"white"
+                    }
+                }
+                
             }
         }
     }
