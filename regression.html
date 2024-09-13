@@ -70,13 +70,15 @@
         <div id = "regression-section"> 
             <br>
             <div id = file-inputs>
-                <label for = "rawdata-input">SoftMaxPro Raw Data Input</label>
+                <label for = "rawdata-input">SoftMaxPro Raw Data</label>
                 <input id = "rawdata-input" type="file" accept=".txt" required>
+                <p class = "filenames" >None</p>
                 <label for = "template-input" >96-Well Plate Template</label>
                 <input id = "template-input" type="file" accept=".csv" required> 
+                <p class = "filenames" >None</p>
                 <label for = "dilution-factor" >Dilution Factor of Your Unknowns</label>
                 <input id = "dilution-factor" type = "number" min="1" value="10">
-                <label for = "units-conversion" >Units To Convert To</label>
+                <label for = "units-conversion" >Unit To Convert To</label>
                 <input id = "units-conversion" type = "text" value="ug/uL">
                 <label for = "total-protein" >Total Protein Per Unknown [ug]</label>
                 <input id = "total-protein" type = "number" value="20">

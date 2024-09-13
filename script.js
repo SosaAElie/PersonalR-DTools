@@ -41129,8 +41129,8 @@ function main(){
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
     document.getElementById("total-volume").addEventListener("input", handleNumericalInput);
     document.getElementById("total-protein").addEventListener("input", handleNumericalInput);
-    // document.getElementById("rawdata-input").addEventListener("input", updateLabel);
-    // document.getElementById("template-input").addEventListener("input", updateLabel);
+    document.getElementById("rawdata-input").addEventListener("input", updateLabel);
+    document.getElementById("template-input").addEventListener("input", updateLabel);
 
     Array.from(document.getElementById("x-scale").children)
         .forEach(div=>{
@@ -41145,11 +41145,8 @@ function main(){
  */
 function updateLabel(e){
     const selectedFiles = this.files;
-    if(selectedFiles.length > 0) this.previousElementSibling.textContent = selectedFiles[0].name;
-    else{
-        if(this.id = "rawdata-input") this.previousElementSibling.textContent = "SoftMaxPro Raw Data File";
-        else this.previousElementSibling.textContent = "96-Well Plate Template File";
-    }   
+    if(selectedFiles.length > 0) this.nextElementSibling.textContent = selectedFiles[0].name;
+    else this.nextElementSibling.textContent = "None";
     return null
 }
 

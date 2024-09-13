@@ -23,6 +23,18 @@ body{
     flex-direction: column;
 
 }
+.filenames{
+    margin: 0;
+    width:150px;
+    height: 19px;
+    text-overflow:ellipsis;
+    overflow: hidden;
+    text-wrap:nowrap;
+
+}
+.filenames:hover{
+    overflow: visible;
+}
 #regression-inputs{
     display: flex;
     flex-direction: column;
@@ -52,7 +64,7 @@ body{
     position: relative;
     justify-content: center;
 }
-input[type = "file"]::-webkit-file-upload-button{
+input[type = "file"]{
     display: none;
 }
 label:hover{
