@@ -3,8 +3,10 @@ const chartjs = require("chart.js/auto");
 const papa = require("papaparse");
 const xlsx = require("xlsx");
 
-//Global variable to store the reference to the created chart
+//Global variable to store the reference to the created chart & chart image for excel
 let CHART = null;
+let CHARTIMAGE = null;
+let BARCHART = null;
 
 /**
  * @typedef {Object} Sample
@@ -317,6 +319,7 @@ function handleClick(e){
     const totalProtein = parseInt(document.getElementById("total-protein").value);
     const totalVolume = parseInt(document.getElementById("total-volume").value);
     const subtractBlank = document.getElementById("subtract-blank").checked;
+    const proteinBarChart = document.getElementById("protein-bar-chart");
     
     
     
@@ -326,11 +329,10 @@ function handleClick(e){
     //Delete current chart & table & download anchor
     if(CHART !== null){
         CHART.destroy();
+        BARCHART.destroy();
+        CHARTIMAGE = null;
         deleteTable(tableContainer, "results-table");
         deleteTable(gelTableContainer, "protein-loading-table");
-        // window.URL.revokeObjectURL(excelDownloadButton.lastChild.href);
-        // excelDownloadButton.removeEventListener("click", handleExcelDownload);
-        // excelDownloadButton.removeChild(excelDownloadButton.lastChild);
         excelDownloadButton.replaceWith(excelDownloadButton.cloneNode(true));
         diagramContainer.innerHTML = "";
     } 
@@ -384,40 +386,10 @@ function handleClick(e){
         //Create Gel Loading table
         createProteinGelLoadingTable(unknowns, gelTableContainer,totalProtein, totalVolume);
         excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e,parsedData, standards, unknowns, dilutionFactor, units, targetUnits, subtractBlank, parameters, rSquared));
-        // //Create pseudoExcels in memory in order to write to excel and create downloadable link
-        // const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
-        // psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
-        // const startingCol = psuedoExcel.columns;
-        // psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Desired Vol [uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "Buffer [uL]"]);
-        // standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
-        // unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
 
-        // //Add regression model parameters of best fit to pseudoExcel
-        // psuedoExcel.appendCol(psuedoExcel.columns, [""]);
-        // psuedoExcel.appendCol(psuedoExcel.columns,["R-Squared", ...Array.from(parameters.keys()), "Dilution Factor"]);
-        // psuedoExcel.appendCol(psuedoExcel.columns,[rSquared, ...Array.from(parameters.values()), dilutionFactor]);
+        //Create Protein Bar Chart
+        BARCHART = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns));
 
-
-        // //create an excel file in memory with the desired data
-        // const wkbk = createWkbk(psuedoExcel.data, "results");
-        // appendWorksheet(wkbk, parsedData.rawdata, "rawdata");
-        // appendWorksheet(wkbk, parsedData.rawTemplate, "template");
-
-        // const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
-        // const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
-        
-        // //Create a download link and associated anchor element
-        // const link = window.URL.createObjectURL(blob);
-        // const anchorElem = document.createElement("a");
-        // anchorElem.href = link;
-        // anchorElem.download = parsedData.filename+".xlsx";
-
-        // //Prevent the bubbling of the click event that is initiated when the parent button element is clicked
-        // anchorElem.addEventListener("click", e => e.stopPropagation())
-        
-        // //Append to download button
-        // excelDownloadButton.appendChild(anchorElem);
-        // excelDownloadButton.addEventListener("click", intiateDownload);
     })
 }
 /**
@@ -451,6 +423,7 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
     const wkbk = createWkbk(psuedoExcel.data, "results");
     appendWorksheet(wkbk, parsedData.rawdata, "rawdata");
     appendWorksheet(wkbk, parsedData.rawTemplate, "template");
+    // appendWorksheet(wkbk, null, null, CHARTIMAGE);
 
     const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
     const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
@@ -467,10 +440,8 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
 
     //Clean up
     window.URL.revokeObjectURL(link)
-    //Append to download button
-    // this.appendChild(anchorElem);
-    // this.addEventListener("click", intiateDownload);
 }
+
 /**
  * @param {HTMLDivElement} container
  * @param {boolean} valueOnly
@@ -734,6 +705,7 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                     
                 },
                 y:{
+                    beginAtZero:true,
                     position:"left",
                     grid:{
                         color:"white",
@@ -770,11 +742,92 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                     }
                 }
                 
+            },
+            animation:{
+                onComplete:(e)=> CHARTIMAGE = CHART.toBase64Image(),
             }
         }
     }
 }
+/**
+ * @param {Sample[]} unknowns
+ * @returns {chartjs.ChartConfiguration}
+ */
+function createBarChartOptionsAndData(unknowns){
+    const sorted = unknowns.map(unknown => {
+        return {
+            name:unknown.name, 
+            concentration:unknown.convertedX,
+        }
+    }).sort((a,b) => a.concentration - b.concentration);
 
+    return {
+        type:"bar",
+        data:{
+            labels:sorted.map(x => x.name),
+            datasets:[
+                {
+                    label:"Unknowns",
+                    data:sorted.map(x=>x.concentration),
+                    backgroundColor:"rgba(255, 105, 105, 0.56)",
+                    borderColor:"black",
+                    borderWidth: 1,
+                }
+            ]
+        },
+        options:{
+            maintainAspectRatio:false,
+            scales:{
+                x:{
+                    grid:{
+                        color:"white",
+                        tickColor:"white",
+                    },
+                    ticks:{
+                        textStrokeColor:"white",
+                        color:"white",
+                    },
+                    
+                },
+                y:{
+                    position:"left",
+                    grid:{
+                        color:"white",
+                        tickColor:"white",
+                    },
+                    ticks:{
+                        textStrokeColor:"white",
+                        color:"white",
+                    },
+                    title:{
+                        display:true,
+                        text:`Protein [${unknowns[0].convertedUnits}]`,
+                        font:{
+                            size:18,
+                            weight:"bold",
+                        },
+                        color: "white", 
+                    },
+                               
+                },
+            },
+            plugins:{
+                title:{
+                    display:true,
+                    text: "Back Calculated Protein Concentration",
+                    font:{
+                        size:20,
+                    },
+                    color: "white",
+                },
+                legend:{
+                    display:false,
+                }
+
+            },
+        }
+    }
+}
 /**
  * @param {string[][]} data
  * @param {string} sheetname
@@ -791,9 +844,26 @@ function createWkbk(data, sheetname = "sheet1"){
  * @param {xlsx.WorkBook} wkbk
  * @param {string[][]} data
  * @param {string} wkstName
+ * @param {string} image
  * @returns {null}
  */
-function appendWorksheet(wkbk, data, wkstName){
+function appendWorksheet(wkbk, data, wkstName, image = null){
+    if(image !== null){
+        wkbk.Sheets["graph"]["!images"] = [
+            {
+                name: 'image1.jpg',
+                data: image,
+                opts: { base64: true },
+                position: {
+                    type: 'twoCellAnchor',
+                    attrs: { editAs: 'oneCell' },
+                    from: { col: 2, row : 2 },
+                    to: { col: 6, row: 5 }
+                }
+            }
+        ]
+        return null;
+    }
     const wkst = xlsx.utils.aoa_to_sheet(data);
     xlsx.utils.book_append_sheet(wkbk, wkst, wkstName);
     return null;
