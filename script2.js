@@ -41069,6 +41069,12 @@ let CHARTS = [];
  * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
  */
 
+/**
+ * @typedef {Object} LightweightSample
+ * @property {string} wellPosition - The well position the sample was loaded in
+ * @property {number} wellNumber - The well number the same was loaded in
+ * @property {string} name - The name of the sample
+ */
 
 
 /**
@@ -41083,13 +41089,38 @@ function main(){
  * @param {InputEvent} e
  */
 async function processResultsCsv(e){
+    const templateDiagram = document.getElementById("diagram384");
     if(e.target.files ===  null) return;
     const inputfile = e.target.files[0];
     const rawdata = await parseDelimitedFile(inputfile);
     const samples = createSamples(rawdata);
     if(samples.length <= 0) return;
     mutateSamples(samples);
+    const lightweightSamples = createLightWeightSamples(samples);
+    console.log(lightweightSamples)
+    diagram384Well(lightweightSamples, templateDiagram, inputfile.name);
     updateSelectUis(samples, inputfile.name);
+}
+
+/**
+ * @param {Map<string, Sample>} samples
+ * @return {LightweightSample[]}
+ */
+function createLightWeightSamples(samples){
+    const lws = new Map();
+    let wellPositionLetter = "A"
+    for(let i = 1; i < 385; i++){
+        let wellPositionNumber = i%24;
+        if(wellPositionNumber === 0) wellPositionNumber = 24;
+        lws.set(i, {name:"None", wellPosition:`${wellPositionLetter}${wellPositionNumber}`, wellNumber:i});
+        if(i%24 === 0) wellPositionLetter = String.fromCharCode((wellPositionLetter.charCodeAt(0)+1));
+    }
+    for(let sample of samples.values()){
+        for(let i = 0; i < sample.wellPositions.length; i++){
+            lws.set(sample.wells[i], {name:sample.name, wellPosition:sample.wellPositions[i], wellNumber:sample.wells[i]});
+        }
+    }
+    return Array.from(lws.values());
 }
 
 /**
@@ -41654,6 +41685,34 @@ function createPsuedoExcel(rows, columns, startingData = null){
     }
 }
 
+/** 
+ * @param {LightweightSample[]} lightSamples
+ * @param {Element} parent
+ * @param {string} diagramTitle
+ * @returns {void}
+**/
+function diagram384Well(lightSamples, parent, diagramTitle){
+    console.log(lightSamples)
+    const title = document.createElement("h3");
+    title.id = "diagram-title";
+    title.textContent = diagramTitle;
+    parent.appendChild(title);
+    for(let sample of lightSamples){
+        const circularDiv = document.createElement("div");
+        const wellPosition = document.createElement("p");
+        wellPosition.textContent = sample.wellPosition;
+        const hoverText = document.createElement("span");
+        hoverText.textContent = sample.name;
+        hoverText.className = "hovertext"
+        circularDiv.className = "well";
+        circularDiv.appendChild(hoverText);
+        circularDiv.appendChild(wellPosition)
+        if(sample.name.toUpperCase()==="NONE"){
+            circularDiv.style.backgroundColor = "white";
+        }
+        parent.appendChild(circularDiv);
+    }
+}
 
 main()
 },{"chart.js/auto":2,"papaparse":5,"simple-statistics":6,"xlsx":8}],10:[function(require,module,exports){

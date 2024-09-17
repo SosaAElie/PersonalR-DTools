@@ -125,21 +125,40 @@ input::-webkit-inner-spin-button {
     display: flex;
     align-items: center;
 }
+#diagram384{
+    display: grid;
+    grid-template-columns: repeat(24, auto);
+    width: min-content;
+    margin-left: 20vw;
+    margin-top: 1%;
+    gap: 2px;
+}
+#diagram384>div{
+    height: 4vh;
+    width: 2vw;
+    border-style:solid;
+    border-width: 2px;
+    border-color: black;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+}
 #diagram-title{
-    grid-column: span 12;
+    grid-column: span 24;
     text-decoration: none;
     margin-bottom: 10px;
 }
 
 .well{ 
     font-weight: normal;
+    font-size: small;
     justify-content: center;
     background-color: #ff69695c;
     color: black;
 }
 .well .hovertext{
     visibility: hidden;
-    width: 120px;
+    width: 100px;
     background-color: rgba(53, 48, 48, 0.885);
     color: #fff;
     text-align: center;
