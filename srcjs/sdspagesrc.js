@@ -189,8 +189,8 @@ function handleConversionInput(e){
  * @returns {Promise<ParsedData>}
  */
 async function merge(rawdataFile, templateFile){
-    const rawdata = await parseRawDataFile(rawdataFile);
-    const rawTemplate = await parseTemplateFile(templateFile);
+    const rawdata = await parseDelimitedFile(rawdataFile);
+    const rawTemplate = await parseDelimitedFile(templateFile);
     const samples = new Map();
     const lightSamples = [];
     //Grabs only the raw data assuming the data is in a 96-well plate layout
@@ -600,19 +600,7 @@ function createTable(unknowns, standards, container, units, convertedUnits, dilu
  * @param {File} file
  * @returns {Promise<string[][]>}
  */
-function parseRawDataFile(file){
-    return new Promise((resolve, reject)=>{
-        papa.parse(file, {complete:(results, file)=>{
-            resolve(results.data)
-        }})
-    })
-};
-
-/**
- * @param {File} file
- * @returns {Promise<string[][]>}
- */
-function parseTemplateFile(file){
+function parseDelimitedFile(file){
     return new Promise((resolve, reject)=>{
         papa.parse(file, {complete:(results, file)=>{
             resolve(results.data)
