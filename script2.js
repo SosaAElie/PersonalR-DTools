@@ -41097,7 +41097,6 @@ async function processResultsCsv(e){
     if(samples.length <= 0) return;
     mutateSamples(samples);
     const lightweightSamples = createLightWeightSamples(samples);
-    console.log(lightweightSamples)
     diagram384Well(lightweightSamples, templateDiagram, inputfile.name);
     updateSelectUis(samples, inputfile.name);
 }
@@ -41158,7 +41157,6 @@ function updateSelectUis(samples, filename){
  */
 function handleProcessSelectionClick(e, samples, filename){
     const rgeCharts = document.getElementById("rge-charts");
-    console.log(samples)
 
     if(CHARTS.length > 0){
         for(let chart of CHARTS) chart.destroy();
@@ -41692,7 +41690,6 @@ function createPsuedoExcel(rows, columns, startingData = null){
  * @returns {void}
 **/
 function diagram384Well(lightSamples, parent, diagramTitle){
-    console.log(lightSamples)
     const title = document.createElement("h3");
     title.id = "diagram-title";
     title.textContent = diagramTitle;
