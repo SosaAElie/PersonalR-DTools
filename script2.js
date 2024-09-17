@@ -41043,13 +41043,16 @@ const chartjs = require("chart.js/auto");
 const papa = require("papaparse");
 const xlsx = require("xlsx");
 
+let CHARTS = [];
+
 /**
  * @typedef {Object} Sample
  * @property {string} name - Sample name
  * @property {Map<string, Target>} targets - The target genes
  * @property {number[]} wells - The well numbers the sample was loaded in i.e 1,2,3...384
  * @property {string[]} wellPositions - The well positions the sample was loaded in i.e A1, B1, C1, etc.
- * 
+ * @property {string} hkg - House Keeping Gene
+ * @property {boolean} isReferenceSample - returns true if this sample is selected to the be the reference sample
 */
 
 /**
@@ -41061,11 +41064,12 @@ const xlsx = require("xlsx");
  * @property {number} average - The average of the best duplicates
  * @property {number} stdev - The sample standard deviation of the best duplicate
  * @property {number} deltaCt - ct (gene of interest) - ct (housekeeping gene)
- * @property {number} deltadeltaCt - ΔCt (unknown sample/target sample) - ΔCt (reference sample/control sample)
- * @property {number} rge - Relative Gene Expression
- * @property {string} hkg - House Keeping Gene
+ * @property {number} deltadeltaCt - ΔCt (unknown sample or target sample) - ΔCt (reference sample or control sample)
+ * @property {number} rge - Relative Gene Expression, 2^-ΔΔCt
  * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
  */
+
+
 
 /**
  * @returns {null}
@@ -41084,14 +41088,16 @@ async function processResultsCsv(e){
     const rawdata = await parseDelimitedFile(inputfile);
     const samples = createSamples(rawdata);
     if(samples.length <= 0) return;
-    updateSelectUis(samples);
+    mutateSamples(samples);
+    updateSelectUis(samples, inputfile.name);
 }
 
 /**
  * @param {Map<string, Sample>} samples
+ * @param {string} filename
  * @returns {null}
  */
-function updateSelectUis(samples){
+function updateSelectUis(samples, filename){
     const selectEleTargets = document.getElementById("reference-gene");
     const samplesArr = Array.from(samples.values());
     for(let target of samplesArr[0].targets.keys()){
@@ -41107,23 +41113,262 @@ function updateSelectUis(samples){
         selectEleSamples.appendChild(optionEle);
     }
 
-    selectEleSamples.addEventListener("change", handleReferenceSampleChange)
-    selectEleTargets.addEventListener("change", handleReferenceTargetChange)
+    selectEleTargets.addEventListener("change", e => handleReferenceTargetChange(e, samples));
+    selectEleSamples.addEventListener("change", e => handleReferenceSampleChange(e, samples));
+    document.getElementById("process-selection").addEventListener("click", e => handleProcessSelectionClick(e, samples, filename));
+
     return null;
 }
 
 /**
  * @param {Event} e
+ * @param {Map<string, Sample>} samples
+ * @param {string} filename
  */
-function handleReferenceTargetChange(e){
-    console.log(e.target.value);
+function handleProcessSelectionClick(e, samples, filename){
+    const rgeCharts = document.getElementById("rge-charts");
+    console.log(samples)
+
+    if(CHARTS.length > 0){
+        for(let chart of CHARTS) chart.destroy();
+        rgeCharts.innerHTML = "";
+    }
+
+    const referenceTarget = document.getElementById("reference-gene").value;
+    const referenceSample = document.getElementById("reference-sample").value;
+    if(referenceTarget === "None" || referenceSample === "None") return;
+
+    //Replace the button element to remove all event listeners
+    document.getElementById("download-excel").replaceWith(document.getElementById("download-excel").cloneNode(true));
+
+    //Calculate the relative gene expression for each target gene
+    for(let sample of samples.values()){
+        for(let target of sample.targets.values()){
+            target.rge = 2**(-target.deltadeltaCt);
+        }
+    }
+
+    //Create a bar graph to show the relative gene expression for each sample
+    const targets = Array.from(samples.get(referenceSample).targets.values());
+    for(let target of targets){
+        if(target.name === referenceTarget) continue;
+        const canvas = document.createElement("canvas");
+        const chartOptions = createRgeBarGraphOptions(samples, filename, target.name, referenceSample);
+        CHARTS.push(new chartjs.Chart(canvas, chartOptions));
+        rgeCharts.appendChild(canvas);
+
+    }
+
+    //Add event listener to download excel button to allow user to download excel file when they click it, anonymous function so it can refernce the samples
+    document.getElementById("download-excel").addEventListener("click", e => handleDownloadExcelClick(e, samples, filename));
+}
+
+/**
+ * @param {Map<string, Sample>} samples
+ * @param {string} filename
+ * @param {string} goi
+ * @param {string} referenceSample
+ * @returns {chartjs.ChartConfiguration}
+ */
+function createRgeBarGraphOptions(samples, filename, goi, referenceSample){
+    const sorted = Array.from(samples.values()).map(sample => {
+        return {
+            name:sample.name, 
+            rge:sample.targets.get(goi).rge,
+        }
+    }).sort((a,b) => a.rge - b.rge);
+
+    return {
+        type:"bar",
+        data:{
+            labels:sorted.map(x => x.name),
+            datasets:[
+                {
+                    label:"Relative Gene Expression",
+                    data:sorted.map(x=>x.rge),
+                    backgroundColor:"rgba(255, 105, 105, 0.56)",
+                    borderColor:"black",
+                    borderWidth: 1,
+                }
+            ]
+        },
+        options:{
+            maintainAspectRatio:false,
+            scales:{
+                x:{
+                    grid:{
+                        color:"white",
+                        tickColor:"white",
+                    },
+                    ticks:{
+                        textStrokeColor:"white",
+                        color:"white",
+                    },
+                    
+                },
+                y:{
+                    type:"linear",
+                    position:"left",
+                    grid:{
+                        color:"white",
+                        tickColor:"white",
+                    },
+                    ticks:{
+                        textStrokeColor:"white",
+                        color:"white",
+                    },
+                    title:{
+                        display:true,
+                        text:`RGE of ${goi} (relative to ${referenceSample})`,
+                        font:{
+                            size:18,
+                            weight:"bold",
+                        },
+                        color: "white", 
+                    },
+                               
+                },
+            },
+            plugins:{
+                title:{
+                    display:true,
+                    text: filename,
+                    font:{
+                        size:20,
+                    },
+                    color: "white",
+                },
+                legend:{
+                    display:false,
+                }
+
+            },
+        }
+    }
 }
 
 /**
  * @param {Event} e
+ * @param {Map<string, Sample>} samples
+ * @param {string} filename
  */
-function handleReferenceSampleChange(e){
-    console.log(e.target.value);
+function handleDownloadExcelClick(e, samples, filename){
+    const excelData = [["Sample Name", "is Reference Sample?", "Target", "House-Keeping Gene", "Replicates", "Best Duplicates", "Average", "Stdev", "ΔCt", "ΔΔCt", "Relative Gene Expression"]];
+    for(let sample of samples.values()){
+        const sampleName = sample.name;
+        const isReferenceSample = sample.isReferenceSample;
+        const hkg = sample.hkg;
+        for(let target of sample.targets.values()){
+            if(target.name === hkg) continue;
+            const targetName = target.name;
+            const replicates = target.cqs.map(cq => cq.toFixed(2)).join(",");
+            const bestDuplicates = target.bestDuplicates.map(x => x.toFixed(2)).join(",");
+            const average = target.average.toFixed(2);
+            const stdev = target.stdev.toFixed(2);
+            const deltaCt = target.deltaCt.toFixed(2);
+            const deltadeltaCt = target.deltadeltaCt.toFixed(2);
+            const rge = target.rge.toFixed(2);
+            excelData.push([sampleName, isReferenceSample, targetName, hkg, replicates, bestDuplicates, average, stdev, deltaCt, deltadeltaCt, rge]);
+        }
+    }
+
+    //Create excel object in memory
+    const wkbk = createWkbk(excelData, "results");
+    const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
+    const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+
+     //Create a download link and associated anchor element
+    const link = window.URL.createObjectURL(blob);
+    const anchorElem = document.createElement("a");
+    anchorElem.href = link;
+    anchorElem.download = filename.replace(".csv", ".xlsx");
+
+    //Prevent the bubbling of the click event that is initiated when the parent button element is clicked
+    anchorElem.addEventListener("click", e => e.stopPropagation())
+    anchorElem.click();
+
+    //Clean up
+    window.URL.revokeObjectURL(link);
+}   
+
+/**
+ * @param {Event} e
+ * @param {Map<string, Sample>} samples
+ * @return {null}
+ */
+function handleReferenceTargetChange(e, samples){
+    const referenceTargetName = e.target.value;
+    const referenceSample = document.getElementById("reference-sample").value;
+    if(referenceTargetName === "None") return;
+    
+    //Calculate the ΔCt value for each non-reference gene of each sample
+    for(let sample of samples.values()){
+        const referenceTarget = sample.targets.get(referenceTargetName);
+        sample.hkg = referenceTargetName;
+        if(referenceTarget === undefined) return;
+        for(let [k, v] of sample.targets.entries()){
+            v.deltaCt = v.average - referenceTarget.average;
+        }
+    }
+    handleReferenceSampleChange(referenceSample, samples);
+    return null;
+}
+
+/**
+ * @param {Map<string, Sample>} samples
+ * @return {null}
+ */
+function mutateSamples(samples){
+    //Mutates the sample objects in the sample map by updating the average, stdev, bestDuplicates properties of the Target object property of the Sample
+    for(let sample of samples.values()){
+        for(let target of sample.targets.values()){
+            target.bestDuplicates = getBestDuplicates(target.cqs);
+            target.average = ss.mean(target.bestDuplicates);
+            target.stdev = ss.sampleStandardDeviation(target.bestDuplicates);
+        }
+    }
+    return null
+}
+
+/**
+ * @param {number[]} replicates
+ * @return {number[]}
+ */
+function getBestDuplicates(replicates){
+    const duplicates = [];
+    const diffs = [];
+    for(let i = 0; i < replicates.length-1; i++){
+        for(let j = i+1; j < replicates.length; j++){
+            diffs.push(Math.abs(replicates[i]-replicates[j]));
+            duplicates.push([replicates[i], replicates[j]])
+        }
+    }
+
+    return duplicates.at(diffs.indexOf(ss.min(diffs)));
+}
+
+/**
+ * @param {Event||string} e
+ * @param {Map<string, Sample>} samples
+ * @return {null}
+ */
+function handleReferenceSampleChange(e, samples){
+    let referenceSampleName;
+    if(typeof e === "string") referenceSampleName = e;
+    else referenceSampleName = e.target.value;
+    if(referenceSampleName === "None") return;
+    const referenceSample = samples.get(referenceSampleName);
+    if(referenceSample === undefined) return;
+
+    ///Calculate the ΔΔCt value for each non-reference gene of each non-reference sample
+    for(let sample of samples.values()){
+        if(sample.name === referenceSampleName) sample.isReferenceSample = true;
+        else sample.isReferenceSample = false;
+        for(let [k, v] of sample.targets.entries()){
+            v.deltadeltaCt = v.deltaCt - referenceSample.targets.get(k).deltaCt;
+        }
+    }
+    return null
 }
 
 /**
@@ -41219,6 +41464,8 @@ function createSample(name, target, well, wellPosition){
         targets:new Map([[target.name, target]]),
         wells:[well],
         wellPositions:[wellPosition],
+        hkg:"",
+        isReferenceSample:false,
     }
 }
 
@@ -41239,10 +41486,174 @@ function createTarget(name, reporter, cq){
         deltaCt:NaN,
         deltadeltaCt:NaN,
         rge:NaN,
-        hkg:"",
         pcrEfficiency:1,
     }
 }
+
+function createWkbk(data, sheetname = "sheet1"){
+    const wkbk = xlsx.utils.book_new();
+    const wkst = xlsx.utils.aoa_to_sheet(data);
+    xlsx.utils.book_append_sheet(wkbk, wkst, sheetname);
+    return wkbk;
+}
+
+/**
+ * @param {xlsx.WorkBook} wkbk
+ * @param {string[][]} data
+ * @param {string} wkstName
+ * @param {string} image
+ * @returns {null}
+ */
+function appendWorksheet(wkbk, data, wkstName, image = null){
+    if(image !== null){
+        wkbk.Sheets["graph"]["!images"] = [
+            {
+                name: 'image1.jpg',
+                data: image,
+                opts: { base64: true },
+                position: {
+                    type: 'twoCellAnchor',
+                    attrs: { editAs: 'oneCell' },
+                    from: { col: 2, row : 2 },
+                    to: { col: 6, row: 5 }
+                }
+            }
+        ]
+        return null;
+    }
+    const wkst = xlsx.utils.aoa_to_sheet(data);
+    xlsx.utils.book_append_sheet(wkbk, wkst, wkstName);
+    return null;
+}
+
+
+/**
+ * @param {number} rows
+ * @param {number} columns
+ * @param {string[][]} startingData
+ * @returns {PsuedoExcel}
+ */
+function createPsuedoExcel(rows, columns, startingData = null){
+    let data; 
+
+    if(startingData && startingData.length !== 0){
+        data = structuredClone(startingData);
+        rows = startingData.length;
+        columns = ss.max(startingData.map(inner => inner.length));
+    }
+    else{
+        data = [];
+        for (let i = 0; i < rows; i++) data.push(new Array(columns).fill(null));
+    }
+
+    /**
+     * @param {number} row
+     * @param {number} column
+     * @param {number|string|boolean} val
+     * @returns {string|null}
+     */
+    function at(row, column, val){
+        while(this.rows <= row) {
+            this.data.push(new Array(column+1).fill(null));
+            this.rows+=1;
+        };
+        const currentRow = this.data[row];
+        while(currentRow.length <= column){ 
+            currentRow.push(null);
+        };
+        if(this.columns < currentRow.length) this.columns = currentRow.length;
+        if(val) this.data[row][column] = val.toString();
+        else return this.data[row][column];
+        
+    }
+
+    /**
+     * @param {string[]|number[]|boolean[]} data
+     * @returns {number} - Returns the new number of total rows
+     */
+    function appendRow(data){
+        this.data.push(data.map(val => val.toString()));
+        this.rows+=1;
+        return this.rows;
+    }
+    
+    /**
+     * @param {number} startingCol
+     * @param {string[]|number[]|boolean[]} data
+     * @returns {number} - Returns the new number of total columns
+     */
+    function appendCol(startingCol = null, data){
+        if(!startingCol) startingCol = this.columns;
+        for(let i = 0; i < data.length; i++){
+            this.at(i, startingCol, data[i]);
+        };
+        return this.columns;
+    }
+
+    /**
+     * @param {PsuedoExcel} psuedoExcel
+     * @param {boolean} overwrite
+     * @param {number} startingRow
+     * @param {number} startingCol
+     * @param {string} seperator
+     * @returns {ThisType<PsuedoExcel>} 
+     */
+    function combine(psuedoExcel, startingRow = 0, startingCol = 0, overwrite = true, seperator = ":"){
+        const newData = psuedoExcel.data;
+        if(overwrite){
+            for(let row = 0; row < newData.length; row++){
+                for(let col = 0; col < newData[row].length; col++){
+                    this.at(startingRow+row,startingCol+col, newData[row][col]);
+                }
+            }
+        }
+        else{    
+            for(let row = 0; row < newData.length; row++){
+                for(let col = 0; col < newData[row].length; col++){
+                    const currentVal = this.at(startingRow+row,startingCol+col);
+                    if(currentVal) this.at(startingRow+row,startingCol+col, currentVal + seperator + newData[row][col])
+                    else this.at(startingRow+row,startingCol+col, newData[row][col]);
+                }
+            }
+        }
+        return this;
+    }
+
+    /**
+     * @param {number} startingRow
+     * @param {number} startingCol
+     * @param {boolean} horizontal
+     * @param {boolean} overwrite
+     * @param {string[]|number[]|boolean[]} data
+     * @returns {null}
+     */
+    function appendAt(startingRow, startingCol, horizontal, data){
+        if(horizontal){
+            for(let i = 0; i < data.length; i++){
+                this.at(startingRow, startingCol+i, data[i]);
+            }
+        }
+        else{
+            for(let i = 0; i < data.length; i++){
+                this.at(startingRow+i, startingCol, data[i]);
+            }            
+        }
+    }
+
+
+
+    return {
+        rows,
+        columns,
+        data,
+        appendRow,
+        appendCol,
+        at,
+        combine,
+        appendAt,
+    }
+}
+
 
 main()
 },{"chart.js/auto":2,"papaparse":5,"simple-statistics":6,"xlsx":8}],10:[function(require,module,exports){

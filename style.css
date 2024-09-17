@@ -20,7 +20,7 @@ body{
 }
 #rge-inputs{
     display: grid;
-    grid-template: auto /auto auto;
+    grid-template: auto / auto auto;
     gap: 10px;    
     justify-content: center;
     text-align: left;
@@ -68,6 +68,10 @@ body{
     height: 60vh;
     width: 90vw;
     padding-left: 5vw;
+}
+#rge-charts{
+    display: grid;
+    grid-template: 70vh / 50vw 50vw;
 }
 
 #table-container{
