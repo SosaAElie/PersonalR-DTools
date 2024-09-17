@@ -313,7 +313,8 @@ function mutateSamples(samples){
         for(let target of sample.targets.values()){
             target.bestDuplicates = getBestDuplicates(target.cqs);
             target.average = ss.mean(target.bestDuplicates);
-            target.stdev = ss.sampleStandardDeviation(target.bestDuplicates);
+            if(target.cqs.length > 1) target.stdev = ss.sampleStandardDeviation(target.bestDuplicates);
+            else target.stdev = NaN;
         }
     }
     return null
@@ -324,6 +325,7 @@ function mutateSamples(samples){
  * @return {number[]}
  */
 function getBestDuplicates(replicates){
+    if(replicates.length < 2) return replicates.map(x=>x);
     const duplicates = [];
     const diffs = [];
     for(let i = 0; i < replicates.length-1; i++){
@@ -651,7 +653,7 @@ function createPsuedoExcel(rows, columns, startingData = null){
 **/
 function diagram384Well(lightSamples, parent, diagramTitle){
     const title = document.createElement("h3");
-    title.id = "diagram-title";
+    title.id = "diagram-title384";
     title.textContent = diagramTitle;
     parent.appendChild(title);
     for(let sample of lightSamples){
