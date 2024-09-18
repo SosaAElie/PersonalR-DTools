@@ -13,6 +13,7 @@ let CHARTS = [];
  * @property {string[]} wellPositions - The well positions the sample was loaded in i.e A1, B1, C1, etc.
  * @property {string} hkg - House Keeping Gene
  * @property {boolean} isReferenceSample - returns true if this sample is selected to the be the reference sample
+ * @property {function} getTableData - returns an array containing data to display on a table
 */
 
 /**
@@ -57,8 +58,45 @@ async function processResultsCsv(e){
     if(samples.length <= 0) return;
     mutateSamples(samples);
     const lightweightSamples = createLightWeightSamples(samples);
+    createSampleTable(samples)
     diagram384Well(lightweightSamples, templateDiagram, inputfile.name);
     updateSelectUis(samples, inputfile.name);
+}
+
+/**
+ * @param {Map<string, Sample>} samples
+ * @returns {null}
+ */
+function createSampleTable(samples){
+    const container = document.getElementById("sample-table");
+    
+    const table = document.createElement("table");
+    const tableHeaders = document.createElement("thead");
+    const tableBody = document.createElement("tbody");
+
+    
+    const headers = ["Sample Name", "Gene of Interest", "House-Keeping Gene", "Average", "Stdev", "Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"];
+    const headerRow = document.createElement("tr");
+    for(let header of headers){
+        const th = document.createElement("th");
+        th.textContent = header;
+        headerRow.appendChild(th);
+    }
+    tableHeaders.appendChild(headerRow);
+    table.appendChild(tableHeaders);
+
+    for(let sample of samples.values()){
+        const row = document.createElement("tr");
+        for(let data of sample.getTableData()){
+            const td = document.createElement("td");
+            td.textContent = data;
+            row.appendChild(td);
+        }
+        tableBody.appendChild(row);
+    }
+    table.appendChild(tableBody);
+    container.appendChild(table);
+
 }
 
 /**
@@ -457,6 +495,21 @@ function createSample(name, target, well, wellPosition){
         wellPositions:[wellPosition],
         hkg:"",
         isReferenceSample:false,
+        referenceSample:"",
+        /**
+         * 
+         * @param {string} targetName 
+         * @returns {string[]|number[]}
+         */
+        getTableData(targetName = null){
+            return (
+                targetName === null?
+                [this.name, "", this.hkg, "","","","","", ""]
+                :
+                [this.name, this.targets.get(targetName).name, this.hkg, this.targets.get(targetName).average,this.targets.get(targetName).stdev, this.referenceSample, this.targets.get(targetName).deltaCt, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
+            
+            )
+        },
     }
 }
 

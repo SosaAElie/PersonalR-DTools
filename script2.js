@@ -1,192 +1,4 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-
-},{}],2:[function(require,module,exports){
-// shim for using process in browser
-var process = module.exports = {};
-
-// cached from whatever global is present so that test runners that stub it
-// don't break things.  But we need to wrap it in a try catch in case it is
-// wrapped in strict mode code which doesn't define any globals.  It's inside a
-// function because try/catches deoptimize in certain engines.
-
-var cachedSetTimeout;
-var cachedClearTimeout;
-
-function defaultSetTimout() {
-    throw new Error('setTimeout has not been defined');
-}
-function defaultClearTimeout () {
-    throw new Error('clearTimeout has not been defined');
-}
-(function () {
-    try {
-        if (typeof setTimeout === 'function') {
-            cachedSetTimeout = setTimeout;
-        } else {
-            cachedSetTimeout = defaultSetTimout;
-        }
-    } catch (e) {
-        cachedSetTimeout = defaultSetTimout;
-    }
-    try {
-        if (typeof clearTimeout === 'function') {
-            cachedClearTimeout = clearTimeout;
-        } else {
-            cachedClearTimeout = defaultClearTimeout;
-        }
-    } catch (e) {
-        cachedClearTimeout = defaultClearTimeout;
-    }
-} ())
-function runTimeout(fun) {
-    if (cachedSetTimeout === setTimeout) {
-        //normal enviroments in sane situations
-        return setTimeout(fun, 0);
-    }
-    // if setTimeout wasn't available but was latter defined
-    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-        cachedSetTimeout = setTimeout;
-        return setTimeout(fun, 0);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedSetTimeout(fun, 0);
-    } catch(e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-            return cachedSetTimeout.call(null, fun, 0);
-        } catch(e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-            return cachedSetTimeout.call(this, fun, 0);
-        }
-    }
-
-
-}
-function runClearTimeout(marker) {
-    if (cachedClearTimeout === clearTimeout) {
-        //normal enviroments in sane situations
-        return clearTimeout(marker);
-    }
-    // if clearTimeout wasn't available but was latter defined
-    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-        cachedClearTimeout = clearTimeout;
-        return clearTimeout(marker);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedClearTimeout(marker);
-    } catch (e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-            return cachedClearTimeout.call(null, marker);
-        } catch (e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-            return cachedClearTimeout.call(this, marker);
-        }
-    }
-
-
-
-}
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-    if (!draining || !currentQueue) {
-        return;
-    }
-    draining = false;
-    if (currentQueue.length) {
-        queue = currentQueue.concat(queue);
-    } else {
-        queueIndex = -1;
-    }
-    if (queue.length) {
-        drainQueue();
-    }
-}
-
-function drainQueue() {
-    if (draining) {
-        return;
-    }
-    var timeout = runTimeout(cleanUpNextTick);
-    draining = true;
-
-    var len = queue.length;
-    while(len) {
-        currentQueue = queue;
-        queue = [];
-        while (++queueIndex < len) {
-            if (currentQueue) {
-                currentQueue[queueIndex].run();
-            }
-        }
-        queueIndex = -1;
-        len = queue.length;
-    }
-    currentQueue = null;
-    draining = false;
-    runClearTimeout(timeout);
-}
-
-process.nextTick = function (fun) {
-    var args = new Array(arguments.length - 1);
-    if (arguments.length > 1) {
-        for (var i = 1; i < arguments.length; i++) {
-            args[i - 1] = arguments[i];
-        }
-    }
-    queue.push(new Item(fun, args));
-    if (queue.length === 1 && !draining) {
-        runTimeout(drainQueue);
-    }
-};
-
-// v8 likes predictible objects
-function Item(fun, array) {
-    this.fun = fun;
-    this.array = array;
-}
-Item.prototype.run = function () {
-    this.fun.apply(null, this.array);
-};
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-process.version = ''; // empty string to avoid regexp issues
-process.versions = {};
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-process.prependListener = noop;
-process.prependOnceListener = noop;
-
-process.listeners = function (name) { return [] }
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-process.umask = function() { return 0; };
-
-},{}],3:[function(require,module,exports){
 /*!
  * @kurkle/color v0.3.2
  * https://github.com/kurkle/color#readme
@@ -812,7 +624,7 @@ return index;
 
 }));
 
-},{}],4:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 const chartjs = require('../dist/chart.cjs');
 const {Chart, registerables} = chartjs;
 
@@ -820,7 +632,7 @@ Chart.register(...registerables);
 
 module.exports = Object.assign(Chart, chartjs);
 
-},{"../dist/chart.cjs":5}],5:[function(require,module,exports){
+},{"../dist/chart.cjs":3}],3:[function(require,module,exports){
 /*!
  * Chart.js v4.4.3
  * https://www.chartjs.org
@@ -12336,7 +12148,7 @@ exports.registry = registry;
 exports.scales = scales;
 
 
-},{"./chunks/helpers.segment.cjs":6,"@kurkle/color":3}],6:[function(require,module,exports){
+},{"./chunks/helpers.segment.cjs":4,"@kurkle/color":1}],4:[function(require,module,exports){
 /*!
  * Chart.js v4.4.3
  * https://www.chartjs.org
@@ -15213,7 +15025,7 @@ exports.unlistenArrayEvents = unlistenArrayEvents;
 exports.valueOrDefault = valueOrDefault;
 
 
-},{"@kurkle/color":3}],7:[function(require,module,exports){
+},{"@kurkle/color":1}],5:[function(require,module,exports){
 /* @license
 Papa Parse
 v5.4.1
@@ -15221,11 +15033,11 @@ https://github.com/mholt/PapaParse
 License: MIT
 */
 !function(e,t){"function"==typeof define&&define.amd?define([],t):"object"==typeof module&&"undefined"!=typeof exports?module.exports=t():e.Papa=t()}(this,function s(){"use strict";var f="undefined"!=typeof self?self:"undefined"!=typeof window?window:void 0!==f?f:{};var n=!f.document&&!!f.postMessage,o=f.IS_PAPA_WORKER||!1,a={},u=0,b={parse:function(e,t){var r=(t=t||{}).dynamicTyping||!1;J(r)&&(t.dynamicTypingFunction=r,r={});if(t.dynamicTyping=r,t.transform=!!J(t.transform)&&t.transform,t.worker&&b.WORKERS_SUPPORTED){var i=function(){if(!b.WORKERS_SUPPORTED)return!1;var e=(r=f.URL||f.webkitURL||null,i=s.toString(),b.BLOB_URL||(b.BLOB_URL=r.createObjectURL(new Blob(["var global = (function() { if (typeof self !== 'undefined') { return self; } if (typeof window !== 'undefined') { return window; } if (typeof global !== 'undefined') { return global; } return {}; })(); global.IS_PAPA_WORKER=true; ","(",i,")();"],{type:"text/javascript"})))),t=new f.Worker(e);var r,i;return t.onmessage=_,t.id=u++,a[t.id]=t}();return i.userStep=t.step,i.userChunk=t.chunk,i.userComplete=t.complete,i.userError=t.error,t.step=J(t.step),t.chunk=J(t.chunk),t.complete=J(t.complete),t.error=J(t.error),delete t.worker,void i.postMessage({input:e,config:t,workerId:i.id})}var n=null;b.NODE_STREAM_INPUT,"string"==typeof e?(e=function(e){if(65279===e.charCodeAt(0))return e.slice(1);return e}(e),n=t.download?new l(t):new p(t)):!0===e.readable&&J(e.read)&&J(e.on)?n=new g(t):(f.File&&e instanceof File||e instanceof Object)&&(n=new c(t));return n.stream(e)},unparse:function(e,t){var n=!1,_=!0,m=",",y="\r\n",s='"',a=s+s,r=!1,i=null,o=!1;!function(){if("object"!=typeof t)return;"string"!=typeof t.delimiter||b.BAD_DELIMITERS.filter(function(e){return-1!==t.delimiter.indexOf(e)}).length||(m=t.delimiter);("boolean"==typeof t.quotes||"function"==typeof t.quotes||Array.isArray(t.quotes))&&(n=t.quotes);"boolean"!=typeof t.skipEmptyLines&&"string"!=typeof t.skipEmptyLines||(r=t.skipEmptyLines);"string"==typeof t.newline&&(y=t.newline);"string"==typeof t.quoteChar&&(s=t.quoteChar);"boolean"==typeof t.header&&(_=t.header);if(Array.isArray(t.columns)){if(0===t.columns.length)throw new Error("Option columns is empty");i=t.columns}void 0!==t.escapeChar&&(a=t.escapeChar+s);("boolean"==typeof t.escapeFormulae||t.escapeFormulae instanceof RegExp)&&(o=t.escapeFormulae instanceof RegExp?t.escapeFormulae:/^[=+\-@\t\r].*$/)}();var u=new RegExp(Q(s),"g");"string"==typeof e&&(e=JSON.parse(e));if(Array.isArray(e)){if(!e.length||Array.isArray(e[0]))return h(null,e,r);if("object"==typeof e[0])return h(i||Object.keys(e[0]),e,r)}else if("object"==typeof e)return"string"==typeof e.data&&(e.data=JSON.parse(e.data)),Array.isArray(e.data)&&(e.fields||(e.fields=e.meta&&e.meta.fields||i),e.fields||(e.fields=Array.isArray(e.data[0])?e.fields:"object"==typeof e.data[0]?Object.keys(e.data[0]):[]),Array.isArray(e.data[0])||"object"==typeof e.data[0]||(e.data=[e.data])),h(e.fields||[],e.data||[],r);throw new Error("Unable to serialize unrecognized input");function h(e,t,r){var i="";"string"==typeof e&&(e=JSON.parse(e)),"string"==typeof t&&(t=JSON.parse(t));var n=Array.isArray(e)&&0<e.length,s=!Array.isArray(t[0]);if(n&&_){for(var a=0;a<e.length;a++)0<a&&(i+=m),i+=v(e[a],a);0<t.length&&(i+=y)}for(var o=0;o<t.length;o++){var u=n?e.length:t[o].length,h=!1,f=n?0===Object.keys(t[o]).length:0===t[o].length;if(r&&!n&&(h="greedy"===r?""===t[o].join("").trim():1===t[o].length&&0===t[o][0].length),"greedy"===r&&n){for(var d=[],l=0;l<u;l++){var c=s?e[l]:l;d.push(t[o][c])}h=""===d.join("").trim()}if(!h){for(var p=0;p<u;p++){0<p&&!f&&(i+=m);var g=n&&s?e[p]:p;i+=v(t[o][g],p)}o<t.length-1&&(!r||0<u&&!f)&&(i+=y)}}return i}function v(e,t){if(null==e)return"";if(e.constructor===Date)return JSON.stringify(e).slice(1,25);var r=!1;o&&"string"==typeof e&&o.test(e)&&(e="'"+e,r=!0);var i=e.toString().replace(u,a);return(r=r||!0===n||"function"==typeof n&&n(e,t)||Array.isArray(n)&&n[t]||function(e,t){for(var r=0;r<t.length;r++)if(-1<e.indexOf(t[r]))return!0;return!1}(i,b.BAD_DELIMITERS)||-1<i.indexOf(m)||" "===i.charAt(0)||" "===i.charAt(i.length-1))?s+i+s:i}}};if(b.RECORD_SEP=String.fromCharCode(30),b.UNIT_SEP=String.fromCharCode(31),b.BYTE_ORDER_MARK="\ufeff",b.BAD_DELIMITERS=["\r","\n",'"',b.BYTE_ORDER_MARK],b.WORKERS_SUPPORTED=!n&&!!f.Worker,b.NODE_STREAM_INPUT=1,b.LocalChunkSize=10485760,b.RemoteChunkSize=5242880,b.DefaultDelimiter=",",b.Parser=E,b.ParserHandle=r,b.NetworkStreamer=l,b.FileStreamer=c,b.StringStreamer=p,b.ReadableStreamStreamer=g,f.jQuery){var d=f.jQuery;d.fn.parse=function(o){var r=o.config||{},u=[];return this.each(function(e){if(!("INPUT"===d(this).prop("tagName").toUpperCase()&&"file"===d(this).attr("type").toLowerCase()&&f.FileReader)||!this.files||0===this.files.length)return!0;for(var t=0;t<this.files.length;t++)u.push({file:this.files[t],inputElem:this,instanceConfig:d.extend({},r)})}),e(),this;function e(){if(0!==u.length){var e,t,r,i,n=u[0];if(J(o.before)){var s=o.before(n.file,n.inputElem);if("object"==typeof s){if("abort"===s.action)return e="AbortError",t=n.file,r=n.inputElem,i=s.reason,void(J(o.error)&&o.error({name:e},t,r,i));if("skip"===s.action)return void h();"object"==typeof s.config&&(n.instanceConfig=d.extend(n.instanceConfig,s.config))}else if("skip"===s)return void h()}var a=n.instanceConfig.complete;n.instanceConfig.complete=function(e){J(a)&&a(e,n.file,n.inputElem),h()},b.parse(n.file,n.instanceConfig)}else J(o.complete)&&o.complete()}function h(){u.splice(0,1),e()}}}function h(e){this._handle=null,this._finished=!1,this._completed=!1,this._halted=!1,this._input=null,this._baseIndex=0,this._partialLine="",this._rowCount=0,this._start=0,this._nextChunk=null,this.isFirstChunk=!0,this._completeResults={data:[],errors:[],meta:{}},function(e){var t=w(e);t.chunkSize=parseInt(t.chunkSize),e.step||e.chunk||(t.chunkSize=null);this._handle=new r(t),(this._handle.streamer=this)._config=t}.call(this,e),this.parseChunk=function(e,t){if(this.isFirstChunk&&J(this._config.beforeFirstChunk)){var r=this._config.beforeFirstChunk(e);void 0!==r&&(e=r)}this.isFirstChunk=!1,this._halted=!1;var i=this._partialLine+e;this._partialLine="";var n=this._handle.parse(i,this._baseIndex,!this._finished);if(!this._handle.paused()&&!this._handle.aborted()){var s=n.meta.cursor;this._finished||(this._partialLine=i.substring(s-this._baseIndex),this._baseIndex=s),n&&n.data&&(this._rowCount+=n.data.length);var a=this._finished||this._config.preview&&this._rowCount>=this._config.preview;if(o)f.postMessage({results:n,workerId:b.WORKER_ID,finished:a});else if(J(this._config.chunk)&&!t){if(this._config.chunk(n,this._handle),this._handle.paused()||this._handle.aborted())return void(this._halted=!0);n=void 0,this._completeResults=void 0}return this._config.step||this._config.chunk||(this._completeResults.data=this._completeResults.data.concat(n.data),this._completeResults.errors=this._completeResults.errors.concat(n.errors),this._completeResults.meta=n.meta),this._completed||!a||!J(this._config.complete)||n&&n.meta.aborted||(this._config.complete(this._completeResults,this._input),this._completed=!0),a||n&&n.meta.paused||this._nextChunk(),n}this._halted=!0},this._sendError=function(e){J(this._config.error)?this._config.error(e):o&&this._config.error&&f.postMessage({workerId:b.WORKER_ID,error:e,finished:!1})}}function l(e){var i;(e=e||{}).chunkSize||(e.chunkSize=b.RemoteChunkSize),h.call(this,e),this._nextChunk=n?function(){this._readChunk(),this._chunkLoaded()}:function(){this._readChunk()},this.stream=function(e){this._input=e,this._nextChunk()},this._readChunk=function(){if(this._finished)this._chunkLoaded();else{if(i=new XMLHttpRequest,this._config.withCredentials&&(i.withCredentials=this._config.withCredentials),n||(i.onload=v(this._chunkLoaded,this),i.onerror=v(this._chunkError,this)),i.open(this._config.downloadRequestBody?"POST":"GET",this._input,!n),this._config.downloadRequestHeaders){var e=this._config.downloadRequestHeaders;for(var t in e)i.setRequestHeader(t,e[t])}if(this._config.chunkSize){var r=this._start+this._config.chunkSize-1;i.setRequestHeader("Range","bytes="+this._start+"-"+r)}try{i.send(this._config.downloadRequestBody)}catch(e){this._chunkError(e.message)}n&&0===i.status&&this._chunkError()}},this._chunkLoaded=function(){4===i.readyState&&(i.status<200||400<=i.status?this._chunkError():(this._start+=this._config.chunkSize?this._config.chunkSize:i.responseText.length,this._finished=!this._config.chunkSize||this._start>=function(e){var t=e.getResponseHeader("Content-Range");if(null===t)return-1;return parseInt(t.substring(t.lastIndexOf("/")+1))}(i),this.parseChunk(i.responseText)))},this._chunkError=function(e){var t=i.statusText||e;this._sendError(new Error(t))}}function c(e){var i,n;(e=e||{}).chunkSize||(e.chunkSize=b.LocalChunkSize),h.call(this,e);var s="undefined"!=typeof FileReader;this.stream=function(e){this._input=e,n=e.slice||e.webkitSlice||e.mozSlice,s?((i=new FileReader).onload=v(this._chunkLoaded,this),i.onerror=v(this._chunkError,this)):i=new FileReaderSync,this._nextChunk()},this._nextChunk=function(){this._finished||this._config.preview&&!(this._rowCount<this._config.preview)||this._readChunk()},this._readChunk=function(){var e=this._input;if(this._config.chunkSize){var t=Math.min(this._start+this._config.chunkSize,this._input.size);e=n.call(e,this._start,t)}var r=i.readAsText(e,this._config.encoding);s||this._chunkLoaded({target:{result:r}})},this._chunkLoaded=function(e){this._start+=this._config.chunkSize,this._finished=!this._config.chunkSize||this._start>=this._input.size,this.parseChunk(e.target.result)},this._chunkError=function(){this._sendError(i.error)}}function p(e){var r;h.call(this,e=e||{}),this.stream=function(e){return r=e,this._nextChunk()},this._nextChunk=function(){if(!this._finished){var e,t=this._config.chunkSize;return t?(e=r.substring(0,t),r=r.substring(t)):(e=r,r=""),this._finished=!r,this.parseChunk(e)}}}function g(e){h.call(this,e=e||{});var t=[],r=!0,i=!1;this.pause=function(){h.prototype.pause.apply(this,arguments),this._input.pause()},this.resume=function(){h.prototype.resume.apply(this,arguments),this._input.resume()},this.stream=function(e){this._input=e,this._input.on("data",this._streamData),this._input.on("end",this._streamEnd),this._input.on("error",this._streamError)},this._checkIsFinished=function(){i&&1===t.length&&(this._finished=!0)},this._nextChunk=function(){this._checkIsFinished(),t.length?this.parseChunk(t.shift()):r=!0},this._streamData=v(function(e){try{t.push("string"==typeof e?e:e.toString(this._config.encoding)),r&&(r=!1,this._checkIsFinished(),this.parseChunk(t.shift()))}catch(e){this._streamError(e)}},this),this._streamError=v(function(e){this._streamCleanUp(),this._sendError(e)},this),this._streamEnd=v(function(){this._streamCleanUp(),i=!0,this._streamData("")},this),this._streamCleanUp=v(function(){this._input.removeListener("data",this._streamData),this._input.removeListener("end",this._streamEnd),this._input.removeListener("error",this._streamError)},this)}function r(m){var a,o,u,i=Math.pow(2,53),n=-i,s=/^\s*-?(\d+\.?|\.\d+|\d+\.\d+)([eE][-+]?\d+)?\s*$/,h=/^((\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z)))$/,t=this,r=0,f=0,d=!1,e=!1,l=[],c={data:[],errors:[],meta:{}};if(J(m.step)){var p=m.step;m.step=function(e){if(c=e,_())g();else{if(g(),0===c.data.length)return;r+=e.data.length,m.preview&&r>m.preview?o.abort():(c.data=c.data[0],p(c,t))}}}function y(e){return"greedy"===m.skipEmptyLines?""===e.join("").trim():1===e.length&&0===e[0].length}function g(){return c&&u&&(k("Delimiter","UndetectableDelimiter","Unable to auto-detect delimiting character; defaulted to '"+b.DefaultDelimiter+"'"),u=!1),m.skipEmptyLines&&(c.data=c.data.filter(function(e){return!y(e)})),_()&&function(){if(!c)return;function e(e,t){J(m.transformHeader)&&(e=m.transformHeader(e,t)),l.push(e)}if(Array.isArray(c.data[0])){for(var t=0;_()&&t<c.data.length;t++)c.data[t].forEach(e);c.data.splice(0,1)}else c.data.forEach(e)}(),function(){if(!c||!m.header&&!m.dynamicTyping&&!m.transform)return c;function e(e,t){var r,i=m.header?{}:[];for(r=0;r<e.length;r++){var n=r,s=e[r];m.header&&(n=r>=l.length?"__parsed_extra":l[r]),m.transform&&(s=m.transform(s,n)),s=v(n,s),"__parsed_extra"===n?(i[n]=i[n]||[],i[n].push(s)):i[n]=s}return m.header&&(r>l.length?k("FieldMismatch","TooManyFields","Too many fields: expected "+l.length+" fields but parsed "+r,f+t):r<l.length&&k("FieldMismatch","TooFewFields","Too few fields: expected "+l.length+" fields but parsed "+r,f+t)),i}var t=1;!c.data.length||Array.isArray(c.data[0])?(c.data=c.data.map(e),t=c.data.length):c.data=e(c.data,0);m.header&&c.meta&&(c.meta.fields=l);return f+=t,c}()}function _(){return m.header&&0===l.length}function v(e,t){return r=e,m.dynamicTypingFunction&&void 0===m.dynamicTyping[r]&&(m.dynamicTyping[r]=m.dynamicTypingFunction(r)),!0===(m.dynamicTyping[r]||m.dynamicTyping)?"true"===t||"TRUE"===t||"false"!==t&&"FALSE"!==t&&(function(e){if(s.test(e)){var t=parseFloat(e);if(n<t&&t<i)return!0}return!1}(t)?parseFloat(t):h.test(t)?new Date(t):""===t?null:t):t;var r}function k(e,t,r,i){var n={type:e,code:t,message:r};void 0!==i&&(n.row=i),c.errors.push(n)}this.parse=function(e,t,r){var i=m.quoteChar||'"';if(m.newline||(m.newline=function(e,t){e=e.substring(0,1048576);var r=new RegExp(Q(t)+"([^]*?)"+Q(t),"gm"),i=(e=e.replace(r,"")).split("\r"),n=e.split("\n"),s=1<n.length&&n[0].length<i[0].length;if(1===i.length||s)return"\n";for(var a=0,o=0;o<i.length;o++)"\n"===i[o][0]&&a++;return a>=i.length/2?"\r\n":"\r"}(e,i)),u=!1,m.delimiter)J(m.delimiter)&&(m.delimiter=m.delimiter(e),c.meta.delimiter=m.delimiter);else{var n=function(e,t,r,i,n){var s,a,o,u;n=n||[",","\t","|",";",b.RECORD_SEP,b.UNIT_SEP];for(var h=0;h<n.length;h++){var f=n[h],d=0,l=0,c=0;o=void 0;for(var p=new E({comments:i,delimiter:f,newline:t,preview:10}).parse(e),g=0;g<p.data.length;g++)if(r&&y(p.data[g]))c++;else{var _=p.data[g].length;l+=_,void 0!==o?0<_&&(d+=Math.abs(_-o),o=_):o=_}0<p.data.length&&(l/=p.data.length-c),(void 0===a||d<=a)&&(void 0===u||u<l)&&1.99<l&&(a=d,s=f,u=l)}return{successful:!!(m.delimiter=s),bestDelimiter:s}}(e,m.newline,m.skipEmptyLines,m.comments,m.delimitersToGuess);n.successful?m.delimiter=n.bestDelimiter:(u=!0,m.delimiter=b.DefaultDelimiter),c.meta.delimiter=m.delimiter}var s=w(m);return m.preview&&m.header&&s.preview++,a=e,o=new E(s),c=o.parse(a,t,r),g(),d?{meta:{paused:!0}}:c||{meta:{paused:!1}}},this.paused=function(){return d},this.pause=function(){d=!0,o.abort(),a=J(m.chunk)?"":a.substring(o.getCharIndex())},this.resume=function(){t.streamer._halted?(d=!1,t.streamer.parseChunk(a,!0)):setTimeout(t.resume,3)},this.aborted=function(){return e},this.abort=function(){e=!0,o.abort(),c.meta.aborted=!0,J(m.complete)&&m.complete(c),a=""}}function Q(e){return e.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}function E(j){var z,M=(j=j||{}).delimiter,P=j.newline,U=j.comments,q=j.step,N=j.preview,B=j.fastMode,K=z=void 0===j.quoteChar||null===j.quoteChar?'"':j.quoteChar;if(void 0!==j.escapeChar&&(K=j.escapeChar),("string"!=typeof M||-1<b.BAD_DELIMITERS.indexOf(M))&&(M=","),U===M)throw new Error("Comment character same as delimiter");!0===U?U="#":("string"!=typeof U||-1<b.BAD_DELIMITERS.indexOf(U))&&(U=!1),"\n"!==P&&"\r"!==P&&"\r\n"!==P&&(P="\n");var W=0,H=!1;this.parse=function(i,t,r){if("string"!=typeof i)throw new Error("Input must be a string");var n=i.length,e=M.length,s=P.length,a=U.length,o=J(q),u=[],h=[],f=[],d=W=0;if(!i)return L();if(j.header&&!t){var l=i.split(P)[0].split(M),c=[],p={},g=!1;for(var _ in l){var m=l[_];J(j.transformHeader)&&(m=j.transformHeader(m,_));var y=m,v=p[m]||0;for(0<v&&(g=!0,y=m+"_"+v),p[m]=v+1;c.includes(y);)y=y+"_"+v;c.push(y)}if(g){var k=i.split(P);k[0]=c.join(M),i=k.join(P)}}if(B||!1!==B&&-1===i.indexOf(z)){for(var b=i.split(P),E=0;E<b.length;E++){if(f=b[E],W+=f.length,E!==b.length-1)W+=P.length;else if(r)return L();if(!U||f.substring(0,a)!==U){if(o){if(u=[],I(f.split(M)),F(),H)return L()}else I(f.split(M));if(N&&N<=E)return u=u.slice(0,N),L(!0)}}return L()}for(var w=i.indexOf(M,W),R=i.indexOf(P,W),C=new RegExp(Q(K)+Q(z),"g"),S=i.indexOf(z,W);;)if(i[W]!==z)if(U&&0===f.length&&i.substring(W,W+a)===U){if(-1===R)return L();W=R+s,R=i.indexOf(P,W),w=i.indexOf(M,W)}else if(-1!==w&&(w<R||-1===R))f.push(i.substring(W,w)),W=w+e,w=i.indexOf(M,W);else{if(-1===R)break;if(f.push(i.substring(W,R)),D(R+s),o&&(F(),H))return L();if(N&&u.length>=N)return L(!0)}else for(S=W,W++;;){if(-1===(S=i.indexOf(z,S+1)))return r||h.push({type:"Quotes",code:"MissingQuotes",message:"Quoted field unterminated",row:u.length,index:W}),T();if(S===n-1)return T(i.substring(W,S).replace(C,z));if(z!==K||i[S+1]!==K){if(z===K||0===S||i[S-1]!==K){-1!==w&&w<S+1&&(w=i.indexOf(M,S+1)),-1!==R&&R<S+1&&(R=i.indexOf(P,S+1));var O=A(-1===R?w:Math.min(w,R));if(i.substr(S+1+O,e)===M){f.push(i.substring(W,S).replace(C,z)),i[W=S+1+O+e]!==z&&(S=i.indexOf(z,W)),w=i.indexOf(M,W),R=i.indexOf(P,W);break}var x=A(R);if(i.substring(S+1+x,S+1+x+s)===P){if(f.push(i.substring(W,S).replace(C,z)),D(S+1+x+s),w=i.indexOf(M,W),S=i.indexOf(z,W),o&&(F(),H))return L();if(N&&u.length>=N)return L(!0);break}h.push({type:"Quotes",code:"InvalidQuotes",message:"Trailing quote on quoted field is malformed",row:u.length,index:W}),S++}}else S++}return T();function I(e){u.push(e),d=W}function A(e){var t=0;if(-1!==e){var r=i.substring(S+1,e);r&&""===r.trim()&&(t=r.length)}return t}function T(e){return r||(void 0===e&&(e=i.substring(W)),f.push(e),W=n,I(f),o&&F()),L()}function D(e){W=e,I(f),f=[],R=i.indexOf(P,W)}function L(e){return{data:u,errors:h,meta:{delimiter:M,linebreak:P,aborted:H,truncated:!!e,cursor:d+(t||0)}}}function F(){q(L()),u=[],h=[]}},this.abort=function(){H=!0},this.getCharIndex=function(){return W}}function _(e){var t=e.data,r=a[t.workerId],i=!1;if(t.error)r.userError(t.error,t.file);else if(t.results&&t.results.data){var n={abort:function(){i=!0,m(t.workerId,{data:[],errors:[],meta:{aborted:!0}})},pause:y,resume:y};if(J(r.userStep)){for(var s=0;s<t.results.data.length&&(r.userStep({data:t.results.data[s],errors:t.results.errors,meta:t.results.meta},n),!i);s++);delete t.results}else J(r.userChunk)&&(r.userChunk(t.results,n,t.file),delete t.results)}t.finished&&!i&&m(t.workerId,t.results)}function m(e,t){var r=a[e];J(r.userComplete)&&r.userComplete(t),r.terminate(),delete a[e]}function y(){throw new Error("Not implemented.")}function w(e){if("object"!=typeof e||null===e)return e;var t=Array.isArray(e)?[]:{};for(var r in e)t[r]=w(e[r]);return t}function v(e,t){return function(){e.apply(t,arguments)}}function J(e){return"function"==typeof e}return o&&(f.onmessage=function(e){var t=e.data;void 0===b.WORKER_ID&&t&&(b.WORKER_ID=t.workerId);if("string"==typeof t.input)f.postMessage({workerId:b.WORKER_ID,results:b.parse(t.input,t.config),finished:!0});else if(f.File&&t.input instanceof File||t.input instanceof Object){var r=b.parse(t.input,t.config);r&&f.postMessage({workerId:b.WORKER_ID,results:r,finished:!0})}}),(l.prototype=Object.create(h.prototype)).constructor=l,(c.prototype=Object.create(h.prototype)).constructor=c,(p.prototype=Object.create(p.prototype)).constructor=p,(g.prototype=Object.create(h.prototype)).constructor=g,b});
-},{}],8:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 !function(r,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((r="undefined"!=typeof globalThis?globalThis:r||self).ss={})}(this,(function(r){"use strict";function t(r){if(0===r.length)return 0;var t,n=r[0],e=0;if("number"!=typeof n)return NaN;for(var a=1;a<r.length;a++){if("number"!=typeof r[a])return NaN;t=n+r[a],Math.abs(n)>=Math.abs(r[a])?e+=n-t+r[a]:e+=r[a]-t+n,n=t}return n+e}function n(r){if(0===r.length)throw new Error("mean requires at least one data point");return t(r)/r.length}function e(r,t){var e,a,o=n(r),i=0;if(2===t)for(a=0;a<r.length;a++)i+=(e=r[a]-o)*e;else for(a=0;a<r.length;a++)i+=Math.pow(r[a]-o,t);return i}function a(r){if(0===r.length)throw new Error("variance requires at least one data point");return e(r,2)/r.length}function o(r){if(1===r.length)return 0;var t=a(r);return Math.sqrt(t)}function i(r){if(0===r.length)throw new Error("mode requires at least one data point");if(1===r.length)return r[0];for(var t=r[0],n=NaN,e=0,a=1,o=1;o<r.length+1;o++)r[o]!==t?(a>e&&(e=a,n=t),a=1,t=r[o]):a++;return n}function u(r){return r.slice().sort((function(r,t){return r-t}))}function h(r){if(0===r.length)throw new Error("min requires at least one data point");for(var t=r[0],n=1;n<r.length;n++)r[n]<t&&(t=r[n]);return t}function f(r){if(0===r.length)throw new Error("max requires at least one data point");for(var t=r[0],n=1;n<r.length;n++)r[n]>t&&(t=r[n]);return t}function l(r){for(var t=0,n=0;n<r.length;n++){if("number"!=typeof r[n])return NaN;t+=r[n]}return t}function s(r,t){var n=r.length*t;if(0===r.length)throw new Error("quantile requires at least one data point.");if(t<0||t>1)throw new Error("quantiles must be between 0 and 1");return 1===t?r[r.length-1]:0===t?r[0]:n%1!=0?r[Math.ceil(n)-1]:r.length%2==0?(r[n-1]+r[n])/2:r[n]}function c(r,t,n,e){for(n=n||0,e=e||r.length-1;e>n;){if(e-n>600){var a=e-n+1,o=t-n+1,i=Math.log(a),u=.5*Math.exp(2*i/3),h=.5*Math.sqrt(i*u*(a-u)/a);o-a/2<0&&(h*=-1),c(r,t,Math.max(n,Math.floor(t-o*u/a+h)),Math.min(e,Math.floor(t+(a-o)*u/a+h)))}var f=r[t],l=n,s=e;for(g(r,n,t),r[e]>f&&g(r,n,e);l<s;){for(g(r,l,s),l++,s--;r[l]<f;)l++;for(;r[s]>f;)s--}r[n]===f?g(r,n,s):g(r,++s,e),s<=t&&(n=s+1),t<=s&&(e=s-1)}}function g(r,t,n){var e=r[t];r[t]=r[n],r[n]=e}function v(r,t){var n=r.slice();if(Array.isArray(t)){!function(r,t){for(var n=[0],e=0;e<t.length;e++)n.push(w(r.length,t[e]));n.push(r.length-1),n.sort(m);var a=[0,n.length-1];for(;a.length;){var o=Math.ceil(a.pop()),i=Math.floor(a.pop());if(!(o-i<=1)){var u=Math.floor((i+o)/2);p(r,n[u],Math.floor(n[i]),Math.ceil(n[o])),a.push(i,u,u,o)}}}(n,t);for(var e=[],a=0;a<t.length;a++)e[a]=s(n,t[a]);return e}return p(n,w(n.length,t),0,n.length-1),s(n,t)}function p(r,t,n,e){t%1==0?c(r,t,n,e):(c(r,t=Math.floor(t),n,e),c(r,t+1,t+1,e))}function m(r,t){return r-t}function w(r,t){var n=r*t;return 1===t?r-1:0===t?0:n%1!=0?Math.ceil(n)-1:r%2==0?n-.5:n}function M(r,t){if(t<r[0])return 0;if(t>r[r.length-1])return 1;var n=function(r,t){var n=0,e=0,a=r.length;for(;e<a;)t<=r[n=e+a>>>1]?a=n:e=-~n;return e}(r,t);if(r[n]!==t)return n/r.length;n++;var e=function(r,t){var n=0,e=0,a=r.length;for(;e<a;)t>=r[n=e+a>>>1]?e=-~n:a=n;return e}(r,t);if(e===n)return n/r.length;var a=e-n+1;return a*(e+n)/2/a/r.length}function d(r){var t=v(r,.75),n=v(r,.25);if("number"==typeof t&&"number"==typeof n)return t-n}function b(r){return+v(r,.5)}function q(r){for(var t=b(r),n=[],e=0;e<r.length;e++)n.push(Math.abs(r[e]-t));return b(n)}function y(r,t){t=t||Math.random;for(var n,e,a=r.length;a>0;)e=Math.floor(t()*a--),n=r[a],r[a]=r[e],r[e]=n;return r}function E(r,t){return y(r.slice(),t)}function x(r,t,n){return E(r,n).slice(0,t)}function S(r,t){for(var n=[],e=0;e<r;e++){for(var a=[],o=0;o<t;o++)a.push(0);n.push(a)}return n}function k(r){for(var t,n=0,e=0;e<r.length;e++)0!==e&&r[e]===t||(t=r[e],n++);return n}function A(r,t,n,e){var a;if(r>0){var o=(n[t]-n[r-1])/(t-r+1);a=e[t]-e[r-1]-(t-r+1)*o*o}else a=e[t]-n[t]*n[t]/(t+1);return a<0?0:a}function N(r,t,n,e,a,o,i){if(!(r>t)){var u=Math.floor((r+t)/2);e[n][u]=e[n-1][u-1],a[n][u]=u;var h=n;r>n&&(h=Math.max(h,a[n][r-1]||0)),h=Math.max(h,a[n-1][u]||0);var f,l,s,c=u-1;t<e[0].length-1&&(c=Math.min(c,a[n][t+1]||0));for(var g=c;g>=h&&!((f=A(g,u,o,i))+e[n-1][h-1]>=e[n][u]);--g)(l=A(h,u,o,i)+e[n-1][h-1])<e[n][u]&&(e[n][u]=l,a[n][u]=h),h++,(s=f+e[n-1][g-1])<e[n][u]&&(e[n][u]=s,a[n][u]=g);N(r,u-1,n,e,a,o,i),N(u+1,t,n,e,a,o,i)}}function P(r,t){if(r.length!==t.length)throw new Error("sampleCovariance requires samples with equal lengths");if(r.length<2)throw new Error("sampleCovariance requires at least two data points in each sample");for(var e=n(r),a=n(t),o=0,i=0;i<r.length;i++)o+=(r[i]-e)*(t[i]-a);return o/(r.length-1)}function C(r){if(r.length<2)throw new Error("sampleVariance requires at least two data points");return e(r,2)/(r.length-1)}function I(r){var t=C(r);return Math.sqrt(t)}function T(r,t){return P(r,t)/I(r)/I(t)}function D(r,t,n,e){return(r*t+n*e)/(t+e)}function R(r){if(0===r.length)throw new Error("meanSimple requires at least one data point");return l(r)/r.length}function _(r){if(0===r.length)throw new Error("rootMeanSquare requires at least one data point");for(var t=0,n=0;n<r.length;n++)t+=Math.pow(r[n],2);return Math.sqrt(t/r.length)}var L=function(){this.totalCount=0,this.data={}};L.prototype.train=function(r,t){for(var n in this.data[t]||(this.data[t]={}),r){var e=r[n];void 0===this.data[t][n]&&(this.data[t][n]={}),void 0===this.data[t][n][e]&&(this.data[t][n][e]=0),this.data[t][n][e]++}this.totalCount++},L.prototype.score=function(r){var t,n={};for(var e in r){var a=r[e];for(t in this.data)n[t]={},this.data[t][e]?n[t][e+"_"+a]=(this.data[t][e][a]||0)/this.totalCount:n[t][e+"_"+a]=0}var o={};for(t in n)for(var i in o[t]=0,n[t])o[t]+=n[t][i];return o};var V=function(){this.weights=[],this.bias=0};V.prototype.predict=function(r){if(r.length!==this.weights.length)return null;for(var t=0,n=0;n<this.weights.length;n++)t+=this.weights[n]*r[n];return(t+=this.bias)>0?1:0},V.prototype.train=function(r,t){if(0!==t&&1!==t)return null;r.length!==this.weights.length&&(this.weights=r,this.bias=1);var n=this.predict(r);if("number"==typeof n&&n!==t){for(var e=t-n,a=0;a<this.weights.length;a++)this.weights[a]+=e*r[a];this.bias+=e}return this};var F=1e-4;function U(r){if(r<0)throw new Error("factorial requires a non-negative value");if(Math.floor(r)!==r)throw new Error("factorial requires an integer input");for(var t=1,n=2;n<=r;n++)t*=n;return t}var z=[.9999999999999971,57.15623566586292,-59.59796035547549,14.136097974741746,-.4919138160976202,3399464998481189e-20,4652362892704858e-20,-9837447530487956e-20,.0001580887032249125,-.00021026444172410488,.00021743961811521265,-.0001643181065367639,8441822398385275e-20,-26190838401581408e-21,36899182659531625e-22],X=Math.log(Math.sqrt(2*Math.PI));var j={1:{.995:0,.99:0,.975:0,.95:0,.9:.02,.5:.45,.1:2.71,.05:3.84,.025:5.02,.01:6.63,.005:7.88},2:{.995:.01,.99:.02,.975:.05,.95:.1,.9:.21,.5:1.39,.1:4.61,.05:5.99,.025:7.38,.01:9.21,.005:10.6},3:{.995:.07,.99:.11,.975:.22,.95:.35,.9:.58,.5:2.37,.1:6.25,.05:7.81,.025:9.35,.01:11.34,.005:12.84},4:{.995:.21,.99:.3,.975:.48,.95:.71,.9:1.06,.5:3.36,.1:7.78,.05:9.49,.025:11.14,.01:13.28,.005:14.86},5:{.995:.41,.99:.55,.975:.83,.95:1.15,.9:1.61,.5:4.35,.1:9.24,.05:11.07,.025:12.83,.01:15.09,.005:16.75},6:{.995:.68,.99:.87,.975:1.24,.95:1.64,.9:2.2,.5:5.35,.1:10.65,.05:12.59,.025:14.45,.01:16.81,.005:18.55},7:{.995:.99,.99:1.25,.975:1.69,.95:2.17,.9:2.83,.5:6.35,.1:12.02,.05:14.07,.025:16.01,.01:18.48,.005:20.28},8:{.995:1.34,.99:1.65,.975:2.18,.95:2.73,.9:3.49,.5:7.34,.1:13.36,.05:15.51,.025:17.53,.01:20.09,.005:21.96},9:{.995:1.73,.99:2.09,.975:2.7,.95:3.33,.9:4.17,.5:8.34,.1:14.68,.05:16.92,.025:19.02,.01:21.67,.005:23.59},10:{.995:2.16,.99:2.56,.975:3.25,.95:3.94,.9:4.87,.5:9.34,.1:15.99,.05:18.31,.025:20.48,.01:23.21,.005:25.19},11:{.995:2.6,.99:3.05,.975:3.82,.95:4.57,.9:5.58,.5:10.34,.1:17.28,.05:19.68,.025:21.92,.01:24.72,.005:26.76},12:{.995:3.07,.99:3.57,.975:4.4,.95:5.23,.9:6.3,.5:11.34,.1:18.55,.05:21.03,.025:23.34,.01:26.22,.005:28.3},13:{.995:3.57,.99:4.11,.975:5.01,.95:5.89,.9:7.04,.5:12.34,.1:19.81,.05:22.36,.025:24.74,.01:27.69,.005:29.82},14:{.995:4.07,.99:4.66,.975:5.63,.95:6.57,.9:7.79,.5:13.34,.1:21.06,.05:23.68,.025:26.12,.01:29.14,.005:31.32},15:{.995:4.6,.99:5.23,.975:6.27,.95:7.26,.9:8.55,.5:14.34,.1:22.31,.05:25,.025:27.49,.01:30.58,.005:32.8},16:{.995:5.14,.99:5.81,.975:6.91,.95:7.96,.9:9.31,.5:15.34,.1:23.54,.05:26.3,.025:28.85,.01:32,.005:34.27},17:{.995:5.7,.99:6.41,.975:7.56,.95:8.67,.9:10.09,.5:16.34,.1:24.77,.05:27.59,.025:30.19,.01:33.41,.005:35.72},18:{.995:6.26,.99:7.01,.975:8.23,.95:9.39,.9:10.87,.5:17.34,.1:25.99,.05:28.87,.025:31.53,.01:34.81,.005:37.16},19:{.995:6.84,.99:7.63,.975:8.91,.95:10.12,.9:11.65,.5:18.34,.1:27.2,.05:30.14,.025:32.85,.01:36.19,.005:38.58},20:{.995:7.43,.99:8.26,.975:9.59,.95:10.85,.9:12.44,.5:19.34,.1:28.41,.05:31.41,.025:34.17,.01:37.57,.005:40},21:{.995:8.03,.99:8.9,.975:10.28,.95:11.59,.9:13.24,.5:20.34,.1:29.62,.05:32.67,.025:35.48,.01:38.93,.005:41.4},22:{.995:8.64,.99:9.54,.975:10.98,.95:12.34,.9:14.04,.5:21.34,.1:30.81,.05:33.92,.025:36.78,.01:40.29,.005:42.8},23:{.995:9.26,.99:10.2,.975:11.69,.95:13.09,.9:14.85,.5:22.34,.1:32.01,.05:35.17,.025:38.08,.01:41.64,.005:44.18},24:{.995:9.89,.99:10.86,.975:12.4,.95:13.85,.9:15.66,.5:23.34,.1:33.2,.05:36.42,.025:39.36,.01:42.98,.005:45.56},25:{.995:10.52,.99:11.52,.975:13.12,.95:14.61,.9:16.47,.5:24.34,.1:34.28,.05:37.65,.025:40.65,.01:44.31,.005:46.93},26:{.995:11.16,.99:12.2,.975:13.84,.95:15.38,.9:17.29,.5:25.34,.1:35.56,.05:38.89,.025:41.92,.01:45.64,.005:48.29},27:{.995:11.81,.99:12.88,.975:14.57,.95:16.15,.9:18.11,.5:26.34,.1:36.74,.05:40.11,.025:43.19,.01:46.96,.005:49.65},28:{.995:12.46,.99:13.57,.975:15.31,.95:16.93,.9:18.94,.5:27.34,.1:37.92,.05:41.34,.025:44.46,.01:48.28,.005:50.99},29:{.995:13.12,.99:14.26,.975:16.05,.95:17.71,.9:19.77,.5:28.34,.1:39.09,.05:42.56,.025:45.72,.01:49.59,.005:52.34},30:{.995:13.79,.99:14.95,.975:16.79,.95:18.49,.9:20.6,.5:29.34,.1:40.26,.05:43.77,.025:46.98,.01:50.89,.005:53.67},40:{.995:20.71,.99:22.16,.975:24.43,.95:26.51,.9:29.05,.5:39.34,.1:51.81,.05:55.76,.025:59.34,.01:63.69,.005:66.77},50:{.995:27.99,.99:29.71,.975:32.36,.95:34.76,.9:37.69,.5:49.33,.1:63.17,.05:67.5,.025:71.42,.01:76.15,.005:79.49},60:{.995:35.53,.99:37.48,.975:40.48,.95:43.19,.9:46.46,.5:59.33,.1:74.4,.05:79.08,.025:83.3,.01:88.38,.005:91.95},70:{.995:43.28,.99:45.44,.975:48.76,.95:51.74,.9:55.33,.5:69.33,.1:85.53,.05:90.53,.025:95.02,.01:100.42,.005:104.22},80:{.995:51.17,.99:53.54,.975:57.15,.95:60.39,.9:64.28,.5:79.33,.1:96.58,.05:101.88,.025:106.63,.01:112.33,.005:116.32},90:{.995:59.2,.99:61.75,.975:65.65,.95:69.13,.9:73.29,.5:89.33,.1:107.57,.05:113.14,.025:118.14,.01:124.12,.005:128.3},100:{.995:67.33,.99:70.06,.975:74.22,.95:77.93,.9:82.36,.5:99.33,.1:118.5,.05:124.34,.025:129.56,.01:135.81,.005:140.17}};var B=Math.sqrt(2*Math.PI),K={gaussian:function(r){return Math.exp(-.5*r*r)/B}},O={nrd:function(r){var t=I(r),n=d(r);return"number"==typeof n&&(t=Math.min(t,n/1.34)),1.06*t*Math.pow(r.length,-.2)}};function G(r,t,n){var e,a;if(void 0===t)e=K.gaussian;else if("string"==typeof t){if(!K[t])throw new Error('Unknown kernel "'+t+'"');e=K[t]}else e=t;if(void 0===n)a=O.nrd(r);else if("string"==typeof n){if(!O[n])throw new Error('Unknown bandwidth method "'+n+'"');a=O[n](r)}else a=n;return function(t){var n=0,o=0;for(n=0;n<r.length;n++)o+=e((t-r[n])/a);return o/a/r.length}}var H=Math.sqrt(2*Math.PI);function W(r){for(var t=r,n=r,e=1;e<15;e++)t+=n*=r*r/(2*e+1);return Math.round(1e4*(.5+t/H*Math.exp(-r*r/2)))/1e4}for(var J=[],Q=0;Q<=3.09;Q+=.01)J.push(W(Q));function Y(r){var t=1/(1+.5*Math.abs(r)),n=t*Math.exp(-r*r+((((((((.17087277*t-.82215223)*t+1.48851587)*t-1.13520398)*t+.27886807)*t-.18628806)*t+.09678418)*t+.37409196)*t+1.00002368)*t-1.26551223);return r>=0?1-n:n-1}function Z(r){var t=8*(Math.PI-3)/(3*Math.PI*(4-Math.PI)),n=Math.sqrt(Math.sqrt(Math.pow(2/(Math.PI*t)+Math.log(1-r*r)/2,2)-Math.log(1-r*r)/t)-(2/(Math.PI*t)+Math.log(1-r*r)/2));return r>=0?n:-n}function $(r){if("number"==typeof r)return r<0?-1:0===r?0:1;throw new TypeError("not a number")}function rr(r,t){for(var n=0,e=0;e<r.length;e++){var a=r[e]-t[e];n+=a*a}return Math.sqrt(n)}function tr(r,t){return r.map((function(r){for(var n=Number.MAX_VALUE,e=-1,a=0;a<t.length;a++){var o=rr(r,t[a]);o<n&&(n=o,e=a)}return e}))}function nr(r,t,n){for(var e=r[0].length,a=S(n,e),o=Array(n).fill(0),i=r.length,u=0;u<i;u++){for(var h=r[u],f=t[u],l=a[f],s=0;s<e;s++)l[s]+=h[s];o[f]+=1}for(var c=0;c<n;c++){if(0===o[c])throw new Error("Centroid "+c+" has no friends");for(var g=a[c],v=0;v<e;v++)g[v]/=o[c]}return a}function er(r,t){for(var n=0,e=0;e<r.length;e++)n+=rr(r[e],t[e]);return n}function ar(r,t){if(r.length!==t.length)throw new Error("must have exactly as many labels as points");for(var n=function(r){for(var t=1+f(r),n=Array(t),e=0;e<r.length;e++){var a=r[e];void 0===n[a]&&(n[a]=[]),n[a].push(e)}return n}(t),e=function(r){for(var t=r.length,n=S(t,t),e=0;e<t;e++)for(var a=0;a<e;a++)n[e][a]=rr(r[e],r[a]),n[a][e]=n[e][a];return n}(r),a=[],o=0;o<r.length;o++){var i=0;if(n[t[o]].length>1){var u=ir(o,n[t[o]],e),h=or(o,t,n,e);i=(h-u)/Math.max(u,h)}a.push(i)}return a}function or(r,t,n,e){for(var a=t[r],o=Number.MAX_VALUE,i=0;i<n.length;i++)if(i!==a){var u=ir(r,n[i],e);u<o&&(o=u)}return o}function ir(r,t,n){for(var e=0,a=0;a<t.length;a++)e+=n[r][t[a]];return e/t.length}function ur(r,t){return 0===r&&0===t?0:Math.abs((r-t)/t)}r.BayesianClassifier=L,r.PerceptronModel=V,r.addToMean=function(r,t,n){return r+(n-r)/(t+1)},r.approxEqual=function(r,t,n){return void 0===n&&(n=F),ur(r,t)<=n},r.average=n,r.averageSimple=R,r.bayesian=L,r.bernoulliDistribution=function(r){if(r<0||r>1)throw new Error("bernoulliDistribution requires probability to be between 0 and 1 inclusive");return[1-r,r]},r.binomialDistribution=function(r,t){if(!(t<0||t>1||r<=0||r%1!=0)){var n=0,e=0,a=[],o=1;do{a[n]=o*Math.pow(t,n)*Math.pow(1-t,r-n),e+=a[n],o=o*(r-++n+1)/n}while(e<.9999);return a}},r.bisect=function(r,t,n,e,a){if("function"!=typeof r)throw new TypeError("func must be a function");for(var o=0;o<e;o++){var i=(t+n)/2;if(0===r(i)||Math.abs((n-t)/2)<a)return i;$(r(i))===$(r(t))?t=i:n=i}throw new Error("maximum number of iterations exceeded")},r.chiSquaredDistributionTable=j,r.chiSquaredGoodnessOfFit=function(r,t,e){for(var a=0,o=t(n(r)),i=[],u=[],h=0;h<r.length;h++)void 0===i[r[h]]&&(i[r[h]]=0),i[r[h]]++;for(var f=0;f<i.length;f++)void 0===i[f]&&(i[f]=0);for(var l in o)l in i&&(u[+l]=o[l]*r.length);for(var s=u.length-1;s>=0;s--)u[s]<3&&(u[s-1]+=u[s],u.pop(),i[s-1]+=i[s],i.pop());for(var c=0;c<i.length;c++)a+=Math.pow(i[c]-u[c],2)/u[c];var g=i.length-1-1;return j[g][e]<a},r.chunk=function(r,t){var n=[];if(t<1)throw new Error("chunk size must be a positive number");if(Math.floor(t)!==t)throw new Error("chunk size must be an integer");for(var e=0;e<r.length;e+=t)n.push(r.slice(e,e+t));return n},r.ckmeans=function(r,t){if(t>r.length)throw new Error("cannot generate more classes than there are data values");var n=u(r);if(1===k(n))return[n];var e=S(t,n.length),a=S(t,n.length);!function(r,t,n){for(var e=t[0].length,a=r[Math.floor(e/2)],o=[],i=[],u=0,h=void 0;u<e;++u)h=r[u]-a,0===u?(o.push(h),i.push(h*h)):(o.push(o[u-1]+h),i.push(i[u-1]+h*h)),t[0][u]=A(0,u,o,i),n[0][u]=0;for(var f=1;f<t.length;++f)N(f<t.length-1?f:e-1,e-1,f,t,n,o,i)}(n,e,a);for(var o=[],i=a[0].length-1,h=a.length-1;h>=0;h--){var f=a[h][i];o[h]=n.slice(f,i+1),h>0&&(i=f-1)}return o},r.coefficientOfVariation=function(r){return I(r)/n(r)},r.combinations=function r(t,n){var e,a,o,i,u=[];for(e=0;e<t.length;e++)if(1===n)u.push([t[e]]);else for(o=r(t.slice(e+1,t.length),n-1),a=0;a<o.length;a++)(i=o[a]).unshift(t[e]),u.push(i);return u},r.combinationsReplacement=function r(t,n){for(var e=[],a=0;a<t.length;a++)if(1===n)e.push([t[a]]);else for(var o=r(t.slice(a,t.length),n-1),i=0;i<o.length;i++)e.push([t[a]].concat(o[i]));return e},r.combineMeans=D,r.combineVariances=function(r,t,n,e,a,o){var i=D(t,n,a,o);return(n*(r+Math.pow(t-i,2))+o*(e+Math.pow(a-i,2)))/(n+o)},r.cumulativeStdLogisticProbability=function(r){return 1/(Math.exp(-r)+1)},r.cumulativeStdNormalProbability=function(r){var t=Math.abs(r),n=Math.min(Math.round(100*t),J.length-1);return r>=0?J[n]:+(1-J[n]).toFixed(4)},r.epsilon=F,r.equalIntervalBreaks=function(r,t){if(r.length<2)return r;for(var n=h(r),e=f(r),a=[n],o=(e-n)/t,i=1;i<t;i++)a.push(a[0]+o*i);return a.push(e),a},r.erf=Y,r.errorFunction=Y,r.extent=function(r){if(0===r.length)throw new Error("extent requires at least one data point");for(var t=r[0],n=r[0],e=1;e<r.length;e++)r[e]>n&&(n=r[e]),r[e]<t&&(t=r[e]);return[t,n]},r.extentSorted=function(r){return[r[0],r[r.length-1]]},r.factorial=U,r.gamma=function r(t){if(Number.isInteger(t))return t<=0?NaN:U(t-1);if(--t<0)return Math.PI/(Math.sin(Math.PI*-t)*r(-t));var n=t+1/4;return Math.pow(t/Math.E,t)*Math.sqrt(2*Math.PI*(t+1/6))*(1+1/144/Math.pow(n,2)-1/12960/Math.pow(n,3)-257/207360/Math.pow(n,4)-52/2612736/Math.pow(n,5)+5741173/9405849600/Math.pow(n,6)+37529/18811699200/Math.pow(n,7))},r.gammaln=function(r){if(r<=0)return 1/0;r--;for(var t=z[0],n=1;n<15;n++)t+=z[n]/(r+n);var e=5.2421875+r;return X+Math.log(t)-e+(r+.5)*Math.log(e)},r.geometricMean=function(r){if(0===r.length)throw new Error("geometricMean requires at least one data point");for(var t=1,n=0;n<r.length;n++){if(r[n]<0)throw new Error("geometricMean requires only non-negative numbers as input");t*=r[n]}return Math.pow(t,1/r.length)},r.harmonicMean=function(r){if(0===r.length)throw new Error("harmonicMean requires at least one data point");for(var t=0,n=0;n<r.length;n++){if(r[n]<=0)throw new Error("harmonicMean requires only positive numbers as input");t+=1/r[n]}return r.length/t},r.interquartileRange=d,r.inverseErrorFunction=Z,r.iqr=d,r.jenks=function(r,t){if(t>r.length)return null;var n=function(r,t){var n,e,a=[],o=[],i=0;for(n=0;n<r.length+1;n++){var u=[],h=[];for(e=0;e<t+1;e++)u.push(0),h.push(0);a.push(u),o.push(h)}for(n=1;n<t+1;n++)for(a[1][n]=1,o[1][n]=0,e=2;e<r.length+1;e++)o[e][n]=1/0;for(var f=2;f<r.length+1;f++){for(var l=0,s=0,c=0,g=0,v=1;v<f+1;v++){var p=f-v+1,m=r[p-1];if(i=(s+=m*m)-(l+=m)*l/++c,0!=(g=p-1))for(e=2;e<t+1;e++)o[f][e]>=i+o[g][e-1]&&(a[f][e]=p,o[f][e]=i+o[g][e-1])}a[f][1]=1,o[f][1]=i}return{lowerClassLimits:a,varianceCombinations:o}}(r=r.slice().sort((function(r,t){return r-t})),t);return function(r,t,n){var e=r.length,a=[],o=n;for(a[n]=r[r.length-1];o>0;)a[o-1]=r[t[e][o]-1],e=t[e][o]-1,o--;return a}(r,n.lowerClassLimits,t)},r.kMeansCluster=function(r,t,n){void 0===n&&(n=Math.random);for(var e=null,a=x(r,t,n),o=null,i=Number.MAX_VALUE;0!==i;)e=a,i=er(a=nr(r,o=tr(r,a),t),e);return{labels:o,centroids:a}},r.kde=G,r.kernelDensityEstimation=G,r.linearRegression=function(r){var t,n,e=r.length;if(1===e)t=0,n=r[0][1];else{for(var a,o,i,u=0,h=0,f=0,l=0,s=0;s<e;s++)u+=o=(a=r[s])[0],h+=i=a[1],f+=o*o,l+=o*i;n=h/e-(t=(e*l-u*h)/(e*f-u*u))*u/e}return{m:t,b:n}},r.linearRegressionLine=function(r){return function(t){return r.b+r.m*t}},r.logAverage=function(r){if(0===r.length)throw new Error("logAverage requires at least one data point");for(var t=0,n=0;n<r.length;n++){if(r[n]<0)throw new Error("logAverage requires only non-negative numbers as input");t+=Math.log(r[n])}return Math.exp(t/r.length)},r.logit=function(r){if(r<=0||r>=1)throw new Error("p must be strictly between zero and one");return Math.log(r/(1-r))},r.mad=q,r.max=f,r.maxSorted=function(r){return r[r.length-1]},r.mean=n,r.meanSimple=R,r.median=b,r.medianAbsoluteDeviation=q,r.medianSorted=function(r){return s(r,.5)},r.min=h,r.minSorted=function(r){return r[0]},r.mode=function(r){return i(u(r))},r.modeFast=function(r){for(var t,n=new Map,e=0,a=0;a<r.length;a++){var o=n.get(r[a]);void 0===o?o=1:o++,o>e&&(t=r[a],e=o),n.set(r[a],o)}if(0===e)throw new Error("mode requires at last one data point");return t},r.modeSorted=i,r.numericSort=u,r.perceptron=V,r.permutationTest=function(r,t,e,a,o){if(void 0===a&&(a=1e4),void 0===e&&(e="two_side"),"two_side"!==e&&"greater"!==e&&"less"!==e)throw new Error("`alternative` must be either 'two_side', 'greater', or 'less'.");for(var i=n(r)-n(t),u=new Array(a),h=r.concat(t),f=Math.floor(h.length/2),l=0;l<a;l++){y(h,o);var s=h.slice(0,f),c=h.slice(f,h.length),g=n(s)-n(c);u[l]=g}var v=0;if("two_side"===e)for(var p=0;p<=a;p++)Math.abs(u[p])>=Math.abs(i)&&(v+=1);else if("greater"===e)for(var m=0;m<=a;m++)u[m]>=i&&(v+=1);else for(var w=0;w<=a;w++)u[w]<=i&&(v+=1);return v/a},r.permutationsHeap=function(r){for(var t=new Array(r.length),n=[r.slice()],e=0;e<r.length;e++)t[e]=0;for(var a=0;a<r.length;)if(t[a]<a){var o=0;a%2!=0&&(o=t[a]);var i=r[o];r[o]=r[a],r[a]=i,n.push(r.slice()),t[a]++,a=0}else t[a]=0,a++;return n},r.poissonDistribution=function(r){if(!(r<=0)){var t=0,n=0,e=[],a=1;do{e[t]=Math.exp(-r)*Math.pow(r,t)/a,n+=e[t],a*=++t}while(n<.9999);return e}},r.probit=function(r){return 0===r?r=F:r>=1&&(r=.9999),Math.sqrt(2)*Z(2*r-1)},r.product=function(r){for(var t=1,n=0;n<r.length;n++)t*=r[n];return t},r.quantile=v,r.quantileRank=function(r,t){return M(u(r),t)},r.quantileRankSorted=M,r.quantileSorted=s,r.quickselect=c,r.rSquared=function(r,t){if(r.length<2)return 1;for(var n=0,e=0;e<r.length;e++)n+=r[e][1];for(var a=n/r.length,o=0,i=0;i<r.length;i++)o+=Math.pow(a-r[i][1],2);for(var u=0,h=0;h<r.length;h++)u+=Math.pow(r[h][1]-t(r[h][0]),2);return 1-u/o},r.relativeError=ur,r.rms=_,r.rootMeanSquare=_,r.sample=x,r.sampleCorrelation=T,r.sampleCovariance=P,r.sampleKurtosis=function(r){var t=r.length;if(t<4)throw new Error("sampleKurtosis requires at least four data points");for(var e,a=n(r),o=0,i=0,u=0;u<t;u++)o+=(e=r[u]-a)*e,i+=e*e*e*e;return(t-1)/((t-2)*(t-3))*(t*(t+1)*i/(o*o)-3*(t-1))},r.sampleRankCorrelation=function(r,t){for(var n=r.map((function(r,t){return[r,t]})).sort((function(r,t){return r[0]-t[0]})).map((function(r){return r[1]})),e=t.map((function(r,t){return[r,t]})).sort((function(r,t){return r[0]-t[0]})).map((function(r){return r[1]})),a=Array(n.length),o=Array(n.length),i=0;i<n.length;i++)a[n[i]]=i,o[e[i]]=i;return T(a,o)},r.sampleSkewness=function(r){if(r.length<3)throw new Error("sampleSkewness requires at least three data points");for(var t,e=n(r),a=0,o=0,i=0;i<r.length;i++)a+=(t=r[i]-e)*t,o+=t*t*t;var u=r.length-1,h=Math.sqrt(a/u),f=r.length;return f*o/((f-1)*(f-2)*Math.pow(h,3))},r.sampleStandardDeviation=I,r.sampleVariance=C,r.sampleWithReplacement=function(r,t,n){if(0===r.length)return[];n=n||Math.random;for(var e=r.length,a=[],o=0;o<t;o++){var i=Math.floor(n()*e);a.push(r[i])}return a},r.shuffle=E,r.shuffleInPlace=y,r.sign=$,r.silhouette=ar,r.silhouetteMetric=function(r,t){return f(ar(r,t))},r.standardDeviation=o,r.standardNormalTable=J,r.subtractFromMean=function(r,t,n){return(r*t-n)/(t-1)},r.sum=t,r.sumNthPowerDeviations=e,r.sumSimple=l,r.tTest=function(r,t){return(n(r)-t)/(o(r)/Math.sqrt(r.length))},r.tTestTwoSample=function(r,t,e){var a=r.length,o=t.length;if(!a||!o)return null;e||(e=0);var i=n(r),u=n(t),h=C(r),f=C(t);if("number"==typeof i&&"number"==typeof u&&"number"==typeof h&&"number"==typeof f){var l=((a-1)*h+(o-1)*f)/(a+o-2);return(i-u-e)/Math.sqrt(l*(1/a+1/o))}},r.uniqueCountSorted=k,r.variance=a,r.wilcoxonRankSum=function(r,t){if(!r.length||!t.length)throw new Error("Neither sample can be empty");for(var n=r.map((function(r){return{label:"x",value:r}})).concat(t.map((function(r){return{label:"y",value:r}}))).sort((function(r,t){return r.value-t.value})),e=0;e<n.length;e++)n[e].rank=e;for(var a=[n[0].rank],o=1;o<n.length;o++)n[o].value===n[o-1].value?(a.push(n[o].rank),o===n.length-1&&i(n,a)):a.length>1?i(n,a):a=[n[o].rank];function i(r,t){for(var n=(t[0]+t[t.length-1])/2,e=0;e<t.length;e++)r[t[e]].rank=n}for(var u=0,h=0;h<n.length;h++){var f=n[h];"x"===f.label&&(u+=f.rank+1)}return u},r.zScore=function(r,t,n){return(r-t)/n}}));
 
 
-},{}],9:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function (Buffer){(function (){
 /*! cpexcel.js (C) 2013-present SheetJS -- http://sheetjs.com */
 /*jshint -W100 */
@@ -16735,7 +16547,7 @@ if (typeof module !== 'undefined' && module.exports && typeof DO_NOT_EXPORT_CODE
 }));
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"buffer":1}],10:[function(require,module,exports){
+},{"buffer":10}],8:[function(require,module,exports){
 (function (process,Buffer){(function (){
 /*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
 /* vim: set ts=2: */
@@ -41225,7 +41037,7 @@ else make_xlsx_lib(XLSX);
 if(typeof window !== 'undefined' && !window.XLSX) try { window.XLSX = XLSX; } catch(e) {}
 
 }).call(this)}).call(this,require('_process'),require("buffer").Buffer)
-},{"./dist/cpexcel.js":9,"_process":2,"buffer":1,"fs":1,"stream":1}],11:[function(require,module,exports){
+},{"./dist/cpexcel.js":7,"_process":11,"buffer":10,"fs":10,"stream":10}],9:[function(require,module,exports){
 const ss = require("simple-statistics");
 const chartjs = require("chart.js/auto");
 const papa = require("papaparse");
@@ -41241,6 +41053,7 @@ let CHARTS = [];
  * @property {string[]} wellPositions - The well positions the sample was loaded in i.e A1, B1, C1, etc.
  * @property {string} hkg - House Keeping Gene
  * @property {boolean} isReferenceSample - returns true if this sample is selected to the be the reference sample
+ * @property {function} getTableData - returns an array containing data to display on a table
 */
 
 /**
@@ -41285,8 +41098,45 @@ async function processResultsCsv(e){
     if(samples.length <= 0) return;
     mutateSamples(samples);
     const lightweightSamples = createLightWeightSamples(samples);
+    createSampleTable(samples)
     diagram384Well(lightweightSamples, templateDiagram, inputfile.name);
     updateSelectUis(samples, inputfile.name);
+}
+
+/**
+ * @param {Map<string, Sample>} samples
+ * @returns {null}
+ */
+function createSampleTable(samples){
+    const container = document.getElementById("sample-table");
+    
+    const table = document.createElement("table");
+    const tableHeaders = document.createElement("thead");
+    const tableBody = document.createElement("tbody");
+
+    
+    const headers = ["Sample Name", "Gene of Interest", "House-Keeping Gene", "Average", "Stdev", "Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"];
+    const headerRow = document.createElement("tr");
+    for(let header of headers){
+        const th = document.createElement("th");
+        th.textContent = header;
+        headerRow.appendChild(th);
+    }
+    tableHeaders.appendChild(headerRow);
+    table.appendChild(tableHeaders);
+
+    for(let sample of samples.values()){
+        const row = document.createElement("tr");
+        for(let data of sample.getTableData()){
+            const td = document.createElement("td");
+            td.textContent = data;
+            row.appendChild(td);
+        }
+        tableBody.appendChild(row);
+    }
+    table.appendChild(tableBody);
+    container.appendChild(table);
+
 }
 
 /**
@@ -41685,6 +41535,21 @@ function createSample(name, target, well, wellPosition){
         wellPositions:[wellPosition],
         hkg:"",
         isReferenceSample:false,
+        referenceSample:"",
+        /**
+         * 
+         * @param {string} targetName 
+         * @returns {string[]|number[]}
+         */
+        getTableData(targetName = null){
+            return (
+                targetName === null?
+                [this.name, "", this.hkg, "","","","","", ""]
+                :
+                [this.name, this.targets.get(targetName).name, this.hkg, this.targets.get(targetName).average,this.targets.get(targetName).stdev, this.referenceSample, this.targets.get(targetName).deltaCt, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
+            
+            )
+        },
     }
 }
 
@@ -41902,4 +41767,192 @@ function diagram384Well(lightSamples, parent, diagramTitle){
 }
 
 main()
-},{"chart.js/auto":4,"papaparse":7,"simple-statistics":8,"xlsx":10}]},{},[11]);
+},{"chart.js/auto":2,"papaparse":5,"simple-statistics":6,"xlsx":8}],10:[function(require,module,exports){
+
+},{}],11:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}]},{},[9]);
