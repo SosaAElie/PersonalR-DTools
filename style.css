@@ -203,6 +203,9 @@ select{
     border-style: none;
     font-size: large;
 }
+option{
+    background-color: rgba(0, 0, 0, 0.609);
+}
 tr:hover{
     background-color: rgba(204, 219, 224, 0.404);
 }
