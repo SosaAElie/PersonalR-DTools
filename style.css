@@ -131,7 +131,7 @@ input::-webkit-inner-spin-button {
     width: min-content;
     margin-left: 1vw;
     margin-top: 1%;
-    /* gap: 2px; */
+    gap: 2px;
 }
 #diagram384>div{
     height: 4vh;
@@ -189,14 +189,22 @@ input::-webkit-inner-spin-button {
 }
 #rtqpcr-diagram-table{
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 1%;
+}
+#rtqpcr-diagram-table > #sample-table{
+    margin-top: 1%;
+    font-size: large;
+    font-weight: 400;
 }
 select{
     background-color: inherit;
     color:inherit;
     border-style: none;
-    font-size: 11pt;
+    font-size: large;
+}
+tr:hover{
+    background-color: rgba(204, 219, 224, 0.404);
 }
 
 table{

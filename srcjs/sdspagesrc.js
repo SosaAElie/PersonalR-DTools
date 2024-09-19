@@ -755,7 +755,7 @@ function createBarChartOptionsAndData(unknowns){
             labels:sorted.map(x => x.name),
             datasets:[
                 {
-                    label:"Unknowns",
+                    label:`Protein Concentration [${unknowns[0].convertedUnits}]`,
                     data:sorted.map(x=>x.concentration),
                     backgroundColor:"rgba(255, 105, 105, 0.56)",
                     borderColor:"black",
@@ -789,7 +789,7 @@ function createBarChartOptionsAndData(unknowns){
                     },
                     title:{
                         display:true,
-                        text:`Protein [${unknowns[0].convertedUnits}]`,
+                        text:`Protein Concentration [${unknowns[0].convertedUnits}]`,
                         font:{
                             size:18,
                             weight:"bold",

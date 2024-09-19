@@ -41229,8 +41229,8 @@ function handleConversionInput(e){
  * @returns {Promise<ParsedData>}
  */
 async function merge(rawdataFile, templateFile){
-    const rawdata = await parseRawDataFile(rawdataFile);
-    const rawTemplate = await parseTemplateFile(templateFile);
+    const rawdata = await parseDelimitedFile(rawdataFile);
+    const rawTemplate = await parseDelimitedFile(templateFile);
     const samples = new Map();
     const lightSamples = [];
     //Grabs only the raw data assuming the data is in a 96-well plate layout
@@ -41640,19 +41640,7 @@ function createTable(unknowns, standards, container, units, convertedUnits, dilu
  * @param {File} file
  * @returns {Promise<string[][]>}
  */
-function parseRawDataFile(file){
-    return new Promise((resolve, reject)=>{
-        papa.parse(file, {complete:(results, file)=>{
-            resolve(results.data)
-        }})
-    })
-};
-
-/**
- * @param {File} file
- * @returns {Promise<string[][]>}
- */
-function parseTemplateFile(file){
+function parseDelimitedFile(file){
     return new Promise((resolve, reject)=>{
         papa.parse(file, {complete:(results, file)=>{
             resolve(results.data)
@@ -41807,7 +41795,7 @@ function createBarChartOptionsAndData(unknowns){
             labels:sorted.map(x => x.name),
             datasets:[
                 {
-                    label:"Unknowns",
+                    label:`Protein Concentration [${unknowns[0].convertedUnits}]`,
                     data:sorted.map(x=>x.concentration),
                     backgroundColor:"rgba(255, 105, 105, 0.56)",
                     borderColor:"black",
@@ -41841,7 +41829,7 @@ function createBarChartOptionsAndData(unknowns){
                     },
                     title:{
                         display:true,
-                        text:`Protein [${unknowns[0].convertedUnits}]`,
+                        text:`Protein Concentration [${unknowns[0].convertedUnits}]`,
                         font:{
                             size:18,
                             weight:"bold",

@@ -41054,8 +41054,10 @@ let CHART = null;
  * @property {Target} hkg - House Keeping Gene
  * @property {Target} goi - Gene of Interest
  * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
+ * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
  * @property {function} getTableData - returns an array containing data to display on a table
  * @property {Sample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
+ * @property {string} color - The color that the bar in the bar graph will be to represent this sample
 */
 
 /**
@@ -41088,7 +41090,7 @@ function main(){
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
     document.getElementById("reference-gene").addEventListener("change", handleRefTargetChange);
     document.getElementById("gene-of-interest").addEventListener("change", handleGoiChange);
-
+    document.getElementById("download-excel").addEventListener("click", handleDownloadExcelClick);
 }
 
 /**
@@ -41096,7 +41098,12 @@ function main(){
  */
 async function processResultsCsv(e){
     //If no file is selected immediately return with no changes to the UI
-    if(e.target.files ===  null) return;
+    if(e.target.files.length <= 0) return;
+    if(CHART !== null){
+        CHART.destroy();
+        document.getElementById("diagram384").innerHTML = "";
+        document.getElementById("sample-table").innerHTML = "";
+    }
 
     //ToDo Add another check to ensure that the file being passed in is an unedited results file from an
     //Applied BioSystems QuantStudio 7 Pro
@@ -41112,21 +41119,31 @@ async function processResultsCsv(e){
     
     updateSelectUiWithGenes(samples, "reference-gene");
     updateSelectUiWithGenes(samples, "gene-of-interest");
-    createSampleTable(samples)
+    createSampleTable(samples, inputfile.name);
+
+    const canvas = document.getElementById("canvas");
+    CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(samples, inputfile.name));
+    document.getElementById("rge-charts").appendChild(canvas);
 
 }
 
 /**
  * @param {Sample[]} samples
+ * @param {string} filename
  * @returns {null}
  */
-function createSampleTable(samples){
+function createSampleTable(samples, filename){
     const container = document.getElementById("sample-table");
     
     const table = document.createElement("table");
     const tableHeaders = document.createElement("thead");
     const tableBody = document.createElement("tbody");
 
+    //Create table title
+    const title = document.createElement("caption");
+    title.textContent = filename;
+    title.id = "filename";
+    table.appendChild(title);
     
     const headers = ["Sample Name", "Gene of Interest", "House-Keeping Gene", "GOI Average Ct", "GOI Stdev", "Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"];
     const headerRow = document.createElement("tr");
@@ -41154,12 +41171,24 @@ function createSampleTable(samples){
                     if(userSelectedRefSample === "None" || sample.hkg.name === "") return;
                     const refSample = samples.find((val, ind, obj)=> val.name === userSelectedRefSample);
                     refSample.isRefSample = true;
+                    refSample.color = "#697565"
+                    refSample.refSampleCount++;
+                    const prevRefSample = sample.refSample;
+                    if(prevRefSample !== null){
+                        prevRefSample.refSampleCount--;
+                        if(prevRefSample.refSampleCount === 0){
+                            prevRefSample.color = "rgba(255, 105, 105, 0.56)";
+                            prevRefSample.isRefSample = false;
+                        }
+                    } 
                     sample.refSample = refSample;
                     sample.goi.deltadeltaCt = sample.goi.deltaCt - refSample.goi.deltaCt;
                     sample.goi.rge = 2**(-sample.goi.deltadeltaCt);
                     document.getElementById(`${sample.name}-ΔΔCt`).textContent = sample.goi.deltadeltaCt.toFixed(2);
                     document.getElementById(`${sample.name}-Relative Gene Expression`).textContent = sample.goi.rge.toFixed(2);
-
+                    CHART.data.datasets[0].data = samples.map(sample => sample.goi.rge);
+                    CHART.data.datasets[0].backgroundColor = samples.map(sample => sample.color);
+                    CHART.update();
                 })
                 td.appendChild(selectEle);
             }
@@ -41222,7 +41251,10 @@ function createLightWeightSamples(samples){
  */
 function updateSelectUiWithGenes(samples, id){
     const selectEleTargets = document.getElementById(id);
-
+    selectEleTargets.innerHTML = "";
+    const noneOptionEle = document.createElement("option");
+    noneOptionEle.textContent = "None";
+    selectEleTargets.appendChild(noneOptionEle);
     //Makes the assumption that the first sample in the samples array is representative of all the samples
     for(let target of samples[0].targets.keys()){
         const optionEle = document.createElement("option");
@@ -41275,28 +41307,21 @@ function handleProcessSelectionClick(e, samples, filename){
 }
 
 /**
- * @param {Map<string, Sample>} samples
+ * @param {Sample[]} samples
  * @param {string} filename
  * @param {string} goi
  * @returns {chartjs.ChartConfiguration}
  */
-function createRgeBarGraphOptions(samples, filename, goi){
-    const sorted = Array.from(samples.values()).map(sample => {
-        return {
-            name:sample.name, 
-            rge:sample.targets.get(goi).rge,
-        }
-    }).sort((a,b) => a.rge - b.rge);
-
+function createRgeBarGraphOptions(samples, filename){
     return {
         type:"bar",
         data:{
-            labels:sorted.map(x => x.name),
+            labels:samples.map(sample => sample.name),
             datasets:[
                 {
                     label:"Relative Gene Expression",
-                    data:sorted.map(x=>x.rge),
-                    backgroundColor:"rgba(255, 105, 105, 0.56)",
+                    data:samples.map(sample=>sample.goi.name === ""?0:sample.goi.rge),
+                    backgroundColor:samples.map(sample => sample.color),
                     borderColor:"black",
                     borderWidth: 1,
                 }
@@ -41329,7 +41354,7 @@ function createRgeBarGraphOptions(samples, filename, goi){
                     },
                     title:{
                         display:true,
-                        text:`RGE of ${goi}`,
+                        text:`Relative Gene Expression of GOI`,
                         font:{
                             size:18,
                             weight:"bold",
@@ -41359,27 +41384,31 @@ function createRgeBarGraphOptions(samples, filename, goi){
 
 /**
  * @param {Event} e
- * @param {Map<string, Sample>} samples
- * @param {string} filename
  */
-function handleDownloadExcelClick(e, samples, filename){
+function handleDownloadExcelClick(e){
+    const sampleElements = document.getElementsByClassName("samples");
+    if(sampleElements.length <= 0) return;
+
     const excelData = [["Sample Name", "is Reference Sample?", "Gene of Interest", "House-Keeping Gene", "Replicates", "Best Duplicates", "GOI Average Ct", "GOI Stdev","Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"]];
-    for(let sample of samples.values()){
+    const filename = document.getElementById("filename").textContent;
+    for(let sampleEle of sampleElements){
+        const sample = sampleEle.sample;
         const sampleName = sample.name;
         const isReferenceSample = sample.isRefSample;
         const hkg = sample.hkg;
-        for(let target of sample.targets.values()){
-            if(target.name === hkg.name) continue;
-            const targetName = target.name;
-            const replicates = target.cqs.map(cq => cq.toFixed(2)).join(",");
-            const bestDuplicates = target.bestDuplicates.map(x => x.toFixed(2)).join(",");
-            const average = target.average.toFixed(2);
-            const stdev = target.stdev.toFixed(2);
-            const deltaCt = target.deltaCt.toFixed(2);
-            const deltadeltaCt = target.deltadeltaCt.toFixed(2);
-            const rge = target.rge.toFixed(2);
-            excelData.push([sampleName, isReferenceSample, targetName, hkg.name, replicates, bestDuplicates, average, stdev, deltaCt, deltadeltaCt, rge]);
-        }
+        const goi = sample.goi;
+        const refSample = sample.refSample;
+
+        if(hkg.name === "" || goi.name === "") continue;
+
+        const replicates = goi.cqs.map(cq => cq.toFixed(2)).join(",");
+        const bestDuplicates = goi.bestDuplicates.map(x => x.toFixed(2)).join(",");
+        const average = goi.average.toFixed(2);
+        const stdev = goi.stdev.toFixed(2);
+        const deltaCt = goi.deltaCt.toFixed(2);
+        const deltadeltaCt = goi.deltadeltaCt.toFixed(2);
+        const rge = goi.rge.toFixed(2);
+        excelData.push([sampleName, isReferenceSample, goi.name, hkg.name, replicates, bestDuplicates, average, stdev, refSample === null?"":refSample.name, deltaCt, deltadeltaCt, rge]);
     }
 
     //Create excel object in memory
@@ -41504,30 +41533,6 @@ function getBestDuplicates(replicates){
 }
 
 /**
- * @param {Event||string} e
- * @param {Map<string, Sample>} samples
- * @return {null}
- */
-function handleReferenceSampleChange(e, samples){
-    let referenceSampleName;
-    if(typeof e === "string") referenceSampleName = e;
-    else referenceSampleName = e.target.value;
-    if(referenceSampleName === "None") return;
-    const referenceSample = samples.get(referenceSampleName);
-    if(referenceSample === undefined) return;
-
-    ///Calculate the ΔΔCt value for each non-reference gene of each non-reference sample
-    for(let sample of samples.values()){
-        if(sample.name === referenceSampleName) sample.isRefSample = true;
-        else sample.isRefSample = false;
-        for(let [k, v] of sample.targets.entries()){
-            v.deltadeltaCt = v.deltaCt - referenceSample.targets.get(k).deltaCt;
-        }
-    }
-    return null
-}
-
-/**
  * @param {Event} e
  */
 function updateLabel(e){
@@ -41621,8 +41626,11 @@ function createSample(name, target, well, wellPosition){
         wells:[well],
         wellPositions:[wellPosition],
         hkg:createTarget("", "", NaN),
+        goi:createTarget("", "", NaN),
         isRefSample:false,
         refSample:null,
+        refSampleCount:0,
+        color:"rgba(255, 105, 105, 0.56)",
         /**
          * 
          * @param {string} targetName 
