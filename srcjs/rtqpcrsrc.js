@@ -3,7 +3,7 @@ const chartjs = require("chart.js/auto");
 const papa = require("papaparse");
 const xlsx = require("xlsx");
 
-let CHARTS = [];
+let CHART = null;
 
 /**
  * @typedef {Object} Sample
@@ -11,9 +11,11 @@ let CHARTS = [];
  * @property {Map<string, Target>} targets - The target genes
  * @property {number[]} wells - The well numbers the sample was loaded in i.e 1,2,3...384
  * @property {string[]} wellPositions - The well positions the sample was loaded in i.e A1, B1, C1, etc.
- * @property {string} hkg - House Keeping Gene
- * @property {boolean} isReferenceSample - returns true if this sample is selected to the be the reference sample
+ * @property {Target} hkg - House Keeping Gene
+ * @property {Target} goi - Gene of Interest
+ * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
  * @property {function} getTableData - returns an array containing data to display on a table
+ * @property {Sample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
 */
 
 /**
@@ -44,27 +46,38 @@ let CHARTS = [];
 function main(){
     document.getElementById("rawdata-input").addEventListener("input",processResultsCsv);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
+    document.getElementById("reference-gene").addEventListener("change", handleRefTargetChange);
+    document.getElementById("gene-of-interest").addEventListener("change", handleGoiChange);
+
 }
 
 /**
  * @param {InputEvent} e
  */
 async function processResultsCsv(e){
-    const templateDiagram = document.getElementById("diagram384");
+    //If no file is selected immediately return with no changes to the UI
     if(e.target.files ===  null) return;
+
+    //ToDo Add another check to ensure that the file being passed in is an unedited results file from an
+    //Applied BioSystems QuantStudio 7 Pro
     const inputfile = e.target.files[0];
     const rawdata = await parseDelimitedFile(inputfile);
     const samples = createSamples(rawdata);
     if(samples.length <= 0) return;
-    mutateSamples(samples);
+    updateSampleAverageStdev(samples);
+
     const lightweightSamples = createLightWeightSamples(samples);
-    createSampleTable(samples)
+    const templateDiagram = document.getElementById("diagram384");
     diagram384Well(lightweightSamples, templateDiagram, inputfile.name);
-    updateSelectUis(samples, inputfile.name);
+    
+    updateSelectUiWithGenes(samples, "reference-gene");
+    updateSelectUiWithGenes(samples, "gene-of-interest");
+    createSampleTable(samples)
+
 }
 
 /**
- * @param {Map<string, Sample>} samples
+ * @param {Sample[]} samples
  * @returns {null}
  */
 function createSampleTable(samples){
@@ -75,7 +88,7 @@ function createSampleTable(samples){
     const tableBody = document.createElement("tbody");
 
     
-    const headers = ["Sample Name", "Gene of Interest", "House-Keeping Gene", "Average", "Stdev", "Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"];
+    const headers = ["Sample Name", "Gene of Interest", "House-Keeping Gene", "GOI Average Ct", "GOI Stdev", "Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"];
     const headerRow = document.createElement("tr");
     for(let header of headers){
         const th = document.createElement("th");
@@ -84,12 +97,36 @@ function createSampleTable(samples){
     }
     tableHeaders.appendChild(headerRow);
     table.appendChild(tableHeaders);
-
-    for(let sample of samples.values()){
+    const selectRefSampleEle = createSelectRefSampleEle(samples);
+    for(let sample of samples){
         const row = document.createElement("tr");
-        for(let data of sample.getTableData()){
+        row.className = "samples";
+        row.id = sample.name;
+        row.sample = sample;
+        const sampleTableData = sample.getTableData();
+        for(let j = 0; j < sampleTableData.length; j++){
+            const header = headers[j];
             const td = document.createElement("td");
-            td.textContent = data;
+            if(header === "Reference Sample"){
+                const selectEle = selectRefSampleEle.cloneNode(true);
+                selectEle.addEventListener("change", e =>{
+                    const userSelectedRefSample = e.target.value;
+                    if(userSelectedRefSample === "None" || sample.hkg.name === "") return;
+                    const refSample = samples.find((val, ind, obj)=> val.name === userSelectedRefSample);
+                    refSample.isRefSample = true;
+                    sample.refSample = refSample;
+                    sample.goi.deltadeltaCt = sample.goi.deltaCt - refSample.goi.deltaCt;
+                    sample.goi.rge = 2**(-sample.goi.deltadeltaCt);
+                    document.getElementById(`${sample.name}-ΔΔCt`).textContent = sample.goi.deltadeltaCt.toFixed(2);
+                    document.getElementById(`${sample.name}-Relative Gene Expression`).textContent = sample.goi.rge.toFixed(2);
+
+                })
+                td.appendChild(selectEle);
+            }
+            else{
+                td.textContent = sampleTableData[j];
+                td.id = `${sample.name}-${header}`
+            }
             row.appendChild(td);
         }
         tableBody.appendChild(row);
@@ -99,8 +136,26 @@ function createSampleTable(samples){
 
 }
 
+
+
 /**
- * @param {Map<string, Sample>} samples
+ * @param {Sample[]} samples
+ */
+function createSelectRefSampleEle(samples){
+    const selectEle = document.createElement("select");
+    const noneOptionEle = document.createElement("option");
+    noneOptionEle.textContent = "None";
+    selectEle.appendChild(noneOptionEle);
+    for(let sample of samples){
+        const optionEle = document.createElement("option");
+        optionEle.textContent = sample.name;
+        selectEle.appendChild(optionEle);
+    }
+    return selectEle;
+}
+
+/**
+ * @param {Sample[]} samples
  * @return {LightweightSample[]}
  */
 function createLightWeightSamples(samples){
@@ -112,7 +167,7 @@ function createLightWeightSamples(samples){
         lws.set(i, {name:"None", wellPosition:`${wellPositionLetter}${wellPositionNumber}`, wellNumber:i});
         if(i%24 === 0) wellPositionLetter = String.fromCharCode((wellPositionLetter.charCodeAt(0)+1));
     }
-    for(let sample of samples.values()){
+    for(let sample of samples){
         for(let i = 0; i < sample.wellPositions.length; i++){
             lws.set(sample.wells[i], {name:sample.name, wellPosition:sample.wellPositions[i], wellNumber:sample.wells[i]});
         }
@@ -121,30 +176,19 @@ function createLightWeightSamples(samples){
 }
 
 /**
- * @param {Map<string, Sample>} samples
- * @param {string} filename
+ * @param {Sample[]} samples
+ * @param {string} id - The id of the select element to update
  * @returns {null}
  */
-function updateSelectUis(samples, filename){
-    const selectEleTargets = document.getElementById("reference-gene");
-    const samplesArr = Array.from(samples.values());
-    for(let target of samplesArr[0].targets.keys()){
+function updateSelectUiWithGenes(samples, id){
+    const selectEleTargets = document.getElementById(id);
+
+    //Makes the assumption that the first sample in the samples array is representative of all the samples
+    for(let target of samples[0].targets.keys()){
         const optionEle = document.createElement("option");
         optionEle.text = target;
         selectEleTargets.appendChild(optionEle);
     }
-    
-    const selectEleSamples = document.getElementById("reference-sample");
-    for(let sample of samplesArr){
-        const optionEle = document.createElement("option");
-        optionEle.text = sample.name;
-        selectEleSamples.appendChild(optionEle);
-    }
-
-    selectEleTargets.addEventListener("change", e => handleReferenceTargetChange(e, samples));
-    selectEleSamples.addEventListener("change", e => handleReferenceSampleChange(e, samples));
-    document.getElementById("process-selection").addEventListener("click", e => handleProcessSelectionClick(e, samples, filename));
-
     return null;
 }
 
@@ -194,10 +238,9 @@ function handleProcessSelectionClick(e, samples, filename){
  * @param {Map<string, Sample>} samples
  * @param {string} filename
  * @param {string} goi
- * @param {string} referenceSample
  * @returns {chartjs.ChartConfiguration}
  */
-function createRgeBarGraphOptions(samples, filename, goi, referenceSample){
+function createRgeBarGraphOptions(samples, filename, goi){
     const sorted = Array.from(samples.values()).map(sample => {
         return {
             name:sample.name, 
@@ -246,7 +289,7 @@ function createRgeBarGraphOptions(samples, filename, goi, referenceSample){
                     },
                     title:{
                         display:true,
-                        text:`RGE of ${goi} (relative to ${referenceSample})`,
+                        text:`RGE of ${goi}`,
                         font:{
                             size:18,
                             weight:"bold",
@@ -280,13 +323,13 @@ function createRgeBarGraphOptions(samples, filename, goi, referenceSample){
  * @param {string} filename
  */
 function handleDownloadExcelClick(e, samples, filename){
-    const excelData = [["Sample Name", "is Reference Sample?", "Target", "House-Keeping Gene", "Replicates", "Best Duplicates", "Average", "Stdev", "ΔCt", "ΔΔCt", "Relative Gene Expression"]];
+    const excelData = [["Sample Name", "is Reference Sample?", "Gene of Interest", "House-Keeping Gene", "Replicates", "Best Duplicates", "GOI Average Ct", "GOI Stdev","Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"]];
     for(let sample of samples.values()){
         const sampleName = sample.name;
-        const isReferenceSample = sample.isReferenceSample;
+        const isReferenceSample = sample.isRefSample;
         const hkg = sample.hkg;
         for(let target of sample.targets.values()){
-            if(target.name === hkg) continue;
+            if(target.name === hkg.name) continue;
             const targetName = target.name;
             const replicates = target.cqs.map(cq => cq.toFixed(2)).join(",");
             const bestDuplicates = target.bestDuplicates.map(x => x.toFixed(2)).join(",");
@@ -295,7 +338,7 @@ function handleDownloadExcelClick(e, samples, filename){
             const deltaCt = target.deltaCt.toFixed(2);
             const deltadeltaCt = target.deltadeltaCt.toFixed(2);
             const rge = target.rge.toFixed(2);
-            excelData.push([sampleName, isReferenceSample, targetName, hkg, replicates, bestDuplicates, average, stdev, deltaCt, deltadeltaCt, rge]);
+            excelData.push([sampleName, isReferenceSample, targetName, hkg.name, replicates, bestDuplicates, average, stdev, deltaCt, deltadeltaCt, rge]);
         }
     }
 
@@ -320,34 +363,78 @@ function handleDownloadExcelClick(e, samples, filename){
 
 /**
  * @param {Event} e
- * @param {Map<string, Sample>} samples
  * @return {null}
  */
-function handleReferenceTargetChange(e, samples){
-    const referenceTargetName = e.target.value;
-    const referenceSample = document.getElementById("reference-sample").value;
-    if(referenceTargetName === "None") return;
-    
+function handleRefTargetChange(e){
+    const refGeneName = e.target.value;
+    if(refGeneName === "None") return;
+
+    //All tr elements should have the class name "samples" 
+    //and should have a property that references the sample object they represent in the table
+    const sampleEles = document.getElementsByClassName("samples");
+
     //Calculate the ΔCt value for each non-reference gene of each sample
-    for(let sample of samples.values()){
-        const referenceTarget = sample.targets.get(referenceTargetName);
-        sample.hkg = referenceTargetName;
-        if(referenceTarget === undefined) return;
-        for(let [k, v] of sample.targets.entries()){
-            v.deltaCt = v.average - referenceTarget.average;
+    for(let sampleEle of sampleEles){
+        const sample = sampleEle.sample;
+        const refGene = sample.targets.get(refGeneName);
+        if(refGene === undefined){
+            console.log("Error: Reference target not present for this sample");
+            return;
+        };
+        sample.hkg = refGene;
+        document.getElementById(`${sample.name}-House-Keeping Gene`).textContent = refGene.name;
+        for(let [geneName, gene] of sample.targets.entries()){
+            gene.deltaCt = gene.average - refGene.average;
+            if(geneName !== refGeneName){
+                document.getElementById(`${sample.name}-ΔCt`).textContent = gene.deltaCt.toFixed(2);
+                document.getElementById(`${sample.name}-Gene of Interest`).textContent = gene.name;
+                document.getElementById(`${sample.name}-GOI Average Ct`).textContent = gene.average.toFixed(2);
+                document.getElementById(`${sample.name}-GOI Stdev`).textContent = gene.stdev.toFixed(2);
+                sample.goi = gene;
+            }
         }
     }
-    handleReferenceSampleChange(referenceSample, samples);
+    return null;
+}
+/**
+ * @param {Event} e
+ * @return {null}
+ */
+function handleGoiChange(e){
+    const goiName = e.target.value;
+    if(goiName === "None") return;
+
+    //All tr elements should have the class name "samples" 
+    //and should have a property that references the sample object they represent in the table
+    const sampleEles = document.getElementsByClassName("samples");
+
+    //Calculate the ΔCt value for each non-reference gene of each sample
+    for(let sampleEle of sampleEles){
+        const sample = sampleEle.sample;
+        const goi = sample.targets.get(goiName);
+        if(goi === undefined){
+            console.log("Error: Gene of Interest not present for this sample");
+            return;
+        };
+        sample.goi = goi;
+        document.getElementById(`${sample.name}-Gene of Interest`).textContent = goi.name;
+        
+        if(sample.hkg.name === "") continue;
+        sample.goi.deltaCt = sample.hkg.average - goi.average;
+        document.getElementById(`${sample.name}-ΔCt`).textContent = sample.goi.deltaCt.toFixed(2);
+        document.getElementById(`${sample.name}-GOI Average Ct`).textContent = sample.goi.average.toFixed(2);
+        document.getElementById(`${sample.name}-GOI Stdev`).textContent = sample.goi.stdev.toFixed(2);
+    }
     return null;
 }
 
 /**
- * @param {Map<string, Sample>} samples
+ * @param {Sample[]} samples
  * @return {null}
  */
-function mutateSamples(samples){
+function updateSampleAverageStdev(samples){
     //Mutates the sample objects in the sample map by updating the average, stdev, bestDuplicates properties of the Target object property of the Sample
-    for(let sample of samples.values()){
+    for(let sample of samples){
         for(let target of sample.targets.values()){
             target.bestDuplicates = getBestDuplicates(target.cqs);
             target.average = ss.mean(target.bestDuplicates);
@@ -391,8 +478,8 @@ function handleReferenceSampleChange(e, samples){
 
     ///Calculate the ΔΔCt value for each non-reference gene of each non-reference sample
     for(let sample of samples.values()){
-        if(sample.name === referenceSampleName) sample.isReferenceSample = true;
-        else sample.isReferenceSample = false;
+        if(sample.name === referenceSampleName) sample.isRefSample = true;
+        else sample.isRefSample = false;
         for(let [k, v] of sample.targets.entries()){
             v.deltadeltaCt = v.deltaCt - referenceSample.targets.get(k).deltaCt;
         }
@@ -477,7 +564,7 @@ function createSamples(rawdata){
             }
         }
     }
-    return samples;
+    return Array.from(samples.values());
 }
 
 /**
@@ -493,9 +580,9 @@ function createSample(name, target, well, wellPosition){
         targets:new Map([[target.name, target]]),
         wells:[well],
         wellPositions:[wellPosition],
-        hkg:"",
-        isReferenceSample:false,
-        referenceSample:"",
+        hkg:createTarget("", "", NaN),
+        isRefSample:false,
+        refSample:null,
         /**
          * 
          * @param {string} targetName 
@@ -504,9 +591,9 @@ function createSample(name, target, well, wellPosition){
         getTableData(targetName = null){
             return (
                 targetName === null?
-                [this.name, "", this.hkg, "","","","","", ""]
+                [this.name, "", "", "","","","","",""]
                 :
-                [this.name, this.targets.get(targetName).name, this.hkg, this.targets.get(targetName).average,this.targets.get(targetName).stdev, this.referenceSample, this.targets.get(targetName).deltaCt, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
+                [this.name, this.targets.get(targetName).name, this.hkg.name, this.targets.get(targetName).average,this.targets.get(targetName).stdev, this.refSample.name, this.targets.get(targetName).deltaCt, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
             
             )
         },

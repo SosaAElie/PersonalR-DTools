@@ -129,9 +129,9 @@ input::-webkit-inner-spin-button {
     display: grid;
     grid-template-columns: repeat(24, auto);
     width: min-content;
-    margin-left: 20vw;
+    margin-left: 1vw;
     margin-top: 1%;
-    gap: 2px;
+    /* gap: 2px; */
 }
 #diagram384>div{
     height: 4vh;
@@ -186,6 +186,17 @@ input::-webkit-inner-spin-button {
     width: 100%;
     justify-content: space-between;
     align-items: center;
+}
+#rtqpcr-diagram-table{
+    display: flex;
+    align-items: center;
+    gap: 1%;
+}
+select{
+    background-color: inherit;
+    color:inherit;
+    border-style: none;
+    font-size: 11pt;
 }
 
 table{

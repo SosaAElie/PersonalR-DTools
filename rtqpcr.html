@@ -23,20 +23,23 @@
             <p class = "filenames">None</p>
         </div>
         <div id = "rge-inputs">
-            <label for = "reference-gene">Reference Gene</label>
+            <label for = "gene-of-interest">Gene of Interest</label>
+            <select id = "gene-of-interest">
+                <option>None</option>
+            </select> 
+            <label for = "reference-gene">House-Keeping Gene</label>
             <select id = "reference-gene">
                 <option>None</option>
             </select>
-            <label for = "reference-sample">Reference Sample</label>
-            <select id = "reference-sample">
-                <option>None</option>
-            </select>
-            <button id = "process-selection">Submit Selection</button>
+            <!-- <button id = "process-selection">Submit Selection</button> -->
             <button id = "download-excel">Download Excel</button>
+            <button id = "download-prism">Download Prism</button>
         </div>
-        <div id = "diagram384"></div>
-        <div id = "sample-table"></div>
+        <div id = "rtqpcr-diagram-table">
+            <div id = "diagram384"></div>
+            <div id = "sample-table"></div>
+        </div>
         <div id = "rge-charts"></div>
-        <script src="script2.js" async defer></script>
+        <script src="script2.js" async defer></script> 
     </body>
 </html>
