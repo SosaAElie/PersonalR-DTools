@@ -41171,13 +41171,13 @@ function createSampleTable(samples, filename){
                     if(userSelectedRefSample === "None" || sample.hkg.name === "") return;
                     const refSample = samples.find((val, ind, obj)=> val.name === userSelectedRefSample);
                     refSample.isRefSample = true;
-                    refSample.color = "#697565"
+                    refSample.color = "#E7F0DC"
                     refSample.refSampleCount++;
                     const prevRefSample = sample.refSample;
                     if(prevRefSample !== null){
                         prevRefSample.refSampleCount--;
                         if(prevRefSample.refSampleCount === 0){
-                            prevRefSample.color = "rgba(255, 105, 105, 0.56)";
+                            prevRefSample.color = "rgba(255, 105, 105, 1)";
                             prevRefSample.isRefSample = false;
                         }
                     } 
@@ -41332,12 +41332,12 @@ function createRgeBarGraphOptions(samples, filename){
             scales:{
                 x:{
                     grid:{
-                        color:"white",
-                        tickColor:"white",
+                        color:"black",
+                        tickColor:"black",
                     },
                     ticks:{
-                        textStrokeColor:"white",
-                        color:"white",
+                        textStrokeColor:"black",
+                        color:"black",
                     },
                     
                 },
@@ -41345,12 +41345,12 @@ function createRgeBarGraphOptions(samples, filename){
                     type:"linear",
                     position:"left",
                     grid:{
-                        color:"white",
-                        tickColor:"white",
+                        color:"black",
+                        tickColor:"black",
                     },
                     ticks:{
-                        textStrokeColor:"white",
-                        color:"white",
+                        textStrokeColor:"black",
+                        color:"black",
                     },
                     title:{
                         display:true,
@@ -41359,7 +41359,7 @@ function createRgeBarGraphOptions(samples, filename){
                             size:18,
                             weight:"bold",
                         },
-                        color: "white", 
+                        color: "black", 
                     },
                                
                 },
@@ -41371,7 +41371,7 @@ function createRgeBarGraphOptions(samples, filename){
                     font:{
                         size:20,
                     },
-                    color: "white",
+                    color: "black",
                 },
                 legend:{
                     display:false,
@@ -41630,7 +41630,7 @@ function createSample(name, target, well, wellPosition){
         isRefSample:false,
         refSample:null,
         refSampleCount:0,
-        color:"rgba(255, 105, 105, 0.56)",
+        color:"rgba(255, 105, 105, 1)",
         /**
          * 
          * @param {string} targetName 

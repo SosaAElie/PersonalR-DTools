@@ -3,9 +3,11 @@ body{
     font-weight: 300;
     font-style: normal;
     text-align: center;
-    color: rgba(255, 252, 252, 0.818);
-    accent-color: white;
-    background-image: linear-gradient(to bottom, rgba(8, 1, 56, 0.531), #252222);
+    /* color: rgba(255, 252, 252, 0.818); */
+    /* accent-color: white;
+    background-image: linear-gradient(to bottom, rgba(8, 1, 56, 0.531), #252222); */
+    accent-color: black;
+    background-image: linear-gradient(to bottom, rgba(174, 219, 234, 0.998), #8b888800);   
     background-repeat: no-repeat;
     background-attachment: fixed;
 }
@@ -97,7 +99,7 @@ input{
     font-family: "Roboto", sans-serif;
     font-weight: 500;
     font-style: italic;
-    color: rgba(255, 252, 252, 0.818);
+    /* color: rgba(255, 252, 252, 0.818); */
 }
 input:hover{
     background-color: rgba(204, 219, 224, 0.404);
@@ -207,7 +209,7 @@ option{
     background-color: rgba(0, 0, 0, 0.609);
 }
 tr:hover{
-    background-color: rgba(204, 219, 224, 0.404);
+    background-color: rgba(204, 219, 224, 0.9);
 }
 
 table{
@@ -365,9 +367,9 @@ button{
     font-weight: normal;
     background-color: inherit;
     padding: 10px;
-    color: rgba(255, 252, 252, 0.818);
-    border-color:rgba(255, 252, 252, 0.818);
+    /* color: rgba(255, 252, 252, 0.818); */
+    /* border-color:rgba(255, 252, 252, 0.818); */
 }
 button:hover{
-    background-color: rgba(204, 219, 224, 0.404);
+    background-color: rgb(204, 219, 224);
 }

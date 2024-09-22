@@ -41713,12 +41713,12 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                 x:{
                     type:xScale,
                     grid:{
-                        color:"white",
-                        tickColor:"white",
+                        color:"black",
+                        tickColor:"black",
                     },
                     ticks:{
-                        textStrokeColor:"white",
-                        color:"white",
+                        textStrokeColor:"black",
+                        color:"black",
                     },
                     position:"bottom",
                     title:{
@@ -41728,7 +41728,7 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                             size:14,
                             weight:"bold",
                         },
-                        color: "white",
+                        color: "black",
                     },
                     
                 },
@@ -41736,12 +41736,12 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                     beginAtZero:true,
                     position:"left",
                     grid:{
-                        color:"white",
-                        tickColor:"white",
+                        color:"black",
+                        tickColor:"black",
                     },
                     ticks:{
-                        textStrokeColor:"white",
-                        color:"white",
+                        textStrokeColor:"black",
+                        color:"black",
                     },
                     title:{
                         display:true,
@@ -41750,7 +41750,7 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                             size:14,
                             weight:"bold",
                         },
-                        color: "white", 
+                        color: "black", 
                     },
                                
                 },
@@ -41762,11 +41762,11 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                     font:{
                         size:16,
                     },
-                    color: "white",
+                    color: "black",
                 },
                 legend:{
                     labels:{
-                        color:"white"
+                        color:"black"
                     }
                 }
                 
@@ -41797,7 +41797,7 @@ function createBarChartOptionsAndData(unknowns){
                 {
                     label:`Protein Concentration [${unknowns[0].convertedUnits}]`,
                     data:sorted.map(x=>x.concentration),
-                    backgroundColor:"rgba(255, 105, 105, 0.56)",
+                    backgroundColor:"rgba(255, 105, 105, 0.9)",
                     borderColor:"black",
                     borderWidth: 1,
                 }
@@ -41808,24 +41808,24 @@ function createBarChartOptionsAndData(unknowns){
             scales:{
                 x:{
                     grid:{
-                        color:"white",
-                        tickColor:"white",
+                        color:"black",
+                        tickColor:"black",
                     },
                     ticks:{
-                        textStrokeColor:"white",
-                        color:"white",
+                        textStrokeColor:"black",
+                        color:"black",
                     },
                     
                 },
                 y:{
                     position:"left",
                     grid:{
-                        color:"white",
-                        tickColor:"white",
+                        color:"black",
+                        tickColor:"black",
                     },
                     ticks:{
-                        textStrokeColor:"white",
-                        color:"white",
+                        textStrokeColor:"black",
+                        color:"black",
                     },
                     title:{
                         display:true,
@@ -41834,7 +41834,7 @@ function createBarChartOptionsAndData(unknowns){
                             size:18,
                             weight:"bold",
                         },
-                        color: "white", 
+                        color: "black", 
                     },
                                
                 },
@@ -41846,7 +41846,7 @@ function createBarChartOptionsAndData(unknowns){
                     font:{
                         size:20,
                     },
-                    color: "white",
+                    color: "black",
                 },
                 legend:{
                     display:false,
