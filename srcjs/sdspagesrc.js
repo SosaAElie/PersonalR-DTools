@@ -363,8 +363,9 @@ function handleClick(e){
         else regressionObject = get4ParameterHillRegression(xAndYStandards);
         const {parameters, rSquared, eq, invEq} = regressionObject;
 
-        //Sort standards according to their y values
+        //Sort standards & unknowns according to their y values
         standards.sort((first, second)=>second.averageY-first.averageY);
+        unknowns.sort((first, second)=>first.averageY-second.averageY);
         const units = standards[0].units;
         
         //Interpolate the concentration of all the samples using the regression model generated
