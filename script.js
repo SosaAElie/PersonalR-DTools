@@ -41450,7 +41450,7 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
     const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
     psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
     const startingCol = psuedoExcel.columns;
-    psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Desired Vol [uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "Buffer [uL]"]);
+    psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Vol/Well[uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "H2O [uL]"]);
     standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
     unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
 
@@ -42073,6 +42073,7 @@ function diagram96Well(lightSamples, parent, diagramTitle){
     }
 }
 
+
 /** 
  * @param {Sample[]} unknowns
  * @param {Element} parent
@@ -42093,13 +42094,22 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
 
     //Create table title
     const title = document.createElement("caption");
-    title.textContent = "Protein SDS Gel Electrophoresis Loading Table"
+    const replicatesInput = document.createElement("input");
+    replicatesInput.type = "number";
+    replicatesInput.id = "replicates";
+    replicatesInput.defaultValue = 1;
+    replicatesInput.addEventListener("input", e=>{
+        //TODO: Add new properties to the Sample class to account for replicates, i.e singletTotalProtein, singletLaemmliBuffer, replicates
+    })
+    title.textContent = "SDS-PAGE Number of Replicates:"
+    title.appendChild(replicatesInput);
+
     table.appendChild(title);
 
     //Create table header row
     const headerContainer = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    const headers = ["Name", `${dilutionFactor}X Concentration [${units}]`, `Protein [${mass}]`, `Desired Vol [${vol}]`, `Stock Protein [${vol}]`, `4X Laemmli [${vol}]`, `Buffer [${vol}]`];
+    const headers = ["Name", `${dilutionFactor}X Concentration [${units}]`, `Protein [${mass}]`, `Vol[${vol}]/Well`, `Total Vol[${vol}]`,`Stock Protein [${vol}]`, `4X Laemmli [${vol}]`, `H2O [${vol}]`];
     for(let header of headers){
         const row = document.createElement("th");
         row.textContent = header;
@@ -42120,52 +42130,18 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
             else{
                 const inputEle = document.createElement("input");
                 inputEle.type = "number";
-
                 if(headers[i] === `Protein [${mass}]`){
                     targetProteinEles.push(inputEle);
                     inputEle.id = `Protein [${mass}]-${unknown.name}`;
                     inputEle.value = totalProtein;
-                    inputEle.addEventListener("input", e=>{
-                        const targetProtein = parseFloat(e.target.value);
-                        if(targetProtein < 0 || targetProtein === undefined) return;
-                        const proteinVol = targetProtein/unknown.convertedX;
-                        document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent = proteinVol.toFixed(2);
-                        const laemmliEle = document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`);
-                        const desiredVolEle = document.getElementById(`Desired Vol [${vol}]-${unknown.name}`);
-                        const bufferEle = document.getElementById(`Buffer [${vol}]-${unknown.name}`);
-                        if(laemmliEle.textContent !== ""){
-                            const desiredVol = parseFloat(desiredVolEle.value);
-                            const laemmliVol = desiredVol/4;
-                            const bufferVol = desiredVol - laemmliVol - parseFloat(document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent);
-                            
-                            laemmliEle.textContent = laemmliVol.toFixed(2);
-                            bufferEle.textContent = bufferVol.toFixed(2);
-                            
-                            unknown.laemmliVol = laemmliVol;
-                            unknown.bufferVol = bufferVol;
-                            unknown.totalGelProtein = targetProtein;
-                            unknown.stockProteinVol = proteinVol;
-                        }
-                    })
+                    inputEle.addEventListener("input",  e => handleTotalProteinChange(e, unknown, mass, vol));
                     td.appendChild(inputEle);
                 }
-                else if(headers[i] === `Desired Vol [${vol}]`){
+                else if(headers[i] === `Vol[${vol}]/Well`){
                     desiredVolEles.push(inputEle);
-                    inputEle.id = `Desired Vol [${vol}]-${unknown.name}`;
+                    inputEle.id = `Vol [${vol}]/Well-${unknown.name}`;
                     inputEle.value = totalVolume;
-                    inputEle.addEventListener("input", e=>{
-                        const desiredVol = parseFloat(e.target.value);
-                        if(desiredVol < 0 || desiredVol === undefined) return;
-                        const laemmliVol = desiredVol/4;
-                        const bufferVol = desiredVol - laemmliVol - parseFloat(document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent);
-                        
-                        document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`).textContent = laemmliVol.toFixed(2);
-                        document.getElementById(`Buffer [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
-                        
-                        unknown.laemmliVol = laemmliVol;
-                        unknown.bufferVol = bufferVol;
-                        unknown.totalVolume = desiredVol;
-                    })
+                    inputEle.addEventListener("input", e => handleWellVolChange(e, unknown, vol))
                     td.appendChild(inputEle);
                 }
                 else{
@@ -42189,22 +42165,85 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
     for(let i = 0; i < targetProteinEles.length; i++){
         const targetProtein = parseFloat(targetProteinEles[i].value);
         const desiredVol = parseFloat(desiredVolEles[i].value);
+        const replicates = parseFloat(document.getElementById("replicates").value);
         const unknown = unknowns[i];
-        const proteinVol = (targetProtein/unknown.convertedX);
-        const laemmliVol = (desiredVol/4);
-        const bufferVol = (desiredVol - proteinVol - laemmliVol);
 
+        const proteinVol = (targetProtein/unknown.convertedX)*replicates;
+        const laemmliVol = (desiredVol/4)*replicates;
+        const bufferVol = (desiredVol - proteinVol - laemmliVol)*replicates;
+        
         unknown.totalGelProtein = targetProtein;
         unknown.totalVolume = desiredVol;
         unknown.stockProteinVol = proteinVol;
         unknown.laemmliVol = laemmliVol;
         unknown.bufferVol = bufferVol;
-
+        
+        document.getElementById(`Total Vol[${vol}]-${unknown.name}`).textContent = (desiredVol * replicates).toFixed(2);
         document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`).textContent = laemmliVol.toFixed(2);
         document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent = proteinVol.toFixed(2);
-        document.getElementById(`Buffer [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
+        document.getElementById(`H2O [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
     }
     
+}
+
+/**
+ * 
+ * @param {Event} e 
+ * @param {Sample} unknown 
+ * @param {string} mass
+ * @param {string} vol 
+ * @returns 
+ */
+function handleTotalProteinChange(e, unknown, mass, vol){
+    let targetProtein = parseFloat(e.target.value);
+    if(targetProtein < 0 || targetProtein === undefined) targetProtein = 0;
+    const proteinVol = targetProtein/unknown.convertedX;
+    const stockProteinElement = document.getElementById(`Stock Protein [${vol}]-${unknown.name}`);
+    stockProteinElement.textContent = proteinVol.toFixed(2);
+    
+    const laemmliEle = document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`);
+    const desiredVolEle = document.getElementById(`Vol [${vol}]/Well-${unknown.name}`);
+    const bufferEle = document.getElementById(`H2O [${vol}]-${unknown.name}`);
+
+    //If the user inputted total volume is a value that results in the amount of laemmli sample buffer to be 0, return
+    if(laemmliEle.textContent === "") return;
+
+    const desiredVol = parseFloat(desiredVolEle.value);
+    const laemmliVol = desiredVol/4;
+    const bufferVol = desiredVol - laemmliVol - proteinVol;
+    
+    //Update the unknown with the newest values
+    unknown.laemmliVol = laemmliVol;
+    unknown.bufferVol = bufferVol;
+    unknown.totalGelProtein = targetProtein;
+    unknown.stockProteinVol = proteinVol;
+    
+    //Update the UI
+    laemmliEle.textContent = laemmliVol.toFixed(2);
+    bufferEle.textContent = bufferVol.toFixed(2);
+    
+}
+
+/**
+ * 
+ * @param {Event} e 
+ * @param {Sample} unknown 
+ * @param {string} vol 
+ * @returns 
+ */
+function handleWellVolChange(e, unknown, vol){
+    const desiredVol = parseFloat(e.target.value);
+    if(desiredVol < 0 || desiredVol === undefined) return;
+    const laemmliVol = desiredVol/4;
+    const bufferVol = desiredVol - laemmliVol - parseFloat(document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent);
+    
+    document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`).textContent = laemmliVol.toFixed(2);
+    document.getElementById(`H2O [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
+    
+    //Update the unknown with the newest values
+    unknown.laemmliVol = laemmliVol;
+    unknown.bufferVol = bufferVol;
+    unknown.totalVolume = desiredVol;
 }
 
 function fminsearch(fun,Parm0,x,y,Opt){

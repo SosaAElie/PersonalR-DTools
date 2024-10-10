@@ -10,8 +10,8 @@ let CHART = null;
  * @property {Map<string, Target>} targets - The target genes
  * @property {number[]} wells - The well numbers the sample was loaded in i.e 1,2,3...384
  * @property {string[]} wellPositions - The well positions the sample was loaded in i.e A1, B1, C1, etc.
- * @property {Target} hkg - House Keeping Gene
- * @property {Target} goi - Gene of Interest
+ * @property {Target|null} hkg - House Keeping Gene
+ * @property {Target|null} goi - Gene of Interest
  * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
  * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
  * @property {function} getTableData - returns an array containing data to display on a table
@@ -47,7 +47,7 @@ let CHART = null;
 function main(){
     document.getElementById("rawdata-input").addEventListener("input",processResultsCsv);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
-    document.getElementById("reference-gene").addEventListener("change", handleRefTargetChange);
+    document.getElementById("reference-gene").addEventListener("change", handleHkgTargetChange);
     document.getElementById("gene-of-interest").addEventListener("change", handleGoiChange);
     document.getElementById("download-excel").addEventListener("click", handleDownloadExcelClick);
 }
@@ -93,7 +93,6 @@ async function processResultsCsv(e){
  */
 function createSampleTable(samples, filename){
     const container = document.getElementById("sample-table");
-    
     const table = document.createElement("table");
     const tableHeaders = document.createElement("thead");
     const tableBody = document.createElement("tbody");
@@ -163,8 +162,6 @@ function createSampleTable(samples, filename){
     container.appendChild(table);
 
 }
-
-
 
 /**
  * @param {Sample[]} samples
@@ -237,7 +234,7 @@ function createRgeBarGraphOptions(samples, filename){
             datasets:[
                 {
                     label:"Relative Gene Expression",
-                    data:samples.map(sample=>sample.goi.name === ""?0:sample.goi.rge),
+                    data:samples.map(sample=>sample.goi === null?0:sample.goi.rge),
                     backgroundColor:samples.map(sample => sample.color),
                     borderColor:"black",
                     borderWidth: 1,
@@ -351,9 +348,9 @@ function handleDownloadExcelClick(e){
  * @param {Event} e
  * @return {null}
  */
-function handleRefTargetChange(e){
-    const refGeneName = e.target.value;
-    if(refGeneName === "None") return;
+function handleHkgTargetChange(e){
+    const hkgName = e.target.value;
+    if(hkgName === "None") return;
 
     //All tr elements should have the class name "samples" 
     //and should have a property that references the sample object they represent in the table
@@ -361,24 +358,25 @@ function handleRefTargetChange(e){
 
     //Calculate the ΔCt value for each non-reference gene of each sample
     for(let sampleEle of sampleEles){
+        /**
+         * @type {Sample}
+         */
         const sample = sampleEle.sample;
-        const refGene = sample.targets.get(refGeneName);
-        if(refGene === undefined){
-            console.log("Error: Reference target not present for this sample");
-            return;
+        const hkg = sample.targets.get(hkgName);
+        if(hkg === undefined){
+            console.log(`Error: Gene of Interest not present for this sample: ${sample.name}`);
+            continue;
         };
-        sample.hkg = refGene;
-        document.getElementById(`${sample.name}-House-Keeping Gene`).textContent = refGene.name;
-        for(let [geneName, gene] of sample.targets.entries()){
-            gene.deltaCt = gene.average - refGene.average;
-            if(geneName !== refGeneName){
-                document.getElementById(`${sample.name}-ΔCt`).textContent = gene.deltaCt.toFixed(2);
-                document.getElementById(`${sample.name}-Gene of Interest`).textContent = gene.name;
-                document.getElementById(`${sample.name}-GOI Average Ct`).textContent = gene.average.toFixed(2);
-                document.getElementById(`${sample.name}-GOI Stdev`).textContent = gene.stdev.toFixed(2);
-                sample.goi = gene;
-            }
-        }
+        sample.hkg = hkg;
+        document.getElementById(`${sample.name}-House-Keeping Gene`).textContent = hkg.name;
+
+        if(sample.goi === null) continue;
+        const goi = sample.goi;
+        goi.deltaCt = goi.average - hkg.average;
+        const sampleName = sample.name;
+        document.getElementById(`${sampleName}-ΔCt`).textContent = goi.deltaCt.toFixed(2);
+        document.getElementById(`${sampleName}-GOI Average Ct`).textContent = goi.average.toFixed(2);
+        document.getElementById(`${sampleName}-GOI Stdev`).textContent = goi.stdev.toFixed(2);
     }
     return null;
 }
@@ -396,20 +394,24 @@ function handleGoiChange(e){
 
     //Calculate the ΔCt value for each non-reference gene of each sample
     for(let sampleEle of sampleEles){
+        /**
+         * @type {Sample}
+         */
         const sample = sampleEle.sample;
+        const sampleName = sample.name;
         const goi = sample.targets.get(goiName);
         if(goi === undefined){
-            console.log("Error: Gene of Interest not present for this sample");
-            return;
+            console.log(`Error: Gene of Interest not present for this sample: ${sample.name}`);
+            continue;
         };
         sample.goi = goi;
         document.getElementById(`${sample.name}-Gene of Interest`).textContent = goi.name;
         
-        if(sample.hkg.name === "") continue;
-        sample.goi.deltaCt = sample.hkg.average - goi.average;
-        document.getElementById(`${sample.name}-ΔCt`).textContent = sample.goi.deltaCt.toFixed(2);
-        document.getElementById(`${sample.name}-GOI Average Ct`).textContent = sample.goi.average.toFixed(2);
-        document.getElementById(`${sample.name}-GOI Stdev`).textContent = sample.goi.stdev.toFixed(2);
+        if(sample.hkg === null) continue;
+        goi.deltaCt = goi.average - sample.hkg.average;
+        document.getElementById(`${sampleName}-ΔCt`).textContent = goi.deltaCt.toFixed(2);
+        document.getElementById(`${sampleName}-GOI Average Ct`).textContent = goi.average.toFixed(2);
+        document.getElementById(`${sampleName}-GOI Stdev`).textContent = goi.stdev.toFixed(2);
     }
     return null;
 }
@@ -542,8 +544,8 @@ function createSample(name, target, well, wellPosition){
         targets:new Map([[target.name, target]]),
         wells:[well],
         wellPositions:[wellPosition],
-        hkg:createTarget("", "", NaN),
-        goi:createTarget("", "", NaN),
+        hkg:null,
+        goi:null,
         isRefSample:false,
         refSample:null,
         refSampleCount:0,

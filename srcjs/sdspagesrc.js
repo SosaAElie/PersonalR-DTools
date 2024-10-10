@@ -5,7 +5,6 @@ const xlsx = require("xlsx");
 
 //Global variable to store the reference to the created chart & chart image for excel
 let CHART = null;
-let CHARTIMAGE = null;
 let BARCHART = null;
 
 /**
@@ -26,6 +25,11 @@ let BARCHART = null;
  * @property {number} averageY - The average of y if sample was loaded in replicates 
  * @property {number|string} stdev - The standard deviation of y if sample was loaded in replicates 
  * @property {number|string} totalGelProtein - The total protein to load into the protein gel
+ * @property {number|string} volPerWell - The total desired volume to load into a protein gel well
+ * @property {number|string} stockProteinVolPerWell - The stock protein volume required per well
+ * @property {number|string} laemmliVolPerWell - The volume of 4x laemmli required per well
+ * @property {number|string} bufferVolPerWell - The volume of buffer (i.e H2O) required to reach total volume per well
+ * @property {number|string} sdspageSampleConc - The concentration of the final solution to be loaded into the SDS-PAGE Gel
  * @property {number|string} totalVolume - The total desired volume to load into the protein gel
  * @property {number|string} stockProteinVol - The total stock protein volume required
  * @property {number|string} laemmliVol - The volume of 4x laemmli required
@@ -35,6 +39,21 @@ let BARCHART = null;
  * @property {Function} getExcelData - returns a list of data to write to excel
  * 
 */
+
+/**
+ * @typedef GelLoadingValues
+ * @property {number|string} totalProtein - The total amount of protein to load into the protein gel
+ * @property {number|string} volPerWell - The total desired volume to load into a protein gel well
+ * @property {number|string} stockProteinVolPerWell - The stock protein volume required per well
+ * @property {number|string} laemmliVolPerWell - The volume of 4x laemmli required per well
+ * @property {number|string} bufferVolPerWell - The volume of buffer (i.e H2O) required to reach total volume per well
+ * @property {number|string} sdspageSampleConc - The concentration of the final solution to be loaded into the SDS-PAGE Gel
+ * @property {number|string} totalVolume - The total desired volume to load into the protein gel
+ * @property {number|string} stockProteinVol - The total stock protein volume required
+ * @property {number|string} laemmliVol - The volume of 4x laemmli required
+ * @property {number|string} bufferVol - The volume of buffer required to reach total volume
+ */
+
 
 /**
  * @typedef {Object} RegressionAnalysis
@@ -184,35 +203,25 @@ function handleConversionInput(e){
 }
 
 /**
- * @param {File} rawdataFile
- * @param {File} templateFile
- * @returns {Promise<ParsedData>}
+ * @param {string} name 
+ * @param {string} type 
+ * @param {string} units 
+ * @param {string[]} wellPositions 
+ * @param {number[]} wellNumbers 
+ * @param {number} x 
+ * @param {number[]} ys 
+ * @returns {Sample}
  */
-async function merge(rawdataFile, templateFile){
-    const rawdata = await parseDelimitedFile(rawdataFile);
-    const rawTemplate = await parseDelimitedFile(templateFile);
-    const samples = new Map();
-    const lightSamples = [];
-    //Grabs only the raw data assuming the data is in a 96-well plate layout
-    const data = rawdata.slice(3,11).map(row => row.slice(2, 14));
-
-    //Use the filenames' stem
-    const filename = rawdataFile.name.split(".")[0];
-    const templateFilename = templateFile.name.split(".")[0];
-
-    //Grabs the names in the 96-well template
-    const template = rawTemplate.slice(2,10).map(row=>row.slice(1));
-
-    //Function definition for a property of the Sample object
+function createSample(name, type, units, wellPositions, wellNumbers, x, ys){
     /**
-     * @returns {string[]|number[]|boolean[]}
+     * @returns {string|number|boolean[]} 
      */
     function getData(){
         return [this.name, this.type, this.averageY, this.stdev, this.interpolatedX, this.actualX, this.convertedX];
     }
 
     /**
-     * @returns {string[]|number[]|boolean[]}
+     * @returns {string|number|boolean[]}
      */
     function getExcelData(){
         return this.type === "sample"?[
@@ -233,12 +242,46 @@ async function merge(rawdataFile, templateFile){
         return [this.name, this.convertedX.toFixed(2)];
     }
 
+    return {name, type, units, wellPositions, wellNumbers, x, ys, getData, getExcelData, getGelData};
+}
+
+
+/**
+ * @param {File} rawdataFile
+ * @param {File} templateFile
+ * @returns {Promise<ParsedData>}
+ */
+async function merge(rawdataFile, templateFile){
+    const rawdata = await parseDelimitedFile(rawdataFile);
+    const rawTemplate = await parseDelimitedFile(templateFile);
+
+    /**
+     * @type {Map<string, Sample>}
+     */
+    const samples = new Map();
+
+    /**
+     * @type {LightweightSample[]}
+     */
+    const lightSamples = [];
+
+    //Grabs only the raw data assuming the data is in a 96-well plate layout from a SoftMaxPro Optical Plate reader device
+    const data = rawdata.slice(3,11).map(row => row.slice(2, 14));
+
+    //Use the filenames' stem
+    const filename = rawdataFile.name.split(".")[0];
+    const templateFilename = templateFile.name.split(".")[0];
+
+    //Grabs the names in the 96-well template
+    const template = rawTemplate.slice(2,10).map(row=>row.slice(1));
+
     //Iterate through each inner array and create a sample, only adding the sample to the sample list if it doesn't exist already
     const rows = data.length;
     const columns = data[0].length;
+    const startingColLetter = "A".charCodeAt(0);
     let wellNumber = 1;
     for(let i = 0; i < rows; i++){
-        const columnLetter = String.fromCharCode("A".charCodeAt(0) + i);
+        const columnLetter = String.fromCharCode(startingColLetter + i);
         for(let j = 0; j < columns; j++){
             const wellPosition = columnLetter + (j+1).toString();
             const parsedSample = parseSampleName(template[i][j]);
@@ -252,6 +295,7 @@ async function merge(rawdataFile, templateFile){
             //Skip over the samples labeled as none
             if(name.toLowerCase() === "none") continue;
 
+            //Check if the sample object already exists, if it does just add the new info the existing object
             if(samples.has(name)){
                 const sample = samples.get(name);
                 sample.ys.push(y);
@@ -262,7 +306,7 @@ async function merge(rawdataFile, templateFile){
                 if(parsedSample.has("units")){
                     const units = parsedSample.get("units");
                     const x = parsedSample.get("x");
-                    samples.set(name, {name, type, units, wellPositions:[wellPosition], wellNumbers:[wellNumber], x, ys:[y], getData, getExcelData, getGelData});
+                    samples.set(name, createSample(name, type, units, [wellPosition], [wellNumber], x, [y]));
                 }
                 else{
                     samples.set(name, {name, type, wellPositions:[wellPosition],wellNumbers:[wellNumber], ys:[y], getData, getExcelData, getGelData});
@@ -330,7 +374,6 @@ function handleClick(e){
     if(CHART !== null){
         CHART.destroy();
         BARCHART.destroy();
-        CHARTIMAGE = null;
         deleteTable(tableContainer, "results-table");
         deleteTable(gelTableContainer, "protein-loading-table");
         excelDownloadButton.replaceWith(excelDownloadButton.cloneNode(true));
@@ -410,7 +453,7 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
     const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
     psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
     const startingCol = psuedoExcel.columns;
-    psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Desired Vol [uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "Buffer [uL]"]);
+    psuedoExcel.appendAt(0, psuedoExcel.columns, true, ["Name", "Type", "Individual Values", subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)", `Interpolated Concentration [${units}]`, `${dilutionFactor}X Concentration [${units}]`, `${dilutionFactor}X Concentration [${targetUnits}]`, "Protein [ug]", "Vol/Well[uL]", "Stock Protein [uL]", "4X Laemmli [uL]", "H2O [uL]"]);
     standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
     unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
 
@@ -424,7 +467,6 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
     const wkbk = createWkbk(psuedoExcel.data, "results");
     appendWorksheet(wkbk, parsedData.rawdata, "rawdata");
     appendWorksheet(wkbk, parsedData.rawTemplate, "template");
-    // appendWorksheet(wkbk, null, null, CHARTIMAGE);
 
     const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
     const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
@@ -732,9 +774,6 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, units,
                 }
                 
             },
-            animation:{
-                onComplete:(e)=> CHARTIMAGE = CHART.toBase64Image(),
-            }
         }
     }
 }
@@ -1033,6 +1072,7 @@ function diagram96Well(lightSamples, parent, diagramTitle){
     }
 }
 
+
 /** 
  * @param {Sample[]} unknowns
  * @param {Element} parent
@@ -1053,13 +1093,22 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
 
     //Create table title
     const title = document.createElement("caption");
-    title.textContent = "Protein SDS Gel Electrophoresis Loading Table"
+    const replicatesInput = document.createElement("input");
+    replicatesInput.type = "number";
+    replicatesInput.id = "replicates";
+    replicatesInput.defaultValue = 1;
+    replicatesInput.addEventListener("input", e=>{
+        //TODO: Add new properties to the Sample class to account for replicates, i.e singletTotalProtein, singletLaemmliBuffer, replicates
+    })
+    title.textContent = "SDS-PAGE Number of Replicates:"
+    title.appendChild(replicatesInput);
+
     table.appendChild(title);
 
     //Create table header row
     const headerContainer = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    const headers = ["Name", `${dilutionFactor}X Concentration [${units}]`, `Protein [${mass}]`, `Desired Vol [${vol}]`, `Stock Protein [${vol}]`, `4X Laemmli [${vol}]`, `Buffer [${vol}]`];
+    const headers = ["Name", `${dilutionFactor}X Concentration [${units}]`, `Protein [${mass}]`, `Vol[${vol}]/Well`, `Total Vol[${vol}]`,`Stock Protein [${vol}]`, `4X Laemmli [${vol}]`, `H2O [${vol}]`];
     for(let header of headers){
         const row = document.createElement("th");
         row.textContent = header;
@@ -1080,52 +1129,18 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
             else{
                 const inputEle = document.createElement("input");
                 inputEle.type = "number";
-
                 if(headers[i] === `Protein [${mass}]`){
                     targetProteinEles.push(inputEle);
                     inputEle.id = `Protein [${mass}]-${unknown.name}`;
                     inputEle.value = totalProtein;
-                    inputEle.addEventListener("input", e=>{
-                        const targetProtein = parseFloat(e.target.value);
-                        if(targetProtein < 0 || targetProtein === undefined) return;
-                        const proteinVol = targetProtein/unknown.convertedX;
-                        document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent = proteinVol.toFixed(2);
-                        const laemmliEle = document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`);
-                        const desiredVolEle = document.getElementById(`Desired Vol [${vol}]-${unknown.name}`);
-                        const bufferEle = document.getElementById(`Buffer [${vol}]-${unknown.name}`);
-                        if(laemmliEle.textContent !== ""){
-                            const desiredVol = parseFloat(desiredVolEle.value);
-                            const laemmliVol = desiredVol/4;
-                            const bufferVol = desiredVol - laemmliVol - parseFloat(document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent);
-                            
-                            laemmliEle.textContent = laemmliVol.toFixed(2);
-                            bufferEle.textContent = bufferVol.toFixed(2);
-                            
-                            unknown.laemmliVol = laemmliVol;
-                            unknown.bufferVol = bufferVol;
-                            unknown.totalGelProtein = targetProtein;
-                            unknown.stockProteinVol = proteinVol;
-                        }
-                    })
+                    inputEle.addEventListener("input",  e => handleTotalProteinChange(e, unknown, mass, vol));
                     td.appendChild(inputEle);
                 }
-                else if(headers[i] === `Desired Vol [${vol}]`){
+                else if(headers[i] === `Vol[${vol}]/Well`){
                     desiredVolEles.push(inputEle);
-                    inputEle.id = `Desired Vol [${vol}]-${unknown.name}`;
+                    inputEle.id = `Vol [${vol}]/Well-${unknown.name}`;
                     inputEle.value = totalVolume;
-                    inputEle.addEventListener("input", e=>{
-                        const desiredVol = parseFloat(e.target.value);
-                        if(desiredVol < 0 || desiredVol === undefined) return;
-                        const laemmliVol = desiredVol/4;
-                        const bufferVol = desiredVol - laemmliVol - parseFloat(document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent);
-                        
-                        document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`).textContent = laemmliVol.toFixed(2);
-                        document.getElementById(`Buffer [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
-                        
-                        unknown.laemmliVol = laemmliVol;
-                        unknown.bufferVol = bufferVol;
-                        unknown.totalVolume = desiredVol;
-                    })
+                    inputEle.addEventListener("input", e => handleWellVolChange(e, unknown, vol))
                     td.appendChild(inputEle);
                 }
                 else{
@@ -1149,24 +1164,96 @@ function createProteinGelLoadingTable(unknowns, parent, totalProtein, totalVolum
     for(let i = 0; i < targetProteinEles.length; i++){
         const targetProtein = parseFloat(targetProteinEles[i].value);
         const desiredVol = parseFloat(desiredVolEles[i].value);
+        const replicates = parseFloat(document.getElementById("replicates").value);
         const unknown = unknowns[i];
-        const proteinVol = (targetProtein/unknown.convertedX);
-        const laemmliVol = (desiredVol/4);
-        const bufferVol = (desiredVol - proteinVol - laemmliVol);
 
+        const proteinVol = (targetProtein/unknown.convertedX)*replicates;
+        const laemmliVol = (desiredVol/4)*replicates;
+        const bufferVol = (desiredVol - proteinVol - laemmliVol)*replicates;
+        
         unknown.totalGelProtein = targetProtein;
         unknown.totalVolume = desiredVol;
         unknown.stockProteinVol = proteinVol;
         unknown.laemmliVol = laemmliVol;
         unknown.bufferVol = bufferVol;
-
+        
+        document.getElementById(`Total Vol[${vol}]-${unknown.name}`).textContent = (desiredVol * replicates).toFixed(2);
         document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`).textContent = laemmliVol.toFixed(2);
         document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent = proteinVol.toFixed(2);
-        document.getElementById(`Buffer [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
+        document.getElementById(`H2O [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
     }
     
 }
 
+/**
+ * 
+ * @param {Event} e 
+ * @param {Sample} unknown 
+ * @param {string} mass
+ * @param {string} vol 
+ * @returns 
+ */
+function handleTotalProteinChange(e, unknown, mass, vol){
+    let targetProtein = parseFloat(e.target.value);
+    if(targetProtein < 0 || targetProtein === undefined) targetProtein = 0;
+    const proteinVol = targetProtein/unknown.convertedX;
+    const stockProteinElement = document.getElementById(`Stock Protein [${vol}]-${unknown.name}`);
+    stockProteinElement.textContent = proteinVol.toFixed(2);
+    
+    const laemmliEle = document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`);
+    const desiredVolEle = document.getElementById(`Vol [${vol}]/Well-${unknown.name}`);
+    const bufferEle = document.getElementById(`H2O [${vol}]-${unknown.name}`);
+
+    //If the user inputted total volume is a value that results in the amount of laemmli sample buffer to be 0, return
+    if(laemmliEle.textContent === "") return;
+
+    const desiredVol = parseFloat(desiredVolEle.value);
+    const laemmliVol = desiredVol/4;
+    const bufferVol = desiredVol - laemmliVol - proteinVol;
+    
+    //Update the unknown with the newest values
+    unknown.laemmliVol = laemmliVol;
+    unknown.bufferVol = bufferVol;
+    unknown.totalGelProtein = targetProtein;
+    unknown.stockProteinVol = proteinVol;
+    
+    //Update the UI
+    laemmliEle.textContent = laemmliVol.toFixed(2);
+    bufferEle.textContent = bufferVol.toFixed(2);
+    
+}
+
+/**
+ * @param {Event} e 
+ * @param {Sample} unknown 
+ * @param {string} vol 
+ * @returns 
+ */
+function handleWellVolChange(e, unknown, vol){
+    const desiredVol = parseFloat(e.target.value);
+    if(desiredVol < 0 || desiredVol === undefined) return;
+    const laemmliVol = desiredVol/4;
+    const bufferVol = desiredVol - laemmliVol - parseFloat(document.getElementById(`Stock Protein [${vol}]-${unknown.name}`).textContent);
+    
+    document.getElementById(`4X Laemmli [${vol}]-${unknown.name}`).textContent = laemmliVol.toFixed(2);
+    document.getElementById(`H2O [${vol}]-${unknown.name}`).textContent = bufferVol.toFixed(2);
+    
+    //Update the unknown with the newest values
+    unknown.laemmliVol = laemmliVol;
+    unknown.bufferVol = bufferVol;
+    unknown.totalVolume = desiredVol;
+}
+
+/**
+ * @param {Event} e 
+ * @returns
+ */
+function handleReplicateChange(e){
+    const replicates = parseInt(e.target.value);
+    if(replicates < 0 || replicates === NaN) return;
+
+
+}
 function fminsearch(fun,Parm0,x,y,Opt){
     //Github source: https://github.com/jonasalmeida/fminsearch/blob/gh-pages/fminsearch.js
     // fun = function(x,Parm)
