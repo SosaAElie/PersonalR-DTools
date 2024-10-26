@@ -1251,6 +1251,7 @@ function handleWellVolChange(e, unknown, vol){
 function handleReplicateChange(e){
     const replicates = parseInt(e.target.value);
     if(replicates < 0 || replicates === NaN) return;
+    
 
 
 }
