@@ -616,8 +616,8 @@ function diagram384Well(lightSamples, parent, diagramTitle){
         circularDiv.className = "well";
         circularDiv.appendChild(hoverText);
         circularDiv.appendChild(wellPosition)
-        if(sample.name.toUpperCase()==="NONE"){
-            circularDiv.style.backgroundColor = "white";
+        if(sample.name.toUpperCase()!=="NONE"){
+            circularDiv.style.backgroundColor = "#ff69695c";
         }
         parent.appendChild(circularDiv);
     }

@@ -3,10 +3,8 @@ body{
     font-weight: 300;
     font-style: normal;
     text-align: center;
-    /* color: rgba(255, 252, 252, 0.818); */
-    /* accent-color: white;
-    background-image: linear-gradient(to bottom, rgba(8, 1, 56, 0.531), #252222); */
     accent-color: black;
+    font-size: large;
     background-image: linear-gradient(to bottom, rgba(174, 219, 234, 0.998), #8b888800);   
     background-repeat: no-repeat;
     background-attachment: fixed;
@@ -81,11 +79,13 @@ body{
     position: relative;
     justify-content: center;
 }
-#gel-table-container{
+/* #gel-table-container{
     display: flex;
     position: relative;
     justify-content: center;
-}
+    align-items: center;
+    width: min-content; 
+} */
 input[type = "file"]{
     display: none;
 }
@@ -127,6 +127,11 @@ input::-webkit-inner-spin-button {
     display: flex;
     align-items: center;
 }
+
+td>input{
+    text-align: center;
+    width: 75px;
+}
 #diagram384{
     display: grid;
     grid-template-columns: repeat(24, auto);
@@ -160,7 +165,7 @@ input::-webkit-inner-spin-button {
     font-weight: normal;
     font-size: small;
     justify-content: center;
-    background-color: #ff69695c;
+    background-color: white;
     color: black;
 }
 .well .hovertext{
@@ -209,15 +214,22 @@ option{
     background-color: white
 }
 tr:hover{
-    background-color: rgba(204, 219, 224, 0.9);
+    background-color: rgba(141, 197, 215, 0.9);
 }
 
 table{
     border-style: solid;
+    border-color: black;
+    border-width: 2px;
 }
 thead{
     background-color: #dddddd7c;
 }
+th{
+    border-style: dashed;
+    border-width: 1px;
+}
+
 td{
     border-bottom: dashed;
     border-right: dashed;
@@ -226,9 +238,9 @@ td{
     padding: 0;
 }
 .container{
-    display: grid;
-    grid-template-columns: auto auto;
-    justify-content: space-around;
+    display: flex;
+    flex-direction: column;
+    row-gap: 1vh;
 }
 input[type="text"] {
     width: 60px;
