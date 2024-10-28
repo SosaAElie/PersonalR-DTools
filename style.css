@@ -79,13 +79,7 @@ body{
     position: relative;
     justify-content: center;
 }
-/* #gel-table-container{
-    display: flex;
-    position: relative;
-    justify-content: center;
-    align-items: center;
-    width: min-content; 
-} */
+
 input[type = "file"]{
     display: none;
 }
