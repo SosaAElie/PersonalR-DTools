@@ -309,7 +309,7 @@ function handleClick(e){
         excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e,parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, subtractBlank, parameters, rSquared));
 
         //Create Protein Bar Chart
-        BARCHART = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns));
+        BARCHART = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns, parsedData.filename));
 
     })
 }
@@ -447,11 +447,11 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
         `${dilutionFactor}X Concentration [${convertedUnits}]`,
     ];
     for(let header of headers){
-        const row = document.createElement("th");
-        row.textContent = header;
-        headerRow.appendChild(row);
+        const headerTitle = document.createElement("th");
+        headerTitle.textContent = header;
+        headerRow.appendChild(headerTitle);
     }
-
+    headerContainer.className = "headers";
     //Create table body
     const body = document.createElement("tbody");
     headerContainer.appendChild(headerRow);
@@ -629,9 +629,10 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
 }
 /**
  * @param {Sample[]} unknowns
+ * @param {string} title
  * @returns {chartjs.ChartConfiguration}
  */
-function createBarChartOptionsAndData(unknowns){
+function createBarChartOptionsAndData(unknowns, title){
     const sorted = unknowns.map(unknown => {
         return {
             name:unknown.name, 
@@ -692,7 +693,7 @@ function createBarChartOptionsAndData(unknowns){
             plugins:{
                 title:{
                     display:true,
-                    text: "Undiluted Protein Concentration",
+                    text: title,
                     font:{
                         size:20,
                     },
@@ -985,11 +986,11 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
     ];
 
     for(let header of headers){
-        const row = document.createElement("th");
-        row.textContent = header;
-        headerRow.appendChild(row);
+        const headerTitle = document.createElement("th");
+        headerTitle.textContent = header;
+        headerRow.appendChild(headerTitle);
     }
-    
+    headerContainer.className = "headers";
     headerContainer.appendChild(headerRow);
     
     //Create table body and rows
@@ -1016,6 +1017,7 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
                 input.value = proteinPerWell;
                 unknown.sdspageValues.proteinPerWell = proteinPerWell;
                 input.addEventListener("input", e => handleTotalProteinChange(e, unknown, mass, vol));
+                input.addEventListener("click", handleInputClick);
                 td.appendChild(input)
             }
             else if(header === `Vol[${vol}]/Well`){
@@ -1024,6 +1026,7 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
                 input.value = volPerWell;
                 unknown.sdspageValues.volPerWell = volPerWell;
                 input.addEventListener("input", e => handleWellVolChange(e, unknown, vol));
+                input.addEventListener("click", handleInputClick);
                 td.appendChild(input);
             }
             else if (header === "Replicates"){
@@ -1032,6 +1035,7 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
                 input.value = replicates;
                 unknown.sdspageValues.replicates = replicates;
                 input.addEventListener("input", e => handleReplicateChange(e, unknown, vol, mass));
+                input.addEventListener("click", handleInputClick);
                 td.appendChild(input);
             }
             else{
@@ -1040,7 +1044,9 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
             }
             row.appendChild(td);
         }
-        
+        row.addEventListener("click", e =>{
+            row.className = row.className === ""?"clicked-row":""; 
+        })
         body.appendChild(row);
     }
                         
@@ -1099,6 +1105,8 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
  * @returns 
  */
 function handleTotalProteinChange(e, unknown, mass, vol){
+    e.stopPropagation();
+    e.preventDefault();
     const proteinPerWell = parseFloat(e.target.value);
     if(proteinPerWell < 0 || proteinPerWell === undefined) return;
 
@@ -1127,6 +1135,8 @@ function handleTotalProteinChange(e, unknown, mass, vol){
  * @returns 
  */
 function handleWellVolChange(e, unknown, vol){
+    e.stopPropagation();
+    e.preventDefault();
     const volPerWell = parseFloat(e.target.value);
     if(volPerWell < 0 || volPerWell === undefined) return;
 
@@ -1145,6 +1155,13 @@ function handleWellVolChange(e, unknown, vol){
     document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
     document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
 }
+/**
+ * @param {Event}
+ */
+function handleInputClick(e){
+    e.preventDefault();
+    e.stopPropagation();
+}
 
 /**
  * @param {Event} e 
@@ -1154,6 +1171,8 @@ function handleWellVolChange(e, unknown, vol){
  * @returns
  */
 function handleReplicateChange(e, unknown, vol, mass){
+    e.stopPropagation();
+    e.preventDefault();
     const replicates = parseFloat(e.target.value);
     if(replicates < 0 || replicates === NaN) return;
     

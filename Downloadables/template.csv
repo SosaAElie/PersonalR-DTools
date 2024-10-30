@@ -13,4 +13,3 @@ H,None,None,None,None,None,None,None,None,None,None,None,None
 None,No sample is in the well,,,,,,,,,,,
 Sample,Refers to any sample on the plate that is not a standard or a control,,,,,,,,,,,
 Standard,Refers to the standard used for regression analysis,,,,,,,,,,,
-Control,Refers to the positive or negative control on the plate,,,,,,,,,,,

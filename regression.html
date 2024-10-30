@@ -7,7 +7,7 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="regression_style.css">
         <title>BioTech R&D Tools</title>
     </head>
     <body>
@@ -22,48 +22,47 @@
             <h3>Follow the Steps Below</h3>
             <ol>
                 <li>
-                    Edit your 96-Well template to represent the manner in which you loaded your samples in the 96 well plate.
-                    <br>
-                    <br>
-                    Download the template here: <a href = "Downloadables/template.csv" download="template.csv">96 Well Template</a>.
-                    <br>
-                    <br>
-                    Prefix each unknown with <b>"Sample"</b> each standard with <b>"Standard"</b> and control
-                    with <b>"Control"</b> followed by a hyphen as such: <b>Standard-2000ug/mL</b>.
-                    <br>
-                    <br>
-                    Any empty wells should contain the text <b>"None"</b>.
-                    <br>
-                    <br>
-                    Repeated names will be considered replicates.
-                    <br>
-                    <br>
-                    The units of the standards should all be the same, i.e they should all be ug/mL, mg/mL, ug/uL, etc.
+                    <ol id = "sub-list">
+                        <li>
+                            Edit your 96-Well template. Download the template here: <a href = "Downloadables/template.csv" download="template.csv">96 Well Template</a>.
+                        </li>
+                        <li>
+                            Prefix unknowns & controls with <b>"Sample"</b> & standards with <b>"Standard"</b> followed by a hyphen i.e. <i>Standard-2000ug/mL</i>.
+                        </li>
+                        <li>
+                            Empty wells should be labeled as <b>"None"</b>.
+                        </li>
+                        <li>
+                            Repeated names will be considered replicates & their values averaged.
+                        </li>
+                        <li>
+                            The unit of the standards should all be the same, i.e <i>ug/mL, mg/mL, ug/uL, etc.</i>
+                        </li>
+                    </ol>
                 </li>
                 <li>
-                    Export the data from the SoftMaxPro software in text and plate format as shown below:
+                    Export the data from the SoftMaxPro software as shown below:
                     <img src = "Images/ExportExample.gif" alt="Gif of how to export the text data from the SoftMaxPro">
                 </li>
                 <li>
-                    Upload the raw exported data and template.
+                    Upload the raw exported data and edited template.
                 </li>
                 <li>
-                    If the dilution factor of your samples and standards are the <b>same</b>, enter the dilution factor to calculate the actual concentration of your samples.
+                    Enter the dilution factor of your samples.
                 </li>
                 <li>
-                    If you wish to convert the results of the interpolation to other units, enter them in the appropriate field.
+                    Enter the unit that you wish to convert the results of the interpolation to if you wish.
                 </li>
                 <li>
-                    For SDS-PAGE Gel Electrophoresis enter the total amount of protein you wish to load in <b>micrograms [ug]</b>
-                    and the total amount of volume you wish to load in <b>microliter [uL]</b>.
+                    (Optional) For SDS-PAGE enter the amount of protein you wish to load in <b>micrograms [ug]</b>
+                    and the volume you wish to load in <b>microliter [uL]</b> (this will vary according to your gel size).
                 </li>
                 <li>
-                    Select the regression model that will best fit your standards and select the scale of your x-axis. Unknowns in red text fall outside the standard curve.
-                    <br>
-                    <i>For values of standards that differ by a large magnitude, a logarithmic scale x-axis will allow better visualization</i>
+                    Select the regression model that will best fit your standards. Unknowns in red text fall outside the standard curve.
+                    <i>For standards that differ by a large magnitude, a logarithmic scale x-axis will allow better visualization</i>
                 </li>
                 <li>
-                    Interpolate your data and download the produced excel file for record keeping.
+                    Interpolate data and download the produced excel file.
                 </li>
             </ol>
         </div>
