@@ -6,8 +6,8 @@ const helpers = require("../utils/helpers");
 const classes = require("../classes/classes");
 
 //Global variable to store the reference to the created chart & chart image for excel
-let CHART = null;
-let BARCHART = null;
+let LINEGRAPH = null;
+let BARGRAPH = null;
 
 /**
  * @typedef {Object} LightweightSample
@@ -80,23 +80,23 @@ function updateLabel(e){
  * @param {InputEvent} e
 */
 function handleHideExtrapolated(e){
-    if(CHART === null) return;
+    if(LINEGRAPH === null) return;
     if(e.target.checked){
-        CHART.data.datasets.filter(dataset => dataset.label === "Unknowns")[0].data = CHART.data.storage.filteredUnknowns;
+        LINEGRAPH.data.datasets.filter(dataset => dataset.label === "Unknowns")[0].data = LINEGRAPH.data.storage.filteredUnknowns;
     }
     else{
-        CHART.data.datasets.filter(dataset => dataset.label === "Unknowns")[0].data = CHART.data.storage.allUnknowns;
+        LINEGRAPH.data.datasets.filter(dataset => dataset.label === "Unknowns")[0].data = LINEGRAPH.data.storage.allUnknowns;
     }
-    CHART.update();
+    LINEGRAPH.update();
 }
 
 /**
  * @param {InputEvent} e
 */
 function handleXScale(e){
-    if(CHART){
-        CHART.options.scales.x.type = e.target.value;
-        CHART.update();
+    if(LINEGRAPH){
+        LINEGRAPH.options.scales.x.type = e.target.value;
+        LINEGRAPH.update();
     }
 }
 /**
@@ -244,9 +244,9 @@ function handleClick(e){
     const proteinBarChart = document.getElementById("protein-bar-chart");
     
     //Delete current UI elements
-    if(CHART !== null){
-        CHART.destroy();
-        BARCHART.destroy();
+    if(LINEGRAPH !== null){
+        LINEGRAPH.destroy();
+        BARGRAPH.destroy();
         deleteTable(tableContainer, "results-table");
         deleteTable(gelTableContainer, "protein-loading-table");
         excelDownloadButton.replaceWith(excelDownloadButton.cloneNode(true));
@@ -299,17 +299,20 @@ function handleClick(e){
         };
         
         
-        //Create chart & table
-        const chartOptionsAndData = createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, parsedData.filename, eq, regressionType);
-        CHART = new chartjs.Chart(chartCanvas,chartOptionsAndData);
+        //Create regression graph, protein bar graph & table
+        const regressionChartContainer = document.getElementById("regression-chart-container");
+        const barChartContainer = document.getElementById("bar-chart-container");
+        regressionChartContainer.style.height = "70vh";
+        regressionChartContainer.style.width = "48vw";
+        barChartContainer.style.height = "60vh";
+        barChartContainer.style.width = "98vw";
+        LINEGRAPH = new chartjs.Chart(chartCanvas,createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, parsedData.filename, eq, regressionType));
+        BARGRAPH = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns, parsedData.filename));
         createRegressionResultsTable(unknowns,standards,tableContainer, unit, targetUnits, dilutionFactor);
-        
-        //Create Gel Loading table
         createProteinGelLoadingTable(unknowns, gelTableContainer,totalProtein, totalVolume);
+        
+        //Add functionality to the excel button
         excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e,parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, subtractBlank, parameters, rSquared));
-
-        //Create Protein Bar Chart
-        BARCHART = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns, parsedData.filename));
 
     })
 }
@@ -900,10 +903,10 @@ function diagram96Well(lightSamples, parent, diagramTitle){
         circularDiv.appendChild(wellPosition)
         switch(lightSample.type){
             case "sample":
-                circularDiv.style.backgroundColor = "#ff69695c";
+                circularDiv.className+= " sample";
                 break;
-            case "standard":
-                circularDiv.style.backgroundColor = "#D6EFD8";
+                case "standard":
+                circularDiv.className+= " standard";
                 break;
         }
         parent.appendChild(circularDiv);
