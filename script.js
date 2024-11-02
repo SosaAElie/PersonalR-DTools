@@ -52,7 +52,7 @@ function createSample(name, type, unit, wellPositions, wellNumbers, x, ys){
      */
     function getTableData(){
         return [
-            this.name, this.type, this.wellPositions.join(","), this.ys.map(y => y.toFixed(2)).join(","), this.averageY.toFixed(2), this.stdev.toFixed(2), 
+            this.name, this.type, this.wellPositions.join(", "), this.ys.map(y => y.toFixed(2)).join(", "), this.averageY.toFixed(2), this.stdev.toFixed(2), 
             this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2)
         ];
     }
@@ -41195,8 +41195,6 @@ function main(){
     document.getElementById("process-button").addEventListener("click", handleClick);
     document.getElementById("dilution-factor").addEventListener("input", handleNumericalInput);
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
-    document.getElementById("total-volume").addEventListener("input", handleNumericalInput);
-    document.getElementById("total-protein").addEventListener("input", handleNumericalInput);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
     document.getElementById("template-input").addEventListener("input", updateLabel);
 
@@ -41380,8 +41378,6 @@ function handleClick(e){
     const targetUnits = document.getElementById("units-conversion").value;
     const diagramContainer = document.getElementById("template-diagram");
     const gelTableContainer = document.getElementById("gel-table-container");
-    const totalProtein = parseInt(document.getElementById("total-protein").value);
-    const totalVolume = parseInt(document.getElementById("total-volume").value);
     const subtractBlank = document.getElementById("subtract-blank").checked;
     const proteinBarChart = document.getElementById("protein-bar-chart");
     
@@ -41451,7 +41447,7 @@ function handleClick(e){
         LINEGRAPH = new chartjs.Chart(chartCanvas,createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, parsedData.filename, eq, regressionType));
         BARGRAPH = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns, parsedData.filename));
         createRegressionResultsTable(unknowns,standards,tableContainer, unit, targetUnits, dilutionFactor);
-        createProteinGelLoadingTable(unknowns, gelTableContainer,totalProtein, totalVolume);
+        createProteinGelLoadingTable(unknowns, gelTableContainer);
         
         //Add functionality to the excel button
         excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e,parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, subtractBlank, parameters, rSquared));
@@ -41629,6 +41625,8 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
         }
         body.appendChild(row);
     }
+    
+    table.style.height = unknowns.length <= 16 ? "auto": "50vh";
     table.appendChild(headerContainer);
     table.appendChild(body);
     container.appendChild(table);
@@ -42059,10 +42057,10 @@ function diagram96Well(lightSamples, parent, diagramTitle){
 /** 
  * @param {classes.Sample[]} unknowns
  * @param {Element} parent
- * @param {number} proteinPerWell
- * @param {number} volPerWell
 **/
-function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWell){
+function createProteinGelLoadingTable(unknowns, parent){
+    const proteinPerWell = 20;
+    const volPerWell = 12;
     const unit = unknowns[0].targetUnit;
     const [mass, vol] = unit.split("/");
     const dilutionFactor = unknowns[0].dilutionFactor;
@@ -42074,30 +42072,33 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
 
     //Create table title
     const title = document.createElement("caption");
+    title.textContent = "SDS-PAGE Loading Table"
+
+    //Create replicates input to add later in the corresponding header
     const replicatesInput = document.createElement("input");
     replicatesInput.type = "number";
     replicatesInput.id = "replicates";
     replicatesInput.defaultValue = 1;
-
-    //Update all unknowns if the user desires the same number of replicates for each
+    
+    //Create input element and attach input event handler to update all replicates for samples simulatenously 
     replicatesInput.addEventListener("input", e=>{
         const replicates = parseFloat(e.target.value);
         if(replicates < 0 || replicates === NaN) return;
         for(let unknown of unknowns){
-
+            
             //Perform Calculations
             const replicateVol = unknown.sdspageValues.volPerWell * replicates;
             const replicateProteinVol = unknown.sdspageValues.proteinVolPerWell * replicates;
             const replicateLaemmliVol = unknown.sdspageValues.laemmliVolPerWell * replicates;
             const replicateBufferVol = unknown.sdspageValues.bufferVolPerWell * replicates;
-
+            
             //Update Sample object
             unknown.sdspageValues.replicates = replicates;
             unknown.sdspageValues.replicateVol = replicateVol;
             unknown.sdspageValues.replicateProteinVol = replicateProteinVol;
             unknown.sdspageValues.replicateLaemmliVol = replicateLaemmliVol;
             unknown.sdspageValues.replicateBufferVol = replicateBufferVol;
-
+            
             //Update UI
             document.getElementById(`Replicates-${unknown.name}`).value = replicates;
             document.getElementById(`Replicate Vol[${vol}]-${unknown.name}`).textContent = replicateVol.toFixed(2);
@@ -42105,10 +42106,62 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
             document.getElementById(`Replicate 4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = replicateLaemmliVol.toFixed(2);
             document.getElementById(`Replicate H2O Vol[${vol}]-${unknown.name}`).textContent = replicateBufferVol.toFixed(2);
         }
-
+        
     })
-    title.textContent = "SDS-PAGE Number of Replicates:"
-    title.appendChild(replicatesInput);
+
+    //Create input element and attach input event handler to update all protein per well for samples simulatenously 
+    const proteinPerWellInput = document.createElement("input");
+    proteinPerWellInput.type = "number";
+    proteinPerWellInput.id = "protein-per-well-all";
+    proteinPerWellInput.defaultValue =  20;
+    proteinPerWellInput.addEventListener("input", e => {
+        const proteinPerWell = parseFloat(e.target.value);
+        if(proteinPerWell < 0 || proteinPerWell === NaN) return;
+        for(let unknown of unknowns){
+
+            //Perform calculations
+            const proteinVolPerWell = proteinPerWell/unknown.convertedX;
+            const bufferVolPerWell = unknown.sdspageValues.volPerWell - proteinVolPerWell - unknown.sdspageValues.laemmliVolPerWell;
+
+            //Update Sample object
+            unknown.sdspageValues.proteinPerWell = proteinPerWell;
+            unknown.sdspageValues.proteinVolPerWell = proteinVolPerWell;
+            unknown.sdspageValues.bufferVolPerWell = bufferVolPerWell;
+
+            //Update UI
+            document.getElementById(`Protein[${mass}]/Well-${unknown.name}`).value = proteinPerWell;
+            document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVolPerWell.toFixed(2);
+            document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+            document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
+        }
+    })
+    
+    //Create input element and attach input event handler to update all vol per well for samples simulatenously 
+    const volPerWellInput = document.createElement("input");
+    volPerWellInput.type = "number";
+    volPerWellInput.id = "vol-per-well-all";
+    volPerWellInput.defaultValue = 12;
+    volPerWellInput.addEventListener("input", e => {
+        const volPerWell = parseFloat(e.target.value);
+        if(volPerWell < 0 || volPerWell === NaN) return;
+        for(let unknown of unknowns){
+            //Perform calculations
+            const laemmliVolPerWell = volPerWell/4;
+            const bufferVolPerWell = volPerWell - laemmliVolPerWell - unknown.sdspageValues.proteinVolPerWell;
+            
+            //Update Sample object
+            unknown.sdspageValues.volPerWell = volPerWell;
+            unknown.sdspageValues.laemmliVolPerWell = laemmliVolPerWell;
+            unknown.sdspageValues.bufferVolPerWell = bufferVolPerWell;
+            
+            //Update UI
+            document.getElementById(`Vol[${vol}]/Well-${unknown.name}`).value = volPerWell;
+            document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
+            document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+            document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
+        }
+    })
+
 
     table.appendChild(title);
 
@@ -42123,7 +42176,7 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
         `Protein Vol[${vol}]/Well`,
         `4X Laemmli Vol[${vol}]/Well`,
         `H2O[${vol}]/Well`,
-        `Replicates`,
+        "Replicates",
         `Replicate Vol[${vol}]`,
         `Replicate Protein Vol[${vol}]`,
         `Replicate 4X Laemmli Vol[${vol}]`,
@@ -42133,6 +42186,16 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
     for(let header of headers){
         const headerTitle = document.createElement("th");
         headerTitle.textContent = header;
+        if(header === "Replicates"){
+            headerTitle.textContent+=": ";
+            headerTitle.appendChild(replicatesInput);
+        }
+        else if(header === `Protein[${mass}]/Well`){
+            headerTitle.appendChild(proteinPerWellInput);
+        }
+        else if(header === `Vol[${vol}]/Well`){
+            headerTitle.appendChild(volPerWellInput);
+        }
         headerRow.appendChild(headerTitle);
     }
     headerContainer.className = "headers";
@@ -42196,6 +42259,7 @@ function createProteinGelLoadingTable(unknowns, parent, proteinPerWell, volPerWe
     }
                         
     //Add elements to table
+    table.style.height = unknowns.length <= 16 ? "auto": "50vh";
     table.appendChild(headerContainer);
     table.appendChild(body);
     

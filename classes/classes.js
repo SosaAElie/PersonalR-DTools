@@ -51,7 +51,7 @@ function createSample(name, type, unit, wellPositions, wellNumbers, x, ys){
      */
     function getTableData(){
         return [
-            this.name, this.type, this.wellPositions.join(","), this.ys.map(y => y.toFixed(2)).join(","), this.averageY.toFixed(2), this.stdev.toFixed(2), 
+            this.name, this.type, this.wellPositions.join(", "), this.ys.map(y => y.toFixed(2)).join(", "), this.averageY.toFixed(2), this.stdev.toFixed(2), 
             this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2)
         ];
     }
