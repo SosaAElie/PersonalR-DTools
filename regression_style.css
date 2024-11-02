@@ -344,7 +344,7 @@ td{
 table{
     width: 75vw;
     display: block;
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 table, th, td{
     border: 1px solid black;
