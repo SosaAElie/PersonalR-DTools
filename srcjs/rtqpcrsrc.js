@@ -50,9 +50,11 @@ async function processResultsCsv(e){
     const templateDiagram = document.getElementById("diagram384");
     diagram384Well(lightweightSamples, templateDiagram, inputfile.name);
     
+    const tableContainer = document.getElementById("tables");
     updateSelectUiWithGenes(targets, "reference-gene");
     updateSelectUiWithGenes(targets, "gene-of-interest");
-    createSampleTable(samples, inputfile.name);
+    createResultsTable(samples, targets, inputfile.name, tableContainer);
+    createRgeTable(samples, inputfile.name, tableContainer);
 
     const canvas = document.getElementById("canvas");
     CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(samples, inputfile.name));
@@ -62,20 +64,20 @@ async function processResultsCsv(e){
 
 /**
  * @param {classes.RtqpcrSample[]} samples
- * @param {string} filename
+ * @param {string} title
+ * @param {HTMLElement} container
  * @returns {null}
  */
-function createSampleTable(samples, filename){
-    const container = document.getElementById("sample-table");
+function createRgeTable(samples, title, container){
     const table = document.createElement("table");
     const tableHeaders = document.createElement("thead");
     const tableBody = document.createElement("tbody");
 
     //Create table title
-    const title = document.createElement("caption");
-    title.textContent = filename;
-    title.id = "filename";
-    table.appendChild(title);
+    const tableTitle = document.createElement("caption");
+    tableTitle.textContent = title;
+    tableTitle.id = "filename";
+    table.appendChild(tableTitle);
     
     const headers = ["Sample Name", "Gene of Interest", "House-Keeping Gene", "GOI Average Ct", "GOI Stdev", "Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"];
     const headerRow = document.createElement("tr");
@@ -137,6 +139,65 @@ function createSampleTable(samples, filename){
     table.appendChild(tableBody);
     container.appendChild(table);
 
+}
+
+/**
+ * @param {classes.RtqpcrSample[]} samples
+ * @param {string[]} targetNames
+ * @param {string} title
+ * @param {HTMLElement} container
+ */
+function createResultsTable(samples, targetNames, title, container){
+    const tableTitle = document.createElement("caption");
+    tableTitle.textContent = title;
+    
+    const table = document.createElement("table");
+    table.id = "results";
+    const tableBody = document.createElement("tbody");
+
+    const tableHeaders = document.createElement("thead");
+
+    const headerTitles = ["", ...targetNames];
+    const subheaderTitles = ["Name", "Wells", "Individual Values", "Ave (Stdev)"];
+
+    const headers = document.createElement("tr");
+    for (let headerTitle of headerTitles){
+        const th = document.createElement("th");
+        th.textContent = headerTitle;
+        th.className = "header targets"
+        if(headerTitle !== "") th.colSpan = 3;
+        headers.appendChild(th);
+    }
+
+    const subHeaders = document.createElement("tr");
+    for(let i = 0; i < targetNames.length; i++){
+        for (let subheaderTitle of subheaderTitles){
+            if( i > 0 && subheaderTitle === "Name") continue;
+            const th = document.createElement("th");
+            th.className = "subheader";
+            th.textContent = subheaderTitle;
+            subHeaders.appendChild(th);
+        }
+    }
+
+    for (let sample of samples){
+        const tr = document.createElement("tr");
+        tr.className = "row sample";
+        for (let data of sample.getResultsSummaryTableData(targetNames)){
+            const td = document.createElement("td");
+            td.textContent = data;
+            tr.appendChild(td);
+        }
+        tableBody.appendChild(tr);
+    }
+
+    tableHeaders.appendChild(headers);
+    tableHeaders.appendChild(subHeaders);
+
+    table.appendChild(tableTitle);
+    table.appendChild(tableHeaders);
+    table.appendChild(tableBody);
+    container.appendChild(table);
 }
 
 /**
@@ -390,7 +451,7 @@ function handleGoiChange(e){
 }
 
 /**
- * @param {Sample[]} samples
+ * @param {classes.RtqpcrSample[]} samples
  * @return {null}
  */
 function updateSampleAverageStdev(samples){
@@ -398,8 +459,10 @@ function updateSampleAverageStdev(samples){
     for(let sample of samples){
         for(let target of sample.targets.values()){
             target.bestDuplicates = getBestDuplicates(target.cqs);
-            target.average = ss.mean(target.bestDuplicates);
-            if(target.cqs.length > 1) target.stdev = ss.sampleStandardDeviation(target.bestDuplicates);
+            target.bestAverage = ss.mean(target.bestDuplicates);
+            target.average = ss.mean(target.cqs);
+            if(target.cqs.length > 1) target.bestStdev = ss.sampleStandardDeviation(target.bestDuplicates);
+            if(target.cqs.length > 1) target.stdev = ss.sampleStandardDeviation(target.cqs);
             else target.stdev = NaN;
         }
     }

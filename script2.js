@@ -47,6 +47,7 @@
  * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
  * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
  * @property {function} getTableData - returns an array containing data to display on a table
+ * @property {function} getResultsSummaryTableData - returns an array containing data to display on a table
  * @property {Sample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
  * @property {string} color - The color that the bar in the bar graph will be to represent this sample
 */
@@ -54,15 +55,19 @@
 /**
  * @typedef {Object} Target
  * @property {string} name - Target gene name
+ * @property {string[]} wells - The wells that this target is associated with, i.e A1, B2, etc.
  * @property {string} reporter - The associated fluorescent reporter
  * @property {number[]} cqs - The associated Ct/Cq values
  * @property {number[]} bestDuplicates - The best duplicates out of the total replicates in a run
- * @property {number} average - The average of the best duplicates
- * @property {number} stdev - The sample standard deviation of the best duplicate
+ * @property {number} average - The average of all cqs
+ * @property {number} bestAverage - The average of the best duplicates
+ * @property {number} stdev - The sample standard deviation of all cqs
+ * @property {number} bestStdev - The sample standard deviation of the best duplicate
  * @property {number} deltaCt - ct (gene of interest) - ct (housekeeping gene)
  * @property {number} deltadeltaCt - ΔCt (unknown sample or target sample) - ΔCt (reference sample or control sample)
  * @property {number} rge - Relative Gene Expression, 2^-ΔΔCt
  * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
+ * @property {Function} getResultsTableData - Returns a list of values that relate to the target to display in an HTML table
  */
 
 
@@ -160,6 +165,25 @@ function createRtqpcrSample(name, target, well, wellPosition){
             
             )
         },
+        /**
+         * @param {string[]} targetNames
+         */
+        getResultsSummaryTableData(targetNames){
+            const valuesPerTarget = 3;
+            const data = [];
+            for(let targetName of targetNames){
+                if(this.targets.has(targetName)){
+                    data.push(...this.targets.get(targetName).getResultsTableData());
+                }
+                else{
+                    data.push(...new Array(valuesPerTarget).fill(""));
+                }
+            }
+            return [
+                this.name,
+                ...data,
+            ]
+        }
     }
 }
 
@@ -172,15 +196,24 @@ function createRtqpcrSample(name, target, well, wellPosition){
 function createTarget(name, reporter, cq){
     return{
         name,
+        wells:[],
         reporter,
         cqs:[cq],
         bestDuplicates:[],
         average:NaN,
+        bestAverage:NaN,
         stdev:NaN,
         deltaCt:NaN,
         deltadeltaCt:NaN,
         rge:NaN,
         pcrEfficiency:1,
+        getResultsTableData(){
+            return [
+                this.wells.join(", "),
+                this.cqs.map(cq => cq.toFixed(2)).join(", "),
+                `${this.average.toFixed(2)} (${this.stdev.toFixed(2)})`,
+            ];
+        }
     }
 }
 
@@ -41281,9 +41314,11 @@ async function processResultsCsv(e){
     const templateDiagram = document.getElementById("diagram384");
     diagram384Well(lightweightSamples, templateDiagram, inputfile.name);
     
+    const tableContainer = document.getElementById("tables");
     updateSelectUiWithGenes(targets, "reference-gene");
     updateSelectUiWithGenes(targets, "gene-of-interest");
-    createSampleTable(samples, inputfile.name);
+    createResultsTable(samples, targets, inputfile.name, tableContainer);
+    createRgeTable(samples, inputfile.name, tableContainer);
 
     const canvas = document.getElementById("canvas");
     CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(samples, inputfile.name));
@@ -41293,20 +41328,20 @@ async function processResultsCsv(e){
 
 /**
  * @param {classes.RtqpcrSample[]} samples
- * @param {string} filename
+ * @param {string} title
+ * @param {HTMLElement} container
  * @returns {null}
  */
-function createSampleTable(samples, filename){
-    const container = document.getElementById("sample-table");
+function createRgeTable(samples, title, container){
     const table = document.createElement("table");
     const tableHeaders = document.createElement("thead");
     const tableBody = document.createElement("tbody");
 
     //Create table title
-    const title = document.createElement("caption");
-    title.textContent = filename;
-    title.id = "filename";
-    table.appendChild(title);
+    const tableTitle = document.createElement("caption");
+    tableTitle.textContent = title;
+    tableTitle.id = "filename";
+    table.appendChild(tableTitle);
     
     const headers = ["Sample Name", "Gene of Interest", "House-Keeping Gene", "GOI Average Ct", "GOI Stdev", "Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"];
     const headerRow = document.createElement("tr");
@@ -41368,6 +41403,65 @@ function createSampleTable(samples, filename){
     table.appendChild(tableBody);
     container.appendChild(table);
 
+}
+
+/**
+ * @param {classes.RtqpcrSample[]} samples
+ * @param {string[]} targetNames
+ * @param {string} title
+ * @param {HTMLElement} container
+ */
+function createResultsTable(samples, targetNames, title, container){
+    const tableTitle = document.createElement("caption");
+    tableTitle.textContent = title;
+    
+    const table = document.createElement("table");
+    table.id = "results";
+    const tableBody = document.createElement("tbody");
+
+    const tableHeaders = document.createElement("thead");
+
+    const headerTitles = ["", ...targetNames];
+    const subheaderTitles = ["Name", "Wells", "Individual Values", "Ave (Stdev)"];
+
+    const headers = document.createElement("tr");
+    for (let headerTitle of headerTitles){
+        const th = document.createElement("th");
+        th.textContent = headerTitle;
+        th.className = "header targets"
+        if(headerTitle !== "") th.colSpan = 3;
+        headers.appendChild(th);
+    }
+
+    const subHeaders = document.createElement("tr");
+    for(let i = 0; i < targetNames.length; i++){
+        for (let subheaderTitle of subheaderTitles){
+            if( i > 0 && subheaderTitle === "Name") continue;
+            const th = document.createElement("th");
+            th.className = "subheader";
+            th.textContent = subheaderTitle;
+            subHeaders.appendChild(th);
+        }
+    }
+
+    for (let sample of samples){
+        const tr = document.createElement("tr");
+        tr.className = "row sample";
+        for (let data of sample.getResultsSummaryTableData(targetNames)){
+            const td = document.createElement("td");
+            td.textContent = data;
+            tr.appendChild(td);
+        }
+        tableBody.appendChild(tr);
+    }
+
+    tableHeaders.appendChild(headers);
+    tableHeaders.appendChild(subHeaders);
+
+    table.appendChild(tableTitle);
+    table.appendChild(tableHeaders);
+    table.appendChild(tableBody);
+    container.appendChild(table);
 }
 
 /**
@@ -41621,7 +41715,7 @@ function handleGoiChange(e){
 }
 
 /**
- * @param {Sample[]} samples
+ * @param {classes.RtqpcrSample[]} samples
  * @return {null}
  */
 function updateSampleAverageStdev(samples){
@@ -41629,8 +41723,10 @@ function updateSampleAverageStdev(samples){
     for(let sample of samples){
         for(let target of sample.targets.values()){
             target.bestDuplicates = getBestDuplicates(target.cqs);
-            target.average = ss.mean(target.bestDuplicates);
-            if(target.cqs.length > 1) target.stdev = ss.sampleStandardDeviation(target.bestDuplicates);
+            target.bestAverage = ss.mean(target.bestDuplicates);
+            target.average = ss.mean(target.cqs);
+            if(target.cqs.length > 1) target.bestStdev = ss.sampleStandardDeviation(target.bestDuplicates);
+            if(target.cqs.length > 1) target.stdev = ss.sampleStandardDeviation(target.cqs);
             else target.stdev = NaN;
         }
     }
