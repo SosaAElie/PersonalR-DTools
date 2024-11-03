@@ -1,5 +1,5 @@
 /**
- * @typedef {Object} Sample
+ * @typedef {Object} RegressionSample
  * @property {string} name - The name of the sample
  * @property {string} type - The type of the sample i.e standard, sample, control.
  * @property {number[]} ys - The OD(s)
@@ -36,6 +36,36 @@
  */
 
 /**
+ * @typedef {Object} RtqpcrSample
+ * @property {string} name - Sample name
+ * @property {Map<string, Target>} targets - The target genes
+ * @property {number[]} wells - The well numbers the sample was loaded in i.e 1,2,3...384
+ * @property {string[]} wellPositions - The well positions the sample was loaded in i.e A1, B1, C1, etc.
+ * @property {Target|null} hkg - House Keeping Gene
+ * @property {Target|null} goi - Gene of Interest
+ * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
+ * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
+ * @property {function} getTableData - returns an array containing data to display on a table
+ * @property {Sample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
+ * @property {string} color - The color that the bar in the bar graph will be to represent this sample
+*/
+
+/**
+ * @typedef {Object} Target
+ * @property {string} name - Target gene name
+ * @property {string} reporter - The associated fluorescent reporter
+ * @property {number[]} cqs - The associated Ct/Cq values
+ * @property {number[]} bestDuplicates - The best duplicates out of the total replicates in a run
+ * @property {number} average - The average of the best duplicates
+ * @property {number} stdev - The sample standard deviation of the best duplicate
+ * @property {number} deltaCt - ct (gene of interest) - ct (housekeeping gene)
+ * @property {number} deltadeltaCt - ΔCt (unknown sample or target sample) - ΔCt (reference sample or control sample)
+ * @property {number} rge - Relative Gene Expression, 2^-ΔΔCt
+ * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
+ */
+
+
+/**
  * @param {string} name 
  * @param {string} type 
  * @param {string} unit 
@@ -43,9 +73,9 @@
  * @param {number[]} wellNumbers 
  * @param {number} x 
  * @param {number[]} ys 
- * @returns {Sample}
+ * @returns {RegressionSample}
  */
-function createSample(name, type, unit, wellPositions, wellNumbers, x, ys){
+function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x, ys){
     /**
      * @returns {string[]} 
      */
@@ -96,6 +126,65 @@ function createSdsPageValues(){
     }
 }
 
+/**
+ * @param {string} name
+ * @param {Target} target
+ * @param {number} well
+ * @param {string} wellPosition
+ * @return {RtqpcrSample}
+ */
+function createRtqpcrSample(name, target, well, wellPosition){
+    return {
+        name,
+        targets:new Map([[target.name, target]]),
+        wells:[well],
+        wellPositions:[wellPosition],
+        hkg:null,
+        goi:null,
+        isRefSample:false,
+        refSample:null,
+        refSampleCount:0,
+        color:"rgba(255, 105, 105, 1)",
+        /**
+         * 
+         * @param {string} targetName 
+         * @returns {string[]|number[]}
+         */
+        getTableData(targetName = null){
+            return (
+                targetName === null?
+                [this.name, "", "", "","","","","",""]
+                :
+                [this.name, this.targets.get(targetName).name, this.hkg.name, this.targets.get(targetName).average,this.targets.get(targetName).stdev, this.refSample.name, this.targets.get(targetName).deltaCt, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
+            
+            )
+        },
+    }
+}
+
+/**
+ * @param {string} name
+ * @param {string} reporter
+ * @param {number} cq
+ * @return {Target}
+ */
+function createTarget(name, reporter, cq){
+    return{
+        name,
+        reporter,
+        cqs:[cq],
+        bestDuplicates:[],
+        average:NaN,
+        stdev:NaN,
+        deltaCt:NaN,
+        deltadeltaCt:NaN,
+        rge:NaN,
+        pcrEfficiency:1,
+    }
+}
+
 module.exports = {
-    createSample,
+    createRegressionSample,
+    createRtqpcrSample,
+    createTarget,
 }

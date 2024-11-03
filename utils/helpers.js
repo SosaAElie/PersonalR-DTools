@@ -1,3 +1,5 @@
+const papa = require("papaparse");
+
 /**
  * @param {string} sampleName
  * @returns {Map<string,string>}
@@ -45,11 +47,21 @@ function convertConcentration(conc, startingUnits, targetUnits){
     return conc * (10**(thousands*(masses.indexOf(targetMass)-masses.indexOf(currMass))))* (10**(thousands*(volumes.indexOf(currVol)-volumes.indexOf(targetVol))));
 }
 
-
-
+/**
+ * @param {File} file
+ * @returns {Promise<string[][]>}
+ */
+function parseDelimitedFile(file){
+    return new Promise((resolve, reject)=>{
+        papa.parse(file, {complete:(results, file)=>{
+            resolve(results.data)
+        }})
+    })
+};
 
 
 module.exports = {
     parseSampleName,
     convertConcentration,
+    parseDelimitedFile,
 }

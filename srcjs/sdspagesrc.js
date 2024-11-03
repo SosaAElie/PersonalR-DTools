@@ -1,6 +1,5 @@
 const ss = require("simple-statistics");
 const chartjs = require("chart.js/auto");
-const papa = require("papaparse");
 const xlsx = require("xlsx");
 const helpers = require("../utils/helpers");
 const classes = require("../classes/classes");
@@ -27,7 +26,7 @@ let BARGRAPH = null;
 
 /**
  * @typedef {Object} ParsedData
- * @property {classes.Sample[]} samples
+ * @property {classes.RegressionSample[]} samples
  * @property {string} filename
  * @property {string} templateFilename
  * @property {string[][]} rawdata
@@ -150,11 +149,11 @@ function handleConversionInput(e){
  * @returns {Promise<ParsedData>}
  */
 async function merge(rawdataFile, templateFile){
-    const rawdata = await parseDelimitedFile(rawdataFile);
-    const rawTemplate = await parseDelimitedFile(templateFile);
+    const rawdata = await helpers.parseDelimitedFile(rawdataFile);
+    const rawTemplate = await helpers.parseDelimitedFile(templateFile);
 
     /**
-     * @type {Map<string, classes.Sample>}
+     * @type {Map<string, classes.RegressionSample>}
      */
     const samples = new Map();
 
@@ -202,10 +201,10 @@ async function merge(rawdataFile, templateFile){
             }
             else{
                 if(parsedSample.has("unit")){
-                    samples.set(name, classes.createSample(name, type, parsedSample.get("unit"), [wellPosition], [wellNumber], parsedSample.get("x"), [y]));
+                    samples.set(name, classes.createRegressionSample(name, type, parsedSample.get("unit"), [wellPosition], [wellNumber], parsedSample.get("x"), [y]));
                 }
                 else{
-                    samples.set(name, classes.createSample(name, type, "", [wellPosition], [wellNumber], NaN, [y]));
+                    samples.set(name, classes.createRegressionSample(name, type, "", [wellPosition], [wellNumber], NaN, [y]));
                 }
             }
         }
@@ -413,8 +412,8 @@ function deleteTable(container, id){
 }
 
 /**
- * @param {classes.Sample[]} unknowns - A list of sample objects to display in the table
- * @param {classes.Sample[]} standards - A list of sample objects to display in the table
+ * @param {classes.RegressionSample[]} unknowns - A list of sample objects to display in the table
+ * @param {classes.RegressionSample[]} standards - A list of sample objects to display in the table
  * @param {string} units - The units of the samples
  * @param {string} convertedUnits - The converted units of the samples
  * @param {string} dilutionFactor - The dilution factor of the samples
@@ -490,21 +489,11 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
     container.appendChild(table);
 }
 
-/**
- * @param {File} file
- * @returns {Promise<string[][]>}
- */
-function parseDelimitedFile(file){
-    return new Promise((resolve, reject)=>{
-        papa.parse(file, {complete:(results, file)=>{
-            resolve(results.data)
-        }})
-    })
-};
+
 
 /**
- * @param {classes.Sample[]} unknowns
- * @param {classes.Sample[]} standards
+ * @param {classes.RegressionSample[]} unknowns
+ * @param {classes.RegressionSample[]} standards
  * @param {number} rSquared
  * @param {string} xScale
  * @param {string} unit
@@ -913,7 +902,7 @@ function diagram96Well(lightSamples, parent, diagramTitle){
 
 
 /** 
- * @param {classes.Sample[]} unknowns
+ * @param {classes.RegressionSample[]} unknowns
  * @param {Element} parent
 **/
 function createProteinGelLoadingTable(unknowns, parent){
@@ -1166,7 +1155,7 @@ function createProteinGelLoadingTable(unknowns, parent){
 /**
  * 
  * @param {Event} e 
- * @param {classes.Sample} unknown 
+ * @param {classes.RegressionSample} unknown 
  * @param {string} mass
  * @param {string} vol 
  * @returns 
@@ -1197,7 +1186,7 @@ function handleTotalProteinChange(e, unknown, mass, vol){
 
 /**
  * @param {Event} e 
- * @param {classes.Sample} unknown 
+ * @param {classes.RegressionSample} unknown 
  * @param {string} vol 
  * @returns 
  */
@@ -1232,7 +1221,7 @@ function handleInputClick(e){
 
 /**
  * @param {Event} e 
- * @param {classes.Sample} unknown 
+ * @param {classes.RegressionSample} unknown 
  * @param {string} vol 
  * @param {string} mass 
  * @returns

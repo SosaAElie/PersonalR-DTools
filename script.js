@@ -1,6 +1,6 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 /**
- * @typedef {Object} Sample
+ * @typedef {Object} RegressionSample
  * @property {string} name - The name of the sample
  * @property {string} type - The type of the sample i.e standard, sample, control.
  * @property {number[]} ys - The OD(s)
@@ -44,9 +44,9 @@
  * @param {number[]} wellNumbers 
  * @param {number} x 
  * @param {number[]} ys 
- * @returns {Sample}
+ * @returns {RegressionSample}
  */
-function createSample(name, type, unit, wellPositions, wellNumbers, x, ys){
+function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x, ys){
     /**
      * @returns {string[]} 
      */
@@ -98,7 +98,7 @@ function createSdsPageValues(){
 }
 
 module.exports = {
-    createSample,
+    createRegressionSample,
 }
 },{}],2:[function(require,module,exports){
 /*!
@@ -41169,7 +41169,7 @@ let BARGRAPH = null;
 
 /**
  * @typedef {Object} ParsedData
- * @property {classes.Sample[]} samples
+ * @property {classes.RegressionSample[]} samples
  * @property {string} filename
  * @property {string} templateFilename
  * @property {string[][]} rawdata
@@ -41296,7 +41296,7 @@ async function merge(rawdataFile, templateFile){
     const rawTemplate = await parseDelimitedFile(templateFile);
 
     /**
-     * @type {Map<string, classes.Sample>}
+     * @type {Map<string, classes.RegressionSample>}
      */
     const samples = new Map();
 
@@ -41344,10 +41344,10 @@ async function merge(rawdataFile, templateFile){
             }
             else{
                 if(parsedSample.has("unit")){
-                    samples.set(name, classes.createSample(name, type, parsedSample.get("unit"), [wellPosition], [wellNumber], parsedSample.get("x"), [y]));
+                    samples.set(name, classes.createRegressionSample(name, type, parsedSample.get("unit"), [wellPosition], [wellNumber], parsedSample.get("x"), [y]));
                 }
                 else{
-                    samples.set(name, classes.createSample(name, type, "", [wellPosition], [wellNumber], NaN, [y]));
+                    samples.set(name, classes.createRegressionSample(name, type, "", [wellPosition], [wellNumber], NaN, [y]));
                 }
             }
         }
@@ -41555,8 +41555,8 @@ function deleteTable(container, id){
 }
 
 /**
- * @param {classes.Sample[]} unknowns - A list of sample objects to display in the table
- * @param {classes.Sample[]} standards - A list of sample objects to display in the table
+ * @param {classes.RegressionSample[]} unknowns - A list of sample objects to display in the table
+ * @param {classes.RegressionSample[]} standards - A list of sample objects to display in the table
  * @param {string} units - The units of the samples
  * @param {string} convertedUnits - The converted units of the samples
  * @param {string} dilutionFactor - The dilution factor of the samples
@@ -41645,8 +41645,8 @@ function parseDelimitedFile(file){
 };
 
 /**
- * @param {classes.Sample[]} unknowns
- * @param {classes.Sample[]} standards
+ * @param {classes.RegressionSample[]} unknowns
+ * @param {classes.RegressionSample[]} standards
  * @param {number} rSquared
  * @param {string} xScale
  * @param {string} unit
@@ -42055,7 +42055,7 @@ function diagram96Well(lightSamples, parent, diagramTitle){
 
 
 /** 
- * @param {classes.Sample[]} unknowns
+ * @param {classes.RegressionSample[]} unknowns
  * @param {Element} parent
 **/
 function createProteinGelLoadingTable(unknowns, parent){
@@ -42308,7 +42308,7 @@ function createProteinGelLoadingTable(unknowns, parent){
 /**
  * 
  * @param {Event} e 
- * @param {classes.Sample} unknown 
+ * @param {classes.RegressionSample} unknown 
  * @param {string} mass
  * @param {string} vol 
  * @returns 
@@ -42339,7 +42339,7 @@ function handleTotalProteinChange(e, unknown, mass, vol){
 
 /**
  * @param {Event} e 
- * @param {classes.Sample} unknown 
+ * @param {classes.RegressionSample} unknown 
  * @param {string} vol 
  * @returns 
  */
@@ -42374,7 +42374,7 @@ function handleInputClick(e){
 
 /**
  * @param {Event} e 
- * @param {classes.Sample} unknown 
+ * @param {classes.RegressionSample} unknown 
  * @param {string} vol 
  * @param {string} mass 
  * @returns

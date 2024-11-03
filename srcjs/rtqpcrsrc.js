@@ -1,37 +1,9 @@
 const ss = require("simple-statistics");
 const chartjs = require("chart.js/auto");
-const papa = require("papaparse");
 const xlsx = require("xlsx");
-
+const classes = require("../classes/classes.js");
+const helpers = require("../utils/helpers.js");
 let CHART = null;
-/**
- * @typedef {Object} Sample
- * @property {string} name - Sample name
- * @property {Map<string, Target>} targets - The target genes
- * @property {number[]} wells - The well numbers the sample was loaded in i.e 1,2,3...384
- * @property {string[]} wellPositions - The well positions the sample was loaded in i.e A1, B1, C1, etc.
- * @property {Target|null} hkg - House Keeping Gene
- * @property {Target|null} goi - Gene of Interest
- * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
- * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
- * @property {function} getTableData - returns an array containing data to display on a table
- * @property {Sample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
- * @property {string} color - The color that the bar in the bar graph will be to represent this sample
-*/
-
-/**
- * @typedef {Object} Target
- * @property {string} name - Target gene name
- * @property {string} reporter - The associated fluorescent reporter
- * @property {number[]} cqs - The associated Ct/Cq values
- * @property {number[]} bestDuplicates - The best duplicates out of the total replicates in a run
- * @property {number} average - The average of the best duplicates
- * @property {number} stdev - The sample standard deviation of the best duplicate
- * @property {number} deltaCt - ct (gene of interest) - ct (housekeeping gene)
- * @property {number} deltadeltaCt - ΔCt (unknown sample or target sample) - ΔCt (reference sample or control sample)
- * @property {number} rge - Relative Gene Expression, 2^-ΔΔCt
- * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
- */
 
 /**
  * @typedef {Object} LightweightSample
@@ -67,8 +39,10 @@ async function processResultsCsv(e){
     //ToDo Add another check to ensure that the file being passed in is an unedited results file from an
     //Applied BioSystems QuantStudio 7 Pro
     const inputfile = e.target.files[0];
-    const rawdata = await parseDelimitedFile(inputfile);
-    const samples = createSamples(rawdata);
+    const rawdata = await helpers.parseDelimitedFile(inputfile);
+    const samplesAndTargets = createSamplesAndTargets(rawdata);
+    const samples = samplesAndTargets.get("samples"); 
+    const targets = samplesAndTargets.get("targets"); 
     if(samples.length <= 0) return;
     updateSampleAverageStdev(samples);
 
@@ -76,8 +50,8 @@ async function processResultsCsv(e){
     const templateDiagram = document.getElementById("diagram384");
     diagram384Well(lightweightSamples, templateDiagram, inputfile.name);
     
-    updateSelectUiWithGenes(samples, "reference-gene");
-    updateSelectUiWithGenes(samples, "gene-of-interest");
+    updateSelectUiWithGenes(targets, "reference-gene");
+    updateSelectUiWithGenes(targets, "gene-of-interest");
     createSampleTable(samples, inputfile.name);
 
     const canvas = document.getElementById("canvas");
@@ -87,7 +61,7 @@ async function processResultsCsv(e){
 }
 
 /**
- * @param {Sample[]} samples
+ * @param {classes.RtqpcrSample[]} samples
  * @param {string} filename
  * @returns {null}
  */
@@ -140,11 +114,13 @@ function createSampleTable(samples, filename){
                         }
                     } 
                     sample.refSample = refSample;
+                    if(sample.goi === null) return;
+                    console.log(sample.goi);
                     sample.goi.deltadeltaCt = sample.goi.deltaCt - refSample.goi.deltaCt;
                     sample.goi.rge = 2**(-sample.goi.deltadeltaCt);
                     document.getElementById(`${sample.name}-ΔΔCt`).textContent = sample.goi.deltadeltaCt.toFixed(2);
                     document.getElementById(`${sample.name}-Relative Gene Expression`).textContent = sample.goi.rge.toFixed(2);
-                    CHART.data.datasets[0].data = samples.map(sample => sample.goi.rge);
+                    CHART.data.datasets[0].data = samples.map(sample=>sample.goi === null?0:sample.goi.rge);
                     CHART.data.datasets[0].backgroundColor = samples.map(sample => sample.color);
                     CHART.update();
                 })
@@ -201,27 +177,24 @@ function createLightWeightSamples(samples){
 }
 
 /**
- * @param {Sample[]} samples
+ * @param {string[]} targets
  * @param {string} id - The id of the select element to update
- * @returns {null}
  */
-function updateSelectUiWithGenes(samples, id){
+function updateSelectUiWithGenes(targets, id){
     const selectEleTargets = document.getElementById(id);
     selectEleTargets.innerHTML = "";
     const noneOptionEle = document.createElement("option");
     noneOptionEle.textContent = "None";
     selectEleTargets.appendChild(noneOptionEle);
-    //Makes the assumption that the first sample in the samples array is representative of all the samples
-    for(let target of samples[0].targets.keys()){
+    for(let target of targets){
         const optionEle = document.createElement("option");
         optionEle.text = target;
         selectEleTargets.appendChild(optionEle);
     }
-    return null;
 }
 
 /**
- * @param {Sample[]} samples
+ * @param {classes.RtqpcrSample[]} samples
  * @param {string} filename
  * @param {string} goi
  * @returns {chartjs.ChartConfiguration}
@@ -359,7 +332,7 @@ function handleHkgTargetChange(e){
     //Calculate the ΔCt value for each non-reference gene of each sample
     for(let sampleEle of sampleEles){
         /**
-         * @type {Sample}
+         * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
         const hkg = sample.targets.get(hkgName);
@@ -395,7 +368,7 @@ function handleGoiChange(e){
     //Calculate the ΔCt value for each non-reference gene of each sample
     for(let sampleEle of sampleEles){
         /**
-         * @type {Sample}
+         * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
         const sampleName = sample.name;
@@ -463,25 +436,14 @@ function updateLabel(e){
 
 
 /**
- * @param {File} file
- * @returns {Promise<string[][]>}
- */
-function parseDelimitedFile(file){
-    return new Promise((resolve, reject)=>{
-        papa.parse(file, {complete:(results, file)=>{
-            resolve(results.data)
-        }})
-    })
-};
-
-/**
  * @param {string[][]} rawdata
- * @returns {Map<string, Sample>}
+ * @returns {Map<string, classes.RtqpcrSample[]|string[]}
  */
-function createSamples(rawdata){
+function createSamplesAndTargets(rawdata){
     const importantHeaders = ["Sample", "Target", "Well", "Well Position", "Reporter", "Cq"];
     const minLength = 20;
     const samples = new Map();
+    const targets = new Map();
     const headerIndices = [];
     let foundHeaders = false;
     for(let arr of rawdata){
@@ -507,14 +469,16 @@ function createSamples(rawdata){
                 }
             };
             if(!samples.has(sampleData[0])){
-                const target = createTarget(sampleData[1], sampleData[4], sampleData[5]);
-                const sample = createSample(sampleData[0], target, sampleData[2], sampleData[3]);
+                const target = classes.createTarget(sampleData[1], sampleData[4], sampleData[5]);
+                const sample = classes.createRtqpcrSample(sampleData[0], target, sampleData[2], sampleData[3]);
                 samples.set(sample.name, sample);
+                targets.has(target.name)?"":targets.set(target.name, target.name)
             }
             else{
                 const sample = samples.get(sampleData[0]);
                 if(!sample.targets.has(sampleData[1])){
-                    const target = createTarget(sampleData[1], sampleData[4], sampleData[5]);
+                    const target = classes.createTarget(sampleData[1], sampleData[4], sampleData[5]);
+                    targets.has(target.name)?"":targets.set(target.name, target.name)
                     sample.targets.set(target.name, target);                    
                 }
                 else{
@@ -528,65 +492,13 @@ function createSamples(rawdata){
             }
         }
     }
-    return Array.from(samples.values());
+    return new Map([
+        ["samples", Array.from(samples.values())],
+        ["targets", Array.from(targets.values())],
+    ]);
 }
 
-/**
- * @param {string} name
- * @param {Target} target
- * @param {number} well
- * @param {string} wellPosition
- * @return {Sample}
- */
-function createSample(name, target, well, wellPosition){
-    return {
-        name,
-        targets:new Map([[target.name, target]]),
-        wells:[well],
-        wellPositions:[wellPosition],
-        hkg:null,
-        goi:null,
-        isRefSample:false,
-        refSample:null,
-        refSampleCount:0,
-        color:"rgba(255, 105, 105, 1)",
-        /**
-         * 
-         * @param {string} targetName 
-         * @returns {string[]|number[]}
-         */
-        getTableData(targetName = null){
-            return (
-                targetName === null?
-                [this.name, "", "", "","","","","",""]
-                :
-                [this.name, this.targets.get(targetName).name, this.hkg.name, this.targets.get(targetName).average,this.targets.get(targetName).stdev, this.refSample.name, this.targets.get(targetName).deltaCt, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
-            
-            )
-        },
-    }
-}
 
-/**
- * @param {string} name
- * @param {string} reporter
- * @param {number} cq
- * @return {Target}
- */
-function createTarget(name, reporter, cq){
-    return{
-        name,
-        reporter,
-        cqs:[cq],
-        bestDuplicates:[],
-        average:NaN,
-        stdev:NaN,
-        deltaCt:NaN,
-        deltadeltaCt:NaN,
-        rge:NaN,
-        pcrEfficiency:1,
-    }
-}
 
 function createWkbk(data, sheetname = "sheet1"){
     const wkbk = xlsx.utils.book_new();
