@@ -59,9 +59,19 @@ function parseDelimitedFile(file){
     })
 };
 
+/**
+ * @param {number} opacity
+ * @returns {string}
+ */
+function getRandomColor(opacity = null){
+    if(opacity === null) opacity = Math.random().toFixed(2);
+    return `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${opacity})`
+}
+
 
 module.exports = {
     parseSampleName,
     convertConcentration,
     parseDelimitedFile,
+    getRandomColor,
 }

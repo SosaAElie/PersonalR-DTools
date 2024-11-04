@@ -40,16 +40,7 @@ li{
 li>img{
     width:100%;
 }
-/* #chart-template-container{
-    margin-top: 1%;
-    margin-bottom: 1%;
-    display: flex;
-    flex-direction: row;
-    flex-flow: row wrap;
-    width: 100%;
-    justify-content: space-between;
-    align-items: center;
-} */
+
 #chart-template-container{
     display: grid;
     grid-template-columns: 50% 50%;

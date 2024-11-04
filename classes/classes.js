@@ -45,8 +45,9 @@
  * @property {Target|null} goi - Gene of Interest
  * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
  * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
- * @property {function} getTableData - returns an array containing data to display on a table
- * @property {function} getResultsSummaryTableData - returns an array containing data to display on a table
+ * @property {Function} getTableData - returns an array containing data to display on a table
+ * @property {Function} getResultsSummaryTableData - returns an array containing data to display on a table
+ * @property {Function} getTargetFromPosition - returns target based off the well position passed in
  * @property {Sample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
  * @property {string} color - The color that the bar in the bar graph will be to represent this sample
 */
@@ -54,7 +55,9 @@
 /**
  * @typedef {Object} Target
  * @property {string} name - Target gene name
- * @property {string[]} wells - The wells that this target is associated with, i.e A1, B2, etc.
+ * @property {string} color - Target gene color
+ * @property {string[]} wells - The well numbers the target was selected for i.e 1,2,3...384
+ * @property {string[]} wellPositions - The wells that this target is associated with, i.e A1, B2, etc.
  * @property {string} reporter - The associated fluorescent reporter
  * @property {number[]} cqs - The associated Ct/Cq values
  * @property {number[]} bestDuplicates - The best duplicates out of the total replicates in a run
@@ -151,6 +154,16 @@ function createRtqpcrSample(name, target, well, wellPosition){
         refSampleCount:0,
         color:"rgba(255, 105, 105, 1)",
         /**
+         * @param {string} wellPos
+         * @returns {Target|null}
+         */
+        getTargetFromPosition(wellPos){
+            for(let target of this.targets.values()){
+                if(target.wellPositions.includes(wellPos)) return target;
+            }
+            return null;
+        },
+        /**
          * 
          * @param {string} targetName 
          * @returns {string[]|number[]}
@@ -166,9 +179,10 @@ function createRtqpcrSample(name, target, well, wellPosition){
         },
         /**
          * @param {string[]} targetNames
+         * @returns {string[]}
          */
         getResultsSummaryTableData(targetNames){
-            const valuesPerTarget = 3;
+            const valuesPerTarget = 4;
             const data = [];
             for(let targetName of targetNames){
                 if(this.targets.has(targetName)){
@@ -190,12 +204,16 @@ function createRtqpcrSample(name, target, well, wellPosition){
  * @param {string} name
  * @param {string} reporter
  * @param {number} cq
+ * @param {number} wellNum
+ * @param {string} wellPos
+ * @param {string} color
  * @return {Target}
  */
-function createTarget(name, reporter, cq){
+function createTarget(name, reporter, cq, wellNum, wellPos, color){
     return{
         name,
-        wells:[],
+        wells:[wellNum],
+        wellPositions:[wellPos],
         reporter,
         cqs:[cq],
         bestDuplicates:[],
@@ -205,12 +223,14 @@ function createTarget(name, reporter, cq){
         deltaCt:NaN,
         deltadeltaCt:NaN,
         rge:NaN,
+        color:color,
         pcrEfficiency:1,
         getResultsTableData(){
             return [
-                this.wells.join(", "),
+                this.wellPositions.join(", "),
                 this.cqs.map(cq => cq.toFixed(2)).join(", "),
                 `${this.average.toFixed(2)} (${this.stdev.toFixed(2)})`,
+                this.bestDuplicates.map(duplicate => duplicate.toFixed(2)).join(", "),
             ];
         }
     }

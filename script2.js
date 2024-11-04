@@ -46,8 +46,9 @@
  * @property {Target|null} goi - Gene of Interest
  * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
  * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
- * @property {function} getTableData - returns an array containing data to display on a table
- * @property {function} getResultsSummaryTableData - returns an array containing data to display on a table
+ * @property {Function} getTableData - returns an array containing data to display on a table
+ * @property {Function} getResultsSummaryTableData - returns an array containing data to display on a table
+ * @property {Function} getTargetFromPosition - returns target based off the well position passed in
  * @property {Sample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
  * @property {string} color - The color that the bar in the bar graph will be to represent this sample
 */
@@ -55,7 +56,9 @@
 /**
  * @typedef {Object} Target
  * @property {string} name - Target gene name
- * @property {string[]} wells - The wells that this target is associated with, i.e A1, B2, etc.
+ * @property {string} color - Target gene color
+ * @property {string[]} wells - The well numbers the target was selected for i.e 1,2,3...384
+ * @property {string[]} wellPositions - The wells that this target is associated with, i.e A1, B2, etc.
  * @property {string} reporter - The associated fluorescent reporter
  * @property {number[]} cqs - The associated Ct/Cq values
  * @property {number[]} bestDuplicates - The best duplicates out of the total replicates in a run
@@ -152,6 +155,16 @@ function createRtqpcrSample(name, target, well, wellPosition){
         refSampleCount:0,
         color:"rgba(255, 105, 105, 1)",
         /**
+         * @param {string} wellPos
+         * @returns {Target|null}
+         */
+        getTargetFromPosition(wellPos){
+            for(let target of this.targets.values()){
+                if(target.wellPositions.includes(wellPos)) return target;
+            }
+            return null;
+        },
+        /**
          * 
          * @param {string} targetName 
          * @returns {string[]|number[]}
@@ -167,9 +180,10 @@ function createRtqpcrSample(name, target, well, wellPosition){
         },
         /**
          * @param {string[]} targetNames
+         * @returns {string[]}
          */
         getResultsSummaryTableData(targetNames){
-            const valuesPerTarget = 3;
+            const valuesPerTarget = 4;
             const data = [];
             for(let targetName of targetNames){
                 if(this.targets.has(targetName)){
@@ -191,12 +205,16 @@ function createRtqpcrSample(name, target, well, wellPosition){
  * @param {string} name
  * @param {string} reporter
  * @param {number} cq
+ * @param {number} wellNum
+ * @param {string} wellPos
+ * @param {string} color
  * @return {Target}
  */
-function createTarget(name, reporter, cq){
+function createTarget(name, reporter, cq, wellNum, wellPos, color){
     return{
         name,
-        wells:[],
+        wells:[wellNum],
+        wellPositions:[wellPos],
         reporter,
         cqs:[cq],
         bestDuplicates:[],
@@ -206,12 +224,14 @@ function createTarget(name, reporter, cq){
         deltaCt:NaN,
         deltadeltaCt:NaN,
         rge:NaN,
+        color:color,
         pcrEfficiency:1,
         getResultsTableData(){
             return [
-                this.wells.join(", "),
+                this.wellPositions.join(", "),
                 this.cqs.map(cq => cq.toFixed(2)).join(", "),
                 `${this.average.toFixed(2)} (${this.stdev.toFixed(2)})`,
+                this.bestDuplicates.map(duplicate => duplicate.toFixed(2)).join(", "),
             ];
         }
     }
@@ -41274,6 +41294,8 @@ let CHART = null;
  * @property {string} wellPosition - The well position the sample was loaded in
  * @property {number} wellNumber - The well number the same was loaded in
  * @property {string} name - The name of the sample
+ * @property {string} color - The color of the target
+ * @property {string} targetName - The name of the target
  */
 
 
@@ -41297,7 +41319,7 @@ async function processResultsCsv(e){
     if(CHART !== null){
         CHART.destroy();
         document.getElementById("diagram384").innerHTML = "";
-        document.getElementById("sample-table").innerHTML = "";
+        document.getElementById("tables").innerHTML = "";
     }
 
     //ToDo Add another check to ensure that the file being passed in is an unedited results file from an
@@ -41307,6 +41329,7 @@ async function processResultsCsv(e){
     const samplesAndTargets = createSamplesAndTargets(rawdata);
     const samples = samplesAndTargets.get("samples"); 
     const targets = samplesAndTargets.get("targets"); 
+    const targetColors = samplesAndTargets.get("colors"); 
     if(samples.length <= 0) return;
     updateSampleAverageStdev(samples);
 
@@ -41317,8 +41340,8 @@ async function processResultsCsv(e){
     const tableContainer = document.getElementById("tables");
     updateSelectUiWithGenes(targets, "reference-gene");
     updateSelectUiWithGenes(targets, "gene-of-interest");
-    createResultsTable(samples, targets, inputfile.name, tableContainer);
-    createRgeTable(samples, inputfile.name, tableContainer);
+    createResultsTable(samples, targets, targetColors, inputfile.name, tableContainer);
+    // createRgeTable(samples, inputfile.name, tableContainer);
 
     const canvas = document.getElementById("canvas");
     CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(samples, inputfile.name));
@@ -41408,10 +41431,11 @@ function createRgeTable(samples, title, container){
 /**
  * @param {classes.RtqpcrSample[]} samples
  * @param {string[]} targetNames
+ * @param {string[]} targetColors
  * @param {string} title
  * @param {HTMLElement} container
  */
-function createResultsTable(samples, targetNames, title, container){
+function createResultsTable(samples, targetNames, targetColors, title, container){
     const tableTitle = document.createElement("caption");
     tableTitle.textContent = title;
     
@@ -41422,14 +41446,17 @@ function createResultsTable(samples, targetNames, title, container){
     const tableHeaders = document.createElement("thead");
 
     const headerTitles = ["", ...targetNames];
-    const subheaderTitles = ["Name", "Wells", "Individual Values", "Ave (Stdev)"];
-
+    const subheaderTitles = ["Name", "Wells", "All Replicates", "Ave (Stdev)", "Best Replicates"];
+    const targetHeaderWidth = 4;
     const headers = document.createElement("tr");
-    for (let headerTitle of headerTitles){
+    for (let i = 0; i < headerTitles.length; i++){
         const th = document.createElement("th");
-        th.textContent = headerTitle;
+        th.textContent = headerTitles[i];
         th.className = "header targets"
-        if(headerTitle !== "") th.colSpan = 3;
+        if(headerTitles[i] !== ""){
+            th.colSpan = targetHeaderWidth
+            th.style.backgroundColor = targetColors[i-1];
+        };
         headers.appendChild(th);
     }
 
@@ -41481,7 +41508,7 @@ function createSelectRefSampleEle(samples){
 }
 
 /**
- * @param {Sample[]} samples
+ * @param {classes.RtqpcrSample[]} samples
  * @return {LightweightSample[]}
  */
 function createLightWeightSamples(samples){
@@ -41495,7 +41522,15 @@ function createLightWeightSamples(samples){
     }
     for(let sample of samples){
         for(let i = 0; i < sample.wellPositions.length; i++){
-            lws.set(sample.wells[i], {name:sample.name, wellPosition:sample.wellPositions[i], wellNumber:sample.wells[i]});
+            const target = sample.getTargetFromPosition(sample.wellPositions[i]);
+            lws.set(sample.wells[i], 
+                {
+                    name:sample.name,
+                    wellPosition:sample.wellPositions[i],
+                    wellNumber:sample.wells[i],
+                    targetName:target.name,
+                    color:target.color,
+                });
         }
     }
     return Array.from(lws.values());
@@ -41689,7 +41724,8 @@ function handleGoiChange(e){
     //All tr elements should have the class name "samples" 
     //and should have a property that references the sample object they represent in the table
     const sampleEles = document.getElementsByClassName("samples");
-
+    const samplesWithGoi = Array.from(sampleEles).filter(element => element.sample.has(goiName));
+    console.log(samplesWithGoi);
     //Calculate the ΔCt value for each non-reference gene of each sample
     for(let sampleEle of sampleEles){
         /**
@@ -41769,6 +41805,9 @@ function updateLabel(e){
 function createSamplesAndTargets(rawdata){
     const importantHeaders = ["Sample", "Target", "Well", "Well Position", "Reporter", "Cq"];
     const minLength = 20;
+    /**
+     * @type {Map<string, classes.RtqpcrSample>}
+     */
     const samples = new Map();
     const targets = new Map();
     const headerIndices = [];
@@ -41795,33 +41834,40 @@ function createSamplesAndTargets(rawdata){
                     sampleData.push(arr[headerIndices[i]]);
                 }
             };
-            if(!samples.has(sampleData[0])){
-                const target = classes.createTarget(sampleData[1], sampleData[4], sampleData[5]);
-                const sample = classes.createRtqpcrSample(sampleData[0], target, sampleData[2], sampleData[3]);
+            const [sampleName, targetName, wellNumber, wellPosition, reporter, cq] = sampleData;
+            let color = helpers.getRandomColor(0.3);
+            if(!samples.has(sampleName)){
+                if(targets.has(targetName)) color = targets.get(targetName);
+                else targets.set(targetName, color)
+                const target = classes.createTarget(targetName, reporter, cq, wellNumber, wellPosition, color);
+                const sample = classes.createRtqpcrSample(sampleName, target, wellNumber, wellPosition);
                 samples.set(sample.name, sample);
-                targets.has(target.name)?"":targets.set(target.name, target.name)
             }
             else{
-                const sample = samples.get(sampleData[0]);
-                if(!sample.targets.has(sampleData[1])){
-                    const target = classes.createTarget(sampleData[1], sampleData[4], sampleData[5]);
+                const sample = samples.get(sampleName);
+                if(!sample.targets.has(targetName)){
+                    if(targets.has(targetName)) color = targets.get(targetName);
+                    else targets.set(targetName, color)
+                    const target = classes.createTarget(targetName, reporter, cq, wellNumber, wellPosition, color);
                     targets.has(target.name)?"":targets.set(target.name, target.name)
                     sample.targets.set(target.name, target);                    
+                    sample.wells.push(wellNumber);
+                    sample.wellPositions.push(wellPosition);
                 }
                 else{
-                    sample.targets.get(sampleData[1]).cqs.push(sampleData[5]);
-                }
-
-                if(sample.wells.indexOf(sampleData[2]) < 0 && sample.wells.indexOf(sampleData[3]) < 0){
-                    sample.wells.push(sampleData[2]);
-                    sample.wellPositions.push(sampleData[3]);
+                    sample.targets.get(targetName).cqs.push(cq);
+                    sample.targets.get(targetName).wells.push(wellNumber);
+                    sample.targets.get(targetName).wellPositions.push(wellPosition);
+                    sample.wells.push(wellNumber);
+                    sample.wellPositions.push(wellPosition);
                 }
             }
         }
     }
     return new Map([
         ["samples", Array.from(samples.values())],
-        ["targets", Array.from(targets.values())],
+        ["targets", Array.from(targets.keys())],
+        ["colors", Array.from(targets.values())],
     ]);
 }
 
@@ -41842,7 +41888,7 @@ function createWkbk(data, sheetname = "sheet1"){
 **/
 function diagram384Well(lightSamples, parent, diagramTitle){
     const title = document.createElement("h3");
-    title.id = "diagram-title384";
+    title.id = "diagram-title";
     title.textContent = diagramTitle;
     parent.appendChild(title);
     for(let sample of lightSamples){
@@ -41855,9 +41901,7 @@ function diagram384Well(lightSamples, parent, diagramTitle){
         circularDiv.className = "well";
         circularDiv.appendChild(hoverText);
         circularDiv.appendChild(wellPosition)
-        if(sample.name.toUpperCase()!=="NONE"){
-            circularDiv.style.backgroundColor = "#ff69695c";
-        }
+        if(sample.name.toUpperCase()!=="NONE") circularDiv.style.backgroundColor = sample.color;
         parent.appendChild(circularDiv);
     }
 }
@@ -41925,11 +41969,21 @@ function parseDelimitedFile(file){
     })
 };
 
+/**
+ * @param {number} opacity
+ * @returns {string}
+ */
+function getRandomColor(opacity = null){
+    if(opacity === null) opacity = Math.random().toFixed(2);
+    return `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${opacity})`
+}
+
 
 module.exports = {
     parseSampleName,
     convertConcentration,
     parseDelimitedFile,
+    getRandomColor,
 }
 },{"papaparse":6}],12:[function(require,module,exports){
 
