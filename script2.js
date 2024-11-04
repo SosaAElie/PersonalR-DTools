@@ -174,7 +174,7 @@ function createRtqpcrSample(name, target, well, wellPosition){
                 targetName === null?
                 [this.name, "", "", "","","","","",""]
                 :
-                [this.name, this.targets.get(targetName).name, this.hkg.name, this.targets.get(targetName).average,this.targets.get(targetName).stdev, this.refSample.name, this.targets.get(targetName).deltaCt, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
+                [this.name, this.targets.get(targetName).name, this.hkg.name, this.targets.get(targetName).average, this.hkg.average, this.targets.get(targetName).deltaCt,this.refSample.name, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
             
             )
         },
@@ -41319,7 +41319,8 @@ async function processResultsCsv(e){
     if(CHART !== null){
         CHART.destroy();
         document.getElementById("diagram384").innerHTML = "";
-        document.getElementById("tables").innerHTML = "";
+        document.getElementById("results-summary-container").innerHTML = "";
+        document.getElementById("rge-container").innerHTML = "";
     }
 
     //ToDo Add another check to ensure that the file being passed in is an unedited results file from an
@@ -41337,11 +41338,12 @@ async function processResultsCsv(e){
     const templateDiagram = document.getElementById("diagram384");
     diagram384Well(lightweightSamples, templateDiagram, inputfile.name);
     
-    const tableContainer = document.getElementById("tables");
+    const resultsSummaryContainer = document.getElementById("results-summary-container");
+    const rgeContainer = document.getElementById("rge-container");
     updateSelectUiWithGenes(targets, "reference-gene");
     updateSelectUiWithGenes(targets, "gene-of-interest");
-    createResultsTable(samples, targets, targetColors, inputfile.name, tableContainer);
-    // createRgeTable(samples, inputfile.name, tableContainer);
+    createResultsTable(samples, targets, targetColors, inputfile.name, resultsSummaryContainer);
+    createRgeTable(samples, inputfile.name, rgeContainer);
 
     const canvas = document.getElementById("canvas");
     CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(samples, inputfile.name));
@@ -41362,11 +41364,22 @@ function createRgeTable(samples, title, container){
 
     //Create table title
     const tableTitle = document.createElement("caption");
-    tableTitle.textContent = title;
-    tableTitle.id = "filename";
+    tableTitle.textContent = "Relative Gene Expression Results: " + title;
+    tableTitle.id = "rge-table-title";
     table.appendChild(tableTitle);
+    table.id = "rge-table";
     
-    const headers = ["Sample Name", "Gene of Interest", "House-Keeping Gene", "GOI Average Ct", "GOI Stdev", "Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"];
+    const headers = [
+        "Sample Name",
+        "Gene of Interest",
+        "House-Keeping Gene",
+        "GOI Average Ct",
+        "HKG Average Ct",
+        "ΔCt",
+        "Reference Sample",
+        "ΔΔCt",
+        "Relative Gene Expression"
+    ]; 
     const headerRow = document.createElement("tr");
     for(let header of headers){
         const th = document.createElement("th");
@@ -41437,7 +41450,8 @@ function createRgeTable(samples, title, container){
  */
 function createResultsTable(samples, targetNames, targetColors, title, container){
     const tableTitle = document.createElement("caption");
-    tableTitle.textContent = title;
+    tableTitle.textContent = "Results Summary: " + title;
+    tableTitle.id = "results-summary-title";
     
     const table = document.createElement("table");
     table.id = "results";
@@ -41473,7 +41487,8 @@ function createResultsTable(samples, targetNames, targetColors, title, container
 
     for (let sample of samples){
         const tr = document.createElement("tr");
-        tr.className = "row sample";
+        tr.className = "results-sample";
+        tr.sample = sample;
         for (let data of sample.getResultsSummaryTableData(targetNames)){
             const td = document.createElement("td");
             td.textContent = data;
@@ -41709,7 +41724,8 @@ function handleHkgTargetChange(e){
         const sampleName = sample.name;
         document.getElementById(`${sampleName}-ΔCt`).textContent = goi.deltaCt.toFixed(2);
         document.getElementById(`${sampleName}-GOI Average Ct`).textContent = goi.average.toFixed(2);
-        document.getElementById(`${sampleName}-GOI Stdev`).textContent = goi.stdev.toFixed(2);
+        document.getElementById(`${sampleName}-HKG Average Ct`).textContent = hkg.average.toFixed(2);
+        // document.getElementById(`${sampleName}-GOI Stdev`).textContent = goi.stdev.toFixed(2);
     }
     return null;
 }
@@ -41721,11 +41737,12 @@ function handleGoiChange(e){
     const goiName = e.target.value;
     if(goiName === "None") return;
 
+    //If both have been selected filter out the samples that don't contain both targets 
+    
     //All tr elements should have the class name "samples" 
     //and should have a property that references the sample object they represent in the table
-    const sampleEles = document.getElementsByClassName("samples");
-    const samplesWithGoi = Array.from(sampleEles).filter(element => element.sample.has(goiName));
-    console.log(samplesWithGoi);
+    const sampleEles = document.getElementsByClassName("results-sample");
+
     //Calculate the ΔCt value for each non-reference gene of each sample
     for(let sampleEle of sampleEles){
         /**
@@ -41745,7 +41762,8 @@ function handleGoiChange(e){
         goi.deltaCt = goi.average - sample.hkg.average;
         document.getElementById(`${sampleName}-ΔCt`).textContent = goi.deltaCt.toFixed(2);
         document.getElementById(`${sampleName}-GOI Average Ct`).textContent = goi.average.toFixed(2);
-        document.getElementById(`${sampleName}-GOI Stdev`).textContent = goi.stdev.toFixed(2);
+        document.getElementById(`${sampleName}-HKG Average Ct`).textContent = sample.hkg.average.toFixed(2);
+        // document.getElementById(`${sampleName}-GOI Stdev`).textContent = goi.stdev.toFixed(2);
     }
     return null;
 }

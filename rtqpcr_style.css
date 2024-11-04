@@ -203,7 +203,12 @@ table, th, td{
     display: flex;
     flex-direction: column;
     row-gap: 1rem;
+    align-items: center;
 }
 #download-excel{
     grid-column: span 2;
+}
+td:nth-child(1){
+    font-weight: bold;
+    background-color: #c0bcbc83;
 }

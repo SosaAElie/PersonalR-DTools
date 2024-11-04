@@ -173,7 +173,7 @@ function createRtqpcrSample(name, target, well, wellPosition){
                 targetName === null?
                 [this.name, "", "", "","","","","",""]
                 :
-                [this.name, this.targets.get(targetName).name, this.hkg.name, this.targets.get(targetName).average,this.targets.get(targetName).stdev, this.refSample.name, this.targets.get(targetName).deltaCt, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
+                [this.name, this.targets.get(targetName).name, this.hkg.name, this.targets.get(targetName).average, this.hkg.average, this.targets.get(targetName).deltaCt,this.refSample.name, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
             
             )
         },
