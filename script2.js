@@ -41343,7 +41343,7 @@ async function processResultsCsv(e){
     updateSelectUiWithGenes(targets, "reference-gene");
     updateSelectUiWithGenes(targets, "gene-of-interest");
     createResultsTable(samples, targets, targetColors, inputfile.name, resultsSummaryContainer);
-    createRgeTable(samples, inputfile.name, rgeContainer);
+    createRgeTable(samples, targets, inputfile.name, rgeContainer);
 
     const canvas = document.getElementById("canvas");
     CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(samples, inputfile.name));
@@ -41353,15 +41353,16 @@ async function processResultsCsv(e){
 
 /**
  * @param {classes.RtqpcrSample[]} samples
+ * @param {string[]} targets
  * @param {string} title
  * @param {HTMLElement} container
  * @returns {null}
  */
-function createRgeTable(samples, title, container){
+function createRgeTable(samples, targets, title, container){
     const table = document.createElement("table");
     const tableHeaders = document.createElement("thead");
     const tableBody = document.createElement("tbody");
-
+    targets = ["None", ...targets];
     //Create table title
     const tableTitle = document.createElement("caption");
     tableTitle.textContent = "Relative Gene Expression Results: " + title;
@@ -41384,10 +41385,24 @@ function createRgeTable(samples, title, container){
     for(let header of headers){
         const th = document.createElement("th");
         th.textContent = header;
+        if(header === "Gene of Interest" || header === "House-Keeping Gene"){
+            const selectEle = document.createElement("select");
+            for(let target of targets){
+                const optionEle = document.createElement("option");
+                optionEle.value = target;
+                optionEle.text = target;
+                selectEle.appendChild(optionEle);
+            }
+            th.appendChild(selectEle);
+            if(header === "Gene of Interest") selectEle.addEventListener("change", e => console.log(e.target.value))
+            else selectEle.addEventListener("change", e => console.log(e.target.value, 2));
+        }
         headerRow.appendChild(th);
     }
     tableHeaders.appendChild(headerRow);
     table.appendChild(tableHeaders);
+
+
     const selectRefSampleEle = createSelectRefSampleEle(samples);
     for(let sample of samples){
         const row = document.createElement("tr");
