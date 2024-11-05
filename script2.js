@@ -41483,6 +41483,7 @@ function createTargetSelect(targets){
  * @param {Event} e
  */
 function handleReferenceSampleChangeAll(e){
+    console.log("RefSampleChangeAll", e.target.value);
     const refsampleSelects = document.getElementsByClassName("refsample-select");
     for(let refsampleSelect of refsampleSelects) {
         refsampleSelect.value = e.target.value;
@@ -41495,6 +41496,7 @@ function handleReferenceSampleChangeAll(e){
  */
 function handleReferenceSampleChange(e){
     const userSelectedRefSample = e.target.value;
+    console.log("RefSampleChange:", userSelectedRefSample);
     /**
      * @type {classes.RtqpcrSample}
      */
@@ -41518,10 +41520,10 @@ function handleReferenceSampleChange(e){
         }
     } 
     sample.refSample = refSample;
-
+    if(sample.name === "KPCY C4") console.log("RefSample: ",sample.name);
     //Calculate the relative gene expression values
     //"ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)", "%KD"
-    sample.goi.deltadeltaCts = sample.goi.rges.map(rge => rge/refSample.goi.averageRge);
+    sample.goi.deltadeltaCts = sample.goi.rges.map(rge => rge/sample.refSample.goi.averageRge);
     sample.goi.percentKds = sample.goi.deltadeltaCts.map(deltadeltaCt => (1 - deltadeltaCt) * 100);
     document.getElementById(`${sample.name}-ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)`).textContent = sample.goi.deltadeltaCts.map(deltadeltaCt => deltadeltaCt.toFixed(2)).join(", ");
     document.getElementById(`${sample.name}-%KD`).textContent = sample.goi.percentKds.map(percentKd =>  percentKd.toFixed(2)).join(", ");
@@ -41791,46 +41793,51 @@ function handleHkgChange(e){
 
     //Get the name of the gene of interest to be able to filter for samples that only contain both targets
     const goiName = document.getElementById("goi-select").value;
+
     //All tr elements should have the class name "samples" 
     //and should have a property that references the sample object they represent in the table
     const sampleEles = document.getElementsByClassName("rge-sample");
     
-    //Calculate the ΔCt value for each non-reference gene of each sample
+    //Calculate the ΔCt value for the gene of interest
     //If a sample in a row does not have the gene of interest, set the display of the row to "none" to hide it from the UI
     for(let sampleEle of sampleEles){
         /**
          * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
-        if(!sample.targets.has(hkgName) && goiName === "None"){
+        if(goiName === "None" && !sample.targets.has(hkgName)){
             sampleEle.classList.add("hidden");
             continue;
         }
-        else if(!sample.targets.has(hkgName) || (goiName !== "None" && !sample.targets.has(goiName))){
+        else if(goiName !== "None" && (!sample.targets.has(hkgName) || !sample.targets.has(goiName))){
             sampleEle.classList.add("hidden");
             continue;
         }
 
-        if(sampleEle.classList.contains("hidden")){
-            sampleEle.classList.remove("hidden");
-        }
         const hkg = sample.targets.get(hkgName);
         sample.hkg = hkg;
+        if(sample.name === "KPCY C4") console.log("HKG: ",sample.name);
         if(goiName !== "None"){
             sample.goi = sample.targets.get(goiName);
+            
+            //Assumes that the number of replicates for all targets are the same
             sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
             sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
             sample.goi.averageRge = ss.mean(sample.goi.rges);
             document.getElementById(`${sample.name}-Gene of Interest`).textContent = goiName;
             document.getElementById(`${sample.name}-GOI Cts`).textContent = sample.goi.cqs.map(cq => cq.toFixed(2)).join(", ");
             document.getElementById(`${sample.name}-ΔCts`).textContent = sample.goi.deltaCts.map(deltaCt => deltaCt.toFixed(2)).join(", ");
-            document.getElementById(`${sample.name}-2^-ΔCts`).textContent = sample.goi.rges.map(rge => rge.toFixed(2)).join(", ");
-            const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
-            refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
+            document.getElementById(`${sample.name}-2^-ΔCts`).textContent = sample.goi.rges.map(rge => rge.toFixed(2)).join(", ");            
         } 
+        if(sampleEle.classList.contains("hidden")) sampleEle.classList.remove("hidden");
         document.getElementById(`${sample.name}-House Keeping Gene`).textContent = hkg.name;
         document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
-
+    }
+    //Send the change event to the reference sample select element AFTER the hkg & gois have been updated
+    for(let sampleEle of sampleEles){
+        const sample = sampleEle.sample;
+        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
+        refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
     }
     return null;
 }
@@ -41849,27 +41856,25 @@ function handleGoiChange(e){
     //and should have a property that references the sample object they represent in the table
     const sampleEles = document.getElementsByClassName("rge-sample");
 
-    //Calculate the ΔCt value for each non-reference gene of each sample
+    //Calculate the ΔCt value for the gene of interest
     //If a sample in a row does not have the gene of interest, set the display of the row to "none" to hide it from the UI
     for(let sampleEle of sampleEles){
         /**
          * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
-        if(!sample.targets.has(goiName) && hkgName === "None"){
+        if(hkgName === "None" && !sample.targets.has(goiName)) {
             sampleEle.classList.add("hidden");
             continue;
         }
-        else if(!sample.targets.has(goiName) || (hkgName !== "None" && !sample.targets.has(hkgName))){
+        else if(hkgName !== "None" && (!sample.targets.has(goiName) || !sample.targets.has(hkgName))){
             sampleEle.classList.add("hidden");
             continue;
         }
 
-        if(sampleEle.classList.contains("hidden")){
-            sampleEle.classList.remove("hidden");
-        }
         const goi = sample.targets.get(goiName);
         sample.goi = goi;
+        if(sample.name === "KPCY C4") console.log("GOI: ",sample.name);
         if(hkgName !== "None"){
             sample.hkg = sample.targets.get(hkgName);
             sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
@@ -41879,13 +41884,18 @@ function handleGoiChange(e){
             document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
             document.getElementById(`${sample.name}-ΔCts`).textContent = sample.goi.deltaCts.map(deltaCt => deltaCt.toFixed(2)).join(", ");
             document.getElementById(`${sample.name}-2^-ΔCts`).textContent = sample.goi.rges.map(rge => rge.toFixed(2)).join(", ");
-            const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
-            refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
         } 
-        
+
+        if(sampleEle.classList.contains("hidden")) sampleEle.classList.remove("hidden");
         document.getElementById(`${sample.name}-Gene of Interest`).textContent = goi.name;
         document.getElementById(`${sample.name}-GOI Cts`).textContent = sample.goi.cqs.map(cq => cq.toFixed(2)).join(", ");
         
+    }
+    //Send the change event to the reference sample select element AFTER the hkg & gois have been updated
+    for(let sampleEle of sampleEles){
+        const sample = sampleEle.sample;
+        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
+        refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
     }
 }
 
