@@ -65,9 +65,10 @@
  * @property {number} bestAverage - The average of the best duplicates
  * @property {number} stdev - The sample standard deviation of all cqs
  * @property {number} bestStdev - The sample standard deviation of the best duplicate
- * @property {number} deltaCt - ct (gene of interest) - ct (housekeeping gene)
- * @property {number} deltadeltaCt - ΔCt (unknown sample or target sample) - ΔCt (reference sample or control sample)
+ * @property {number[]} deltaCts - ct (gene of interest) - ct (housekeeping gene)
+ * @property {number[]} deltadeltaCts - ΔCt (unknown sample or target sample) - ΔCt (reference sample or control sample)
  * @property {number} rge - Relative Gene Expression, 2^-ΔΔCt
+ * @property {number} percentKd - The amount of knockdown relative to the reference sample expressed as a percentage
  * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
  * @property {Function} getResultsTableData - Returns a list of values that relate to the target to display in an HTML table
  */
@@ -169,9 +170,10 @@ function createRtqpcrSample(name, target, well, wellPosition){
          * @returns {string[]|number[]}
          */
         getTableData(targetName = null){
+            const numOfCols = 9
             return (
                 targetName === null?
-                [this.name, "", "", "","","","","",""]
+                [this.name, ...new Array(numOfCols).fill("")]
                 :
                 [this.name, this.targets.get(targetName).name, this.hkg.name, this.targets.get(targetName).average, this.hkg.average, this.targets.get(targetName).deltaCt,this.refSample.name, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
             

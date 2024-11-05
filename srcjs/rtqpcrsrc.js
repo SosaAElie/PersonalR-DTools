@@ -21,8 +21,6 @@ let CHART = null;
 function main(){
     document.getElementById("rawdata-input").addEventListener("input",processResultsCsv);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
-    document.getElementById("reference-gene").addEventListener("change", handleHkgTargetChange);
-    document.getElementById("gene-of-interest").addEventListener("change", handleGoiChange);
     document.getElementById("download-excel").addEventListener("click", handleDownloadExcelClick);
 }
 
@@ -61,9 +59,9 @@ async function processResultsCsv(e){
     createResultsTable(samples, targets, targetColors, inputfile.name, resultsSummaryContainer);
     createRgeTable(samples, targets, inputfile.name, rgeContainer);
 
-    const canvas = document.getElementById("canvas");
-    CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(samples, inputfile.name));
-    document.getElementById("rge-charts").appendChild(canvas);
+    // const canvas = document.getElementById("canvas");
+    // CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(samples, inputfile.name));
+    // document.getElementById("rge-charts").appendChild(canvas);
 
 }
 
@@ -79,6 +77,7 @@ function createRgeTable(samples, targets, title, container){
     const tableHeaders = document.createElement("thead");
     const tableBody = document.createElement("tbody");
     targets = ["None", ...targets];
+
     //Create table title
     const tableTitle = document.createElement("caption");
     tableTitle.textContent = "Relative Gene Expression Results: " + title;
@@ -90,13 +89,16 @@ function createRgeTable(samples, targets, title, container){
         "Sample Name",
         "Gene of Interest",
         "House-Keeping Gene",
-        "GOI Average Ct",
-        "HKG Average Ct",
-        "ΔCt",
+        "GOI Cts",
+        "HKG Cts",
+        "ΔCts",
+        "2^-ΔCts",
         "Reference Sample",
-        "ΔΔCt",
-        "Relative Gene Expression"
+        "ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)",
+        "%KD"
     ]; 
+
+    //Create table headers, adding an event listener to the appropriate headers
     const headerRow = document.createElement("tr");
     for(let header of headers){
         const th = document.createElement("th");
@@ -109,12 +111,17 @@ function createRgeTable(samples, targets, title, container){
                 optionEle.text = target;
                 selectEle.appendChild(optionEle);
             }
+            if(header === "Gene of Interest"){
+                selectEle.addEventListener("change", handleGoiChange);  
+            } 
+            else{
+                selectEle.addEventListener("change", handleHkgChange);
+            } 
             th.appendChild(selectEle);
-            if(header === "Gene of Interest") selectEle.addEventListener("change", e => console.log(e.target.value))
-            else selectEle.addEventListener("change", e => console.log(e.target.value, 2));
         }
         headerRow.appendChild(th);
     }
+
     tableHeaders.appendChild(headerRow);
     table.appendChild(tableHeaders);
 
@@ -122,41 +129,14 @@ function createRgeTable(samples, targets, title, container){
     const selectRefSampleEle = createSelectRefSampleEle(samples);
     for(let sample of samples){
         const row = document.createElement("tr");
-        row.className = "samples";
-        row.id = sample.name;
-        row.sample = sample;
+        row.className = "rge-sample";
         const sampleTableData = sample.getTableData();
         for(let j = 0; j < sampleTableData.length; j++){
             const header = headers[j];
             const td = document.createElement("td");
             if(header === "Reference Sample"){
                 const selectEle = selectRefSampleEle.cloneNode(true);
-                selectEle.addEventListener("change", e =>{
-                    const userSelectedRefSample = e.target.value;
-                    if(userSelectedRefSample === "None" || sample.hkg.name === "") return;
-                    const refSample = samples.find((val, ind, obj)=> val.name === userSelectedRefSample);
-                    refSample.isRefSample = true;
-                    refSample.color = "#E7F0DC"
-                    refSample.refSampleCount++;
-                    const prevRefSample = sample.refSample;
-                    if(prevRefSample !== null){
-                        prevRefSample.refSampleCount--;
-                        if(prevRefSample.refSampleCount === 0){
-                            prevRefSample.color = "rgba(255, 105, 105, 1)";
-                            prevRefSample.isRefSample = false;
-                        }
-                    } 
-                    sample.refSample = refSample;
-                    if(sample.goi === null) return;
-                    console.log(sample.goi);
-                    sample.goi.deltadeltaCt = sample.goi.deltaCt - refSample.goi.deltaCt;
-                    sample.goi.rge = 2**(-sample.goi.deltadeltaCt);
-                    document.getElementById(`${sample.name}-ΔΔCt`).textContent = sample.goi.deltadeltaCt.toFixed(2);
-                    document.getElementById(`${sample.name}-Relative Gene Expression`).textContent = sample.goi.rge.toFixed(2);
-                    CHART.data.datasets[0].data = samples.map(sample=>sample.goi === null?0:sample.goi.rge);
-                    CHART.data.datasets[0].backgroundColor = samples.map(sample => sample.color);
-                    CHART.update();
-                })
+                selectEle.addEventListener("change", handleSelectReferenceSample);
                 td.appendChild(selectEle);
             }
             else{
@@ -172,6 +152,42 @@ function createRgeTable(samples, targets, title, container){
 
 }
 
+/**
+ * @param {Event} e
+ */
+function handleSelectReferenceSample(e){
+    const userSelectedRefSample = e.target.value;
+    if(userSelectedRefSample === "None" || sample.hkg.name === "") return;
+    /**
+     * @type {classes.RtqpcrSample}
+     */
+    const refSample = document.getElementById(userSelectedRefSample).sample;
+    refSample.isRefSample = true;
+    refSample.color = "#E7F0DC"
+    refSample.refSampleCount++;
+
+    //Remove a reference count to the previous reference sample if there was one
+    const prevRefSample = sample.refSample;
+    if(prevRefSample !== null){
+        prevRefSample.refSampleCount--;
+        if(prevRefSample.refSampleCount === 0){
+            prevRefSample.color = "rgba(255, 105, 105, 1)";
+            prevRefSample.isRefSample = false;
+        }
+    } 
+    sample.refSample = refSample;
+
+    //Calculate the relative gene expression values if there is a GOI for the sample
+    //"ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)", "%KD"
+    if(sample.goi === null) return;
+    sample.goi.deltadeltaCt = sample.goi.deltaCt - refSample.goi.deltaCt;
+    sample.goi.rge = 2**(-sample.goi.deltadeltaCt);
+    document.getElementById(`${sample.name}-ΔΔCt`).textContent = sample.goi.deltadeltaCt.toFixed(2);
+    document.getElementById(`${sample.name}-Relative Gene Expression`).textContent = sample.goi.rge.toFixed(2);
+    // CHART.data.datasets[0].data = samples.map(sample=>sample.goi === null?0:sample.goi.rge);
+    // CHART.data.datasets[0].backgroundColor = samples.map(sample => sample.color);
+    // CHART.update();
+}
 /**
  * @param {classes.RtqpcrSample[]} samples
  * @param {string[]} targetNames
@@ -220,6 +236,7 @@ function createResultsTable(samples, targetNames, targetColors, title, container
         const tr = document.createElement("tr");
         tr.className = "results-sample";
         tr.sample = sample;
+        tr.id = sample.name;
         for (let data of sample.getResultsSummaryTableData(targetNames)){
             const td = document.createElement("td");
             td.textContent = data;
