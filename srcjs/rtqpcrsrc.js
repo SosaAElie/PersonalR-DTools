@@ -54,8 +54,6 @@ async function processResultsCsv(e){
     
     const resultsSummaryContainer = document.getElementById("results-summary-container");
     const rgeContainer = document.getElementById("rge-container");
-    updateSelectUiWithGenes(targets, "reference-gene");
-    updateSelectUiWithGenes(targets, "gene-of-interest");
     createResultsTable(samples, targets, targetColors, inputfile.name, resultsSummaryContainer);
     createRgeTable(samples, targets, inputfile.name, rgeContainer);
 
@@ -88,7 +86,7 @@ function createRgeTable(samples, targets, title, container){
     const headers = [
         "Sample Name",
         "Gene of Interest",
-        "House-Keeping Gene",
+        "House Keeping Gene",
         "GOI Cts",
         "HKG Cts",
         "ΔCts",
@@ -103,21 +101,26 @@ function createRgeTable(samples, targets, title, container){
     for(let header of headers){
         const th = document.createElement("th");
         th.textContent = header;
-        if(header === "Gene of Interest" || header === "House-Keeping Gene"){
-            const selectEle = document.createElement("select");
-            for(let target of targets){
-                const optionEle = document.createElement("option");
-                optionEle.value = target;
-                optionEle.text = target;
-                selectEle.appendChild(optionEle);
-            }
+        if(header === "Gene of Interest" || header === "House Keeping Gene" || header === "Reference Sample"){
+            
             if(header === "Gene of Interest"){
+                const selectEle = createTargetSelect(targets);
+                selectEle.id = "goi-select";
                 selectEle.addEventListener("change", handleGoiChange);  
+                th.appendChild(selectEle);
+            } 
+            else if (header === "House Keeping Gene"){
+                const selectEle = createTargetSelect(targets);
+                selectEle.id = "hkg-select";
+                selectEle.addEventListener("change", handleHkgChange);
+                th.appendChild(selectEle);
             } 
             else{
-                selectEle.addEventListener("change", handleHkgChange);
-            } 
-            th.appendChild(selectEle);
+                const selectEle = createSampleSelect(samples);
+                selectEle.id = "refsample-select-all";
+                selectEle.addEventListener("change", handleReferenceSampleChangeAll);
+                th.appendChild(selectEle);
+            }
         }
         headerRow.appendChild(th);
     }
@@ -130,13 +133,16 @@ function createRgeTable(samples, targets, title, container){
     for(let sample of samples){
         const row = document.createElement("tr");
         row.className = "rge-sample";
+        row.sample = sample;
         const sampleTableData = sample.getTableData();
         for(let j = 0; j < sampleTableData.length; j++){
             const header = headers[j];
             const td = document.createElement("td");
             if(header === "Reference Sample"){
                 const selectEle = selectRefSampleEle.cloneNode(true);
-                selectEle.addEventListener("change", handleSelectReferenceSample);
+                selectEle.className = "refsample-select";
+                selectEle.id = `${sample.name}-${header}`;
+                selectEle.addEventListener("change", handleReferenceSampleChange);
                 td.appendChild(selectEle);
             }
             else{
@@ -153,11 +159,60 @@ function createRgeTable(samples, targets, title, container){
 }
 
 /**
+ * 
+ * @param {classes.RtqpcrSample[]} samples 
+ */
+function createSampleSelect(samples){
+    const selectEle = document.createElement("select");
+    const noneOption = document.createElement("option");
+    noneOption.value = "None";
+    noneOption.text = "None";
+    selectEle.appendChild(noneOption);
+    for(let sample of samples){
+        const optionEle = document.createElement("option");
+        optionEle.value = sample.name;
+        optionEle.text = sample.name;
+        selectEle.appendChild(optionEle);
+    }
+    return selectEle;
+}
+
+/**
+ * 
+ * @param {string[]} targets 
+ */
+function createTargetSelect(targets){
+    const selectEle = document.createElement("select");
+    for(let target of targets){
+        const optionEle = document.createElement("option");
+        optionEle.value = target;
+        optionEle.text = target;
+        selectEle.appendChild(optionEle);
+    }
+    return selectEle;
+}
+
+/**
  * @param {Event} e
  */
-function handleSelectReferenceSample(e){
+function handleReferenceSampleChangeAll(e){
+    const refsampleSelects = document.getElementsByClassName("refsample-select");
+    for(let refsampleSelect of refsampleSelects) {
+        refsampleSelect.value = e.target.value;
+        refsampleSelect.dispatchEvent(new CustomEvent("change", {target:{value:e.target.value}}));
+    };
+}
+
+/**
+ * @param {Event} e
+ */
+function handleReferenceSampleChange(e){
     const userSelectedRefSample = e.target.value;
-    if(userSelectedRefSample === "None" || sample.hkg.name === "") return;
+    /**
+     * @type {classes.RtqpcrSample}
+     */
+    const sample = e.target.parentElement.parentElement.sample;
+    if(userSelectedRefSample === "None" || sample.hkg === null || sample.goi === null) return;
     /**
      * @type {classes.RtqpcrSample}
      */
@@ -177,13 +232,12 @@ function handleSelectReferenceSample(e){
     } 
     sample.refSample = refSample;
 
-    //Calculate the relative gene expression values if there is a GOI for the sample
+    //Calculate the relative gene expression values
     //"ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)", "%KD"
-    if(sample.goi === null) return;
-    sample.goi.deltadeltaCt = sample.goi.deltaCt - refSample.goi.deltaCt;
-    sample.goi.rge = 2**(-sample.goi.deltadeltaCt);
-    document.getElementById(`${sample.name}-ΔΔCt`).textContent = sample.goi.deltadeltaCt.toFixed(2);
-    document.getElementById(`${sample.name}-Relative Gene Expression`).textContent = sample.goi.rge.toFixed(2);
+    sample.goi.deltadeltaCts = sample.goi.rges.map(rge => rge/refSample.goi.averageRge);
+    sample.goi.percentKds = sample.goi.deltadeltaCts.map(deltadeltaCt => (1 - deltadeltaCt) * 100);
+    document.getElementById(`${sample.name}-ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)`).textContent = sample.goi.deltadeltaCts.map(deltadeltaCt => deltadeltaCt.toFixed(2)).join(", ");
+    document.getElementById(`${sample.name}-%KD`).textContent = sample.goi.percentKds.map(percentKd =>  percentKd.toFixed(2)).join(", ");
     // CHART.data.datasets[0].data = samples.map(sample=>sample.goi === null?0:sample.goi.rge);
     // CHART.data.datasets[0].backgroundColor = samples.map(sample => sample.color);
     // CHART.update();
@@ -444,36 +498,52 @@ function handleDownloadExcelClick(e){
  * @param {Event} e
  * @return {null}
  */
-function handleHkgTargetChange(e){
+function handleHkgChange(e){
     const hkgName = e.target.value;
     if(hkgName === "None") return;
 
+    //Get the name of the gene of interest to be able to filter for samples that only contain both targets
+    const goiName = document.getElementById("goi-select").value;
     //All tr elements should have the class name "samples" 
     //and should have a property that references the sample object they represent in the table
-    const sampleEles = document.getElementsByClassName("samples");
-
+    const sampleEles = document.getElementsByClassName("rge-sample");
+    
     //Calculate the ΔCt value for each non-reference gene of each sample
+    //If a sample in a row does not have the gene of interest, set the display of the row to "none" to hide it from the UI
     for(let sampleEle of sampleEles){
         /**
          * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
-        const hkg = sample.targets.get(hkgName);
-        if(hkg === undefined){
-            console.log(`Error: Gene of Interest not present for this sample: ${sample.name}`);
+        if(!sample.targets.has(hkgName) && goiName === "None"){
+            sampleEle.classList.add("hidden");
             continue;
-        };
-        sample.hkg = hkg;
-        document.getElementById(`${sample.name}-House-Keeping Gene`).textContent = hkg.name;
+        }
+        else if(!sample.targets.has(hkgName) || (goiName !== "None" && !sample.targets.has(goiName))){
+            sampleEle.classList.add("hidden");
+            continue;
+        }
 
-        if(sample.goi === null) continue;
-        const goi = sample.goi;
-        goi.deltaCt = goi.average - hkg.average;
-        const sampleName = sample.name;
-        document.getElementById(`${sampleName}-ΔCt`).textContent = goi.deltaCt.toFixed(2);
-        document.getElementById(`${sampleName}-GOI Average Ct`).textContent = goi.average.toFixed(2);
-        document.getElementById(`${sampleName}-HKG Average Ct`).textContent = hkg.average.toFixed(2);
-        // document.getElementById(`${sampleName}-GOI Stdev`).textContent = goi.stdev.toFixed(2);
+        if(sampleEle.classList.contains("hidden")){
+            sampleEle.classList.remove("hidden");
+        }
+        const hkg = sample.targets.get(hkgName);
+        sample.hkg = hkg;
+        if(goiName !== "None"){
+            sample.goi = sample.targets.get(goiName);
+            sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
+            sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+            sample.goi.averageRge = ss.mean(sample.goi.rges);
+            document.getElementById(`${sample.name}-Gene of Interest`).textContent = goiName;
+            document.getElementById(`${sample.name}-GOI Cts`).textContent = sample.goi.cqs.map(cq => cq.toFixed(2)).join(", ");
+            document.getElementById(`${sample.name}-ΔCts`).textContent = sample.goi.deltaCts.map(deltaCt => deltaCt.toFixed(2)).join(", ");
+            document.getElementById(`${sample.name}-2^-ΔCts`).textContent = sample.goi.rges.map(rge => rge.toFixed(2)).join(", ");
+            const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
+            refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
+        } 
+        document.getElementById(`${sample.name}-House Keeping Gene`).textContent = hkg.name;
+        document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
+
     }
     return null;
 }
@@ -485,35 +555,51 @@ function handleGoiChange(e){
     const goiName = e.target.value;
     if(goiName === "None") return;
 
-    //If both have been selected filter out the samples that don't contain both targets 
-    
+    //Get the name of the house keeping gene to be able to filter for samples that only contain both targets
+    const hkgName = document.getElementById("hkg-select").value;
+
     //All tr elements should have the class name "samples" 
     //and should have a property that references the sample object they represent in the table
-    const sampleEles = document.getElementsByClassName("results-sample");
+    const sampleEles = document.getElementsByClassName("rge-sample");
 
     //Calculate the ΔCt value for each non-reference gene of each sample
+    //If a sample in a row does not have the gene of interest, set the display of the row to "none" to hide it from the UI
     for(let sampleEle of sampleEles){
         /**
          * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
-        const sampleName = sample.name;
-        const goi = sample.targets.get(goiName);
-        if(goi === undefined){
-            console.log(`Error: Gene of Interest not present for this sample: ${sample.name}`);
+        if(!sample.targets.has(goiName) && hkgName === "None"){
+            sampleEle.classList.add("hidden");
             continue;
-        };
+        }
+        else if(!sample.targets.has(goiName) || (hkgName !== "None" && !sample.targets.has(hkgName))){
+            sampleEle.classList.add("hidden");
+            continue;
+        }
+
+        if(sampleEle.classList.contains("hidden")){
+            sampleEle.classList.remove("hidden");
+        }
+        const goi = sample.targets.get(goiName);
         sample.goi = goi;
-        document.getElementById(`${sample.name}-Gene of Interest`).textContent = goi.name;
+        if(hkgName !== "None"){
+            sample.hkg = sample.targets.get(hkgName);
+            sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
+            sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+            sample.goi.averageRge = ss.mean(sample.goi.rges);
+            document.getElementById(`${sample.name}-House Keeping Gene`).textContent = hkgName;
+            document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
+            document.getElementById(`${sample.name}-ΔCts`).textContent = sample.goi.deltaCts.map(deltaCt => deltaCt.toFixed(2)).join(", ");
+            document.getElementById(`${sample.name}-2^-ΔCts`).textContent = sample.goi.rges.map(rge => rge.toFixed(2)).join(", ");
+            const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
+            refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
+        } 
         
-        if(sample.hkg === null) continue;
-        goi.deltaCt = goi.average - sample.hkg.average;
-        document.getElementById(`${sampleName}-ΔCt`).textContent = goi.deltaCt.toFixed(2);
-        document.getElementById(`${sampleName}-GOI Average Ct`).textContent = goi.average.toFixed(2);
-        document.getElementById(`${sampleName}-HKG Average Ct`).textContent = sample.hkg.average.toFixed(2);
-        // document.getElementById(`${sampleName}-GOI Stdev`).textContent = goi.stdev.toFixed(2);
+        document.getElementById(`${sample.name}-Gene of Interest`).textContent = goi.name;
+        document.getElementById(`${sample.name}-GOI Cts`).textContent = sample.goi.cqs.map(cq => cq.toFixed(2)).join(", ");
+        
     }
-    return null;
 }
 
 /**

@@ -204,6 +204,7 @@ table, th, td{
     flex-direction: column;
     row-gap: 1rem;
     align-items: center;
+    width: 75vw;
 }
 #download-excel{
     grid-column: span 2;
@@ -211,4 +212,7 @@ table, th, td{
 td:nth-child(1){
     font-weight: bold;
     background-color: #c0bcbc83;
+}
+.hidden{
+    display: none;
 }

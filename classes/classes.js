@@ -48,7 +48,7 @@
  * @property {Function} getTableData - returns an array containing data to display on a table
  * @property {Function} getResultsSummaryTableData - returns an array containing data to display on a table
  * @property {Function} getTargetFromPosition - returns target based off the well position passed in
- * @property {Sample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
+ * @property {RtqpcrSample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
  * @property {string} color - The color that the bar in the bar graph will be to represent this sample
 */
 
@@ -67,8 +67,9 @@
  * @property {number} bestStdev - The sample standard deviation of the best duplicate
  * @property {number[]} deltaCts - ct (gene of interest) - ct (housekeeping gene)
  * @property {number[]} deltadeltaCts - ΔCt (unknown sample or target sample) - ΔCt (reference sample or control sample)
- * @property {number} rge - Relative Gene Expression, 2^-ΔΔCt
- * @property {number} percentKd - The amount of knockdown relative to the reference sample expressed as a percentage
+ * @property {number[]} rges - Relative Gene Expression, 2^-ΔCt
+ * @property {number} averageRge - Average Relative Gene Expression, 2^-ΔCt
+ * @property {number[]} percentKds - The amount of knockdown relative to the reference sample expressed as a percentage
  * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
  * @property {Function} getResultsTableData - Returns a list of values that relate to the target to display in an HTML table
  */
