@@ -157,6 +157,8 @@ function createRgeTable(samples, targets, title, container){
         }
         tableBody.appendChild(row);
     }
+    if(samples.length > 15) table.classList.add("smaller-table");
+    else table.classList.remove("smaller-table");
     table.appendChild(tableBody);
     container.appendChild(table);
 
@@ -211,11 +213,19 @@ function handleReferenceSampleChangeAll(e){
  * @param {Event} e
  */
 function handleReferenceSampleChange(e){
+    /**
+     * @type {HTMLTableRowElementElement}
+     */
+    const sampleEle = e.target.parentElement.parentElement;
+    if(sampleEle.classList.contains("hidden")) return;
     const userSelectedRefSample = e.target.value;
+    
+    
     /**
      * @type {classes.RtqpcrSample}
      */
-    const sample = e.target.parentElement.parentElement.sample;
+    const sample = sampleEle.sample;
+
     if(userSelectedRefSample === "None" || sample.hkg === null || sample.goi === null) return;
     /**
      * @type {classes.RtqpcrSample}
@@ -241,9 +251,7 @@ function handleReferenceSampleChange(e){
     sample.goi.percentKds = sample.goi.deltadeltaCts.map(deltadeltaCt => (1 - deltadeltaCt) * 100);
     document.getElementById(`${sample.name}-ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)`).textContent = sample.goi.deltadeltaCts.map(deltadeltaCt => deltadeltaCt.toFixed(2)).join(", ");
     document.getElementById(`${sample.name}-%KD`).textContent = sample.goi.percentKds.map(percentKd =>  percentKd.toFixed(2)).join(", ");
-    // CHART.data.datasets[0].data = samples.map(sample=>sample.goi === null?0:sample.goi.rge);
-    // CHART.data.datasets[0].backgroundColor = samples.map(sample => sample.color);
-    // CHART.update();
+   
 }
 /**
  * @param {classes.RtqpcrSample[]} samples
@@ -264,19 +272,19 @@ function createResultsTable(samples, targetNames, targetColors, title, container
     const tableHeaders = document.createElement("thead");
 
     const headerTitles = ["", ...targetNames];
-    const subheaderTitles = ["Name", "Wells", "All Replicates", "Ave (Stdev)", "Best Replicates"];
-    const targetHeaderWidth = 4;
+    const subheaderTitles = ["Name", "Wells", "All Replicates", "Ave (Stdev)"];
+    const targetHeaderWidth = 3;
     const headers = document.createElement("tr");
     for (let i = 0; i < headerTitles.length; i++){
         const th = document.createElement("th");
         th.textContent = headerTitles[i];
-        th.className = "header targets"
         if(headerTitles[i] !== ""){
             th.colSpan = targetHeaderWidth
             th.style.backgroundColor = targetColors[i-1];
         };
         headers.appendChild(th);
     }
+    headers.className = "header-targets";
 
     const subHeaders = document.createElement("tr");
     for(let i = 0; i < targetNames.length; i++){
@@ -301,6 +309,9 @@ function createResultsTable(samples, targetNames, targetColors, title, container
         }
         tableBody.appendChild(tr);
     }
+
+    if(samples.length > 15) table.classList.add("smaller-table");
+    else table.classList.remove("smaller-table");
 
     tableHeaders.appendChild(headers);
     tableHeaders.appendChild(subHeaders);
@@ -356,22 +367,7 @@ function createLightWeightSamples(samples){
     return Array.from(lws.values());
 }
 
-/**
- * @param {string[]} targets
- * @param {string} id - The id of the select element to update
- */
-function updateSelectUiWithGenes(targets, id){
-    const selectEleTargets = document.getElementById(id);
-    selectEleTargets.innerHTML = "";
-    const noneOptionEle = document.createElement("option");
-    noneOptionEle.textContent = "None";
-    selectEleTargets.appendChild(noneOptionEle);
-    for(let target of targets){
-        const optionEle = document.createElement("option");
-        optionEle.text = target;
-        selectEleTargets.appendChild(optionEle);
-    }
-}
+
 
 /**
  * @param {classes.RtqpcrSample[]} samples
@@ -453,29 +449,20 @@ function createRgeBarGraphOptions(samples, filename){
  * @param {Event} e
  */
 function handleDownloadExcelClick(e){
-    const sampleElements = document.getElementsByClassName("samples");
+    const sampleElements = document.getElementsByClassName("results-sample");
     if(sampleElements.length <= 0) return;
 
-    const excelData = [["Sample Name", "is Reference Sample?", "Gene of Interest", "House-Keeping Gene", "Replicates", "Best Duplicates", "GOI Average Ct", "GOI Stdev","Reference Sample", "ΔCt", "ΔΔCt", "Relative Gene Expression"]];
+    const excelData = [
+        ["Sample Name","isReferenceSample?", "Gene of Interest", "GOI Replicates", "GOI Average", "GOI Stdev","House-Keeping Gene","HKG Replicates", "HKG Average", "HKG Stdev","ΔCts","2^-ΔCts", "Reference Sample", "ΔΔCts", "%KDs"],
+    ];
     const filename = document.getElementById("filename").textContent;
     for(let sampleEle of sampleElements){
+        /**
+         * @type {classes.RtqpcrSample}
+         */
         const sample = sampleEle.sample;
-        const sampleName = sample.name;
-        const isReferenceSample = sample.isRefSample;
-        const hkg = sample.hkg;
-        const goi = sample.goi;
-        const refSample = sample.refSample;
 
-        if(hkg.name === "" || goi.name === "") continue;
-
-        const replicates = goi.cqs.map(cq => cq.toFixed(2)).join(",");
-        const bestDuplicates = goi.bestDuplicates.map(x => x.toFixed(2)).join(",");
-        const average = goi.average.toFixed(2);
-        const stdev = goi.stdev.toFixed(2);
-        const deltaCt = goi.deltaCt.toFixed(2);
-        const deltadeltaCt = goi.deltadeltaCt.toFixed(2);
-        const rge = goi.rge.toFixed(2);
-        excelData.push([sampleName, isReferenceSample, goi.name, hkg.name, replicates, bestDuplicates, average, stdev, refSample === null?"":refSample.name, deltaCt, deltadeltaCt, rge]);
+        excelData.push(sample.getExcelData());
     }
 
     //Create excel object in memory
@@ -514,6 +501,7 @@ function handleHkgChange(e){
     
     //Calculate the ΔCt value for the gene of interest
     //If a sample in a row does not have the gene of interest, set the display of the row to "none" to hide it from the UI
+    let numOfNonHiddenSampleEles = 0;
     for(let sampleEle of sampleEles){
         /**
          * @type {classes.RtqpcrSample}
@@ -521,13 +509,16 @@ function handleHkgChange(e){
         const sample = sampleEle.sample;
         if(goiName === "None" && !sample.targets.has(hkgName)){
             sampleEle.classList.add("hidden");
+            sample.isHidden = true;
             continue;
         }
         else if(goiName !== "None" && (!sample.targets.has(hkgName) || !sample.targets.has(goiName))){
             sampleEle.classList.add("hidden");
+            sample.isHidden = true;
             continue;
         }
-
+        
+        sample.isHidden = false;
         const hkg = sample.targets.get(hkgName);
         sample.hkg = hkg;
         if(goiName !== "None"){
@@ -543,16 +534,22 @@ function handleHkgChange(e){
             document.getElementById(`${sample.name}-2^-ΔCts`).textContent = sample.goi.rges.map(rge => rge.toFixed(2)).join(", ");            
         } 
         if(sampleEle.classList.contains("hidden")) sampleEle.classList.remove("hidden");
+        numOfNonHiddenSampleEles+=1;
         document.getElementById(`${sample.name}-House Keeping Gene`).textContent = hkg.name;
         document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
     }
     //Send the change event to the reference sample select element AFTER the hkg & gois have been updated
     for(let sampleEle of sampleEles){
+        if(sampleEle.classList.contains("hidden")) continue;
         const sample = sampleEle.sample;
         const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
         refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
     }
-    return null;
+
+    const table = sampleEles.item(0).parentElement.parentElement;
+    if(numOfNonHiddenSampleEles > 15) table.classList.add("smaller-table");
+    else table.classList.remove("smaller-table");
+
 }
 /**
  * @param {Event} e
@@ -571,6 +568,7 @@ function handleGoiChange(e){
 
     //Calculate the ΔCt value for the gene of interest
     //If a sample in a row does not have the gene of interest, set the display of the row to "none" to hide it from the UI
+    let numOfNonHiddenSampleEles = 0;
     for(let sampleEle of sampleEles){
         /**
          * @type {classes.RtqpcrSample}
@@ -578,13 +576,16 @@ function handleGoiChange(e){
         const sample = sampleEle.sample;
         if(hkgName === "None" && !sample.targets.has(goiName)) {
             sampleEle.classList.add("hidden");
+            sample.isHidden = true;
             continue;
         }
         else if(hkgName !== "None" && (!sample.targets.has(goiName) || !sample.targets.has(hkgName))){
             sampleEle.classList.add("hidden");
+            sample.isHidden = true;
             continue;
         }
-
+        
+        sample.isHidden = false;
         const goi = sample.targets.get(goiName);
         sample.goi = goi;
         if(hkgName !== "None"){
@@ -599,16 +600,22 @@ function handleGoiChange(e){
         } 
 
         if(sampleEle.classList.contains("hidden")) sampleEle.classList.remove("hidden");
+        numOfNonHiddenSampleEles+=1;
         document.getElementById(`${sample.name}-Gene of Interest`).textContent = goi.name;
         document.getElementById(`${sample.name}-GOI Cts`).textContent = sample.goi.cqs.map(cq => cq.toFixed(2)).join(", ");
         
     }
     //Send the change event to the reference sample select element AFTER the hkg & gois have been updated
     for(let sampleEle of sampleEles){
+        if(sampleEle.classList.contains("hidden")) continue;
         const sample = sampleEle.sample;
         const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
         refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
     }
+
+    const table = sampleEles.item(0).parentElement.parentElement;
+    if(numOfNonHiddenSampleEles > 15) table.classList.add("smaller-table");
+    else table.classList.remove("smaller-table");
 }
 
 /**
@@ -731,7 +738,6 @@ function createSamplesAndTargets(rawdata){
         ["colors", Array.from(targets.values())],
     ]);
 }
-
 
 
 function createWkbk(data, sheetname = "sheet1"){

@@ -175,12 +175,6 @@ td>input{
     top: 26px;
     background-color: rgb(221, 219, 219);
 }
-caption{
-    position: sticky;
-    top:0;
-    height: 25px;
-    background-color: rgb(221, 219, 219);
-}
 
 select{
     background-color: inherit;
@@ -219,6 +213,10 @@ input[type="number"] {
 caption{
     font-weight: bold;
     border: inherit;
+    position: sticky;
+    top:0;
+    height: 25px;
+    background-color: rgb(221, 219, 219);
 }
 
 

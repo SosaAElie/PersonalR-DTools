@@ -47,9 +47,11 @@
  * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
  * @property {Function} getTableData - returns an array containing data to display on a table
  * @property {Function} getResultsSummaryTableData - returns an array containing data to display on a table
+ * @property {Function} getExcelData - returns an array containing data to write to an excel file
  * @property {Function} getTargetFromPosition - returns target based off the well position passed in
  * @property {RtqpcrSample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
  * @property {string} color - The color that the bar in the bar graph will be to represent this sample
+ * @property {boolean} isHidden - Whether this sample is hidden on the RGE results table UI
 */
 
 /**
@@ -153,8 +155,35 @@ function createRtqpcrSample(name, target, well, wellPosition){
         goi:null,
         isRefSample:false,
         refSample:null,
+        isHidden:false,
         refSampleCount:0,
         color:"rgba(255, 105, 105, 1)",
+        /**
+         * @returns {string[]}
+         */
+        getExcelData(){
+            const precision = 2;
+            return (
+                this.goi === null || this.hkg === null?[this.name, new Array(14).fill("")]:
+                [
+                    this.name,
+                    this.isRefSample,
+                    this.goi.name,
+                    this.goi.cqs.map(cq => cq.toFixed(precision)).join(", "),
+                    this.goi.average.toFixed(precision),
+                    this.goi.stdev.toFixed(precision),
+                    this.hkg.name,
+                    this.hkg.cqs.map(cq => cq.toFixed(precision)).join(", "),
+                    this.hkg.average.toFixed(precision),
+                    this.hkg.stdev.toFixed(precision),
+                    this.goi.deltaCts.map(cq => cq.toFixed(precision)).join(", "),
+                    this.goi.rges.map(cq => cq.toFixed(precision)).join(", "),
+                    this.refSample === null?"":this.refSample.name,
+                    this.goi.deltadeltaCts.map(cq => cq.toFixed(precision)).join(", "),
+                    this.goi.percentKds.map(cq => cq.toFixed(precision)).join(", "),
+                ]
+            )
+        },
         /**
          * @param {string} wellPos
          * @returns {Target|null}
@@ -168,24 +197,18 @@ function createRtqpcrSample(name, target, well, wellPosition){
         /**
          * 
          * @param {string} targetName 
-         * @returns {string[]|number[]}
+         * @returns {string[]}
          */
         getTableData(targetName = null){
             const numOfCols = 9
-            return (
-                targetName === null?
-                [this.name, ...new Array(numOfCols).fill("")]
-                :
-                [this.name, this.targets.get(targetName).name, this.hkg.name, this.targets.get(targetName).average, this.hkg.average, this.targets.get(targetName).deltaCt,this.refSample.name, this.targets.get(targetName).deltadeltaCt, this.targets.get(target).rge]
-            
-            )
+            return [this.name, ...new Array(numOfCols).fill("")];
         },
         /**
          * @param {string[]} targetNames
          * @returns {string[]}
          */
         getResultsSummaryTableData(targetNames){
-            const valuesPerTarget = 4;
+            const valuesPerTarget = 3;
             const data = [];
             for(let targetName of targetNames){
                 if(this.targets.has(targetName)){
@@ -223,17 +246,17 @@ function createTarget(name, reporter, cq, wellNum, wellPos, color){
         average:NaN,
         bestAverage:NaN,
         stdev:NaN,
-        deltaCt:NaN,
-        deltadeltaCt:NaN,
-        rge:NaN,
+        deltaCts:[],
+        deltadeltaCts:[],
+        rges:[],
         color:color,
         pcrEfficiency:1,
+        percentKds:[],
         getResultsTableData(){
             return [
                 this.wellPositions.join(", "),
                 this.cqs.map(cq => cq.toFixed(2)).join(", "),
                 `${this.average.toFixed(2)} (${this.stdev.toFixed(2)})`,
-                this.bestDuplicates.map(duplicate => duplicate.toFixed(2)).join(", "),
             ];
         }
     }

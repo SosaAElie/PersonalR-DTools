@@ -28,7 +28,7 @@ body{
     margin-top: 10px;
 }
 
-.filenames{
+#filename{
     margin: 0;
     width:150px;
     height: auto;
@@ -36,7 +36,7 @@ body{
     overflow: hidden;
     text-wrap:nowrap;
 }
-.filenames:hover{
+#filename:hover{
     overflow: visible;
 }
 #rge-charts{
@@ -136,10 +136,7 @@ tr:hover{
     flex-direction: column;
     row-gap: 1vh;
 }
-caption{
-    font-weight: bold;
-    border: inherit;
-}
+
 #header{
     text-align: center;
     height: min-content;
@@ -190,13 +187,12 @@ button{
 button:hover{
     background-color: rgba(157, 224, 145, 0.7);
 }
-thead{
-    background-color: #c0bcbc83;
-}
-table, th, td{
-    border: 1px solid black;
-    border-collapse: collapse;
-    text-align: center;
+
+
+.smaller-table{
+    display: block;
+    overflow-y: scroll;
+    height: 65vh;
 }
 
 #tables{
@@ -215,4 +211,25 @@ td:nth-child(1){
 }
 .hidden{
     display: none;
+}
+table, th, td{
+    border: 1px solid black;
+    border-collapse: collapse;
+    text-align: center;
+}
+caption{
+    position: sticky;
+    top:0;
+    height: 45px;
+    background-color: rgb(221, 219, 219);
+    font-weight: bold;
+    border: inherit;
+}
+thead{
+    position: sticky;
+    top:46px;
+    background-color: rgb(221, 219, 219);
+}
+.header-targets{
+    height: 50px;
 }
