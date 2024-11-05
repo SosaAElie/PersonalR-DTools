@@ -7,7 +7,7 @@ body{
     /* accent-color: white;
     background-image: linear-gradient(to bottom, rgba(8, 1, 56, 0.531), #252222); */
     accent-color: black;
-    background-image: linear-gradient(to bottom, rgba(174, 219, 234, 0.998), #8b888800);   
+    background-image: linear-gradient(to bottom, rgba(199, 198, 198, 0.592), white);
     background-repeat: no-repeat;
     background-attachment: fixed;
 }
@@ -271,9 +271,9 @@ h1>a:hover{
 }
 
 #figure-container{
-    display: grid;
-    grid-template-columns: auto auto auto;
-    justify-items:center;
+    display: flex;
+    /* grid-template-columns: auto auto auto; */
+    justify-content: space-around;
 }
 
 .figures:hover{

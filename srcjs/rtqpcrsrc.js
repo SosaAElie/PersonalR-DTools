@@ -30,12 +30,16 @@ function main(){
 async function processResultsCsv(e){
     //If no file is selected immediately return with no changes to the UI
     if(e.target.files.length <= 0) return;
-    if(CHART !== null){
-        CHART.destroy();
-        document.getElementById("diagram384").innerHTML = "";
-        document.getElementById("results-summary-container").innerHTML = "";
-        document.getElementById("rge-container").innerHTML = "";
-    }
+    // if(CHART !== null){
+    //     CHART.destroy();
+    //     document.getElementById("diagram384").innerHTML = "";
+    //     document.getElementById("results-summary-container").innerHTML = "";
+    //     document.getElementById("rge-container").innerHTML = "";
+    // }
+
+    document.getElementById("diagram384").innerHTML = "";
+    document.getElementById("results-summary-container").innerHTML = "";
+    document.getElementById("rge-container").innerHTML = "";
 
     //ToDo Add another check to ensure that the file being passed in is an unedited results file from an
     //Applied BioSystems QuantStudio 7 Pro
@@ -196,7 +200,6 @@ function createTargetSelect(targets){
  * @param {Event} e
  */
 function handleReferenceSampleChangeAll(e){
-    console.log("RefSampleChangeAll", e.target.value);
     const refsampleSelects = document.getElementsByClassName("refsample-select");
     for(let refsampleSelect of refsampleSelects) {
         refsampleSelect.value = e.target.value;
@@ -209,7 +212,6 @@ function handleReferenceSampleChangeAll(e){
  */
 function handleReferenceSampleChange(e){
     const userSelectedRefSample = e.target.value;
-    console.log("RefSampleChange:", userSelectedRefSample);
     /**
      * @type {classes.RtqpcrSample}
      */
@@ -233,7 +235,6 @@ function handleReferenceSampleChange(e){
         }
     } 
     sample.refSample = refSample;
-    if(sample.name === "KPCY C4") console.log("RefSample: ",sample.name);
     //Calculate the relative gene expression values
     //"ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)", "%KD"
     sample.goi.deltadeltaCts = sample.goi.rges.map(rge => rge/sample.refSample.goi.averageRge);
@@ -529,7 +530,6 @@ function handleHkgChange(e){
 
         const hkg = sample.targets.get(hkgName);
         sample.hkg = hkg;
-        if(sample.name === "KPCY C4") console.log("HKG: ",sample.name);
         if(goiName !== "None"){
             sample.goi = sample.targets.get(goiName);
             
@@ -587,7 +587,6 @@ function handleGoiChange(e){
 
         const goi = sample.targets.get(goiName);
         sample.goi = goi;
-        if(sample.name === "KPCY C4") console.log("GOI: ",sample.name);
         if(hkgName !== "None"){
             sample.hkg = sample.targets.get(hkgName);
             sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
