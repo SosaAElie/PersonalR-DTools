@@ -225,6 +225,10 @@ caption{
     font-weight: bold;
     border: inherit;
 }
+table{
+    overflow-y: auto;
+    display: block;
+}
 thead{
     position: sticky;
     top:46px;
