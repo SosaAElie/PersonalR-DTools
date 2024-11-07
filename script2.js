@@ -257,7 +257,8 @@ process.umask = function() { return 0; };
  * @property {number} stdev - The sample standard deviation of all cqs
  * @property {number} bestStdev - The sample standard deviation of the best duplicate
  * @property {number[]} deltaCts - ct (gene of interest) - ct (housekeeping gene)
- * @property {number[]} deltadeltaCts - ΔCt (unknown sample or target sample) - ΔCt (reference sample or control sample)
+ * @property {number[]} deltadeltaCts - 2^-ΔCt(target sample) / 2^-ΔCt (reference sample)
+ * @property {number[]} averageddCt - Average 2^-ΔCt(target sample) / 2^-ΔCt (reference sample)
  * @property {number[]} rges - Relative Gene Expression, 2^-ΔCt
  * @property {number} averageRge - Average Relative Gene Expression, 2^-ΔCt
  * @property {number[]} percentKds - The amount of knockdown relative to the reference sample expressed as a percentage
@@ -437,6 +438,7 @@ function createTarget(name, reporter, cq, wellNum, wellPos, color){
         stdev:NaN,
         deltaCts:[],
         deltadeltaCts:[],
+        averageddCt:NaN,
         rges:[],
         color:color,
         pcrEfficiency:1,
@@ -41520,6 +41522,8 @@ function main(){
     document.getElementById("rawdata-input").addEventListener("input",processResultsCsv);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
     document.getElementById("download-excel").addEventListener("click", handleDownloadExcelClick);
+    document.getElementById("graph-button").addEventListener("click", createRgeGraph);
+
 }
 
 /**
@@ -41528,13 +41532,7 @@ function main(){
 async function processResultsCsv(e){
     //If no file is selected immediately return with no changes to the UI
     if(e.target.files.length <= 0) return;
-    // if(CHART !== null){
-    //     CHART.destroy();
-    //     document.getElementById("diagram384").innerHTML = "";
-    //     document.getElementById("results-summary-container").innerHTML = "";
-    //     document.getElementById("rge-container").innerHTML = "";
-    // }
-
+    if(CHART !== null) CHART.destroy();    
     document.getElementById("diagram384").innerHTML = "";
     document.getElementById("results-summary-container").innerHTML = "";
     document.getElementById("rge-container").innerHTML = "";
@@ -41558,11 +41556,27 @@ async function processResultsCsv(e){
     const rgeContainer = document.getElementById("rge-container");
     createResultsTable(samples, targets, targetColors, inputfile.name, resultsSummaryContainer);
     createRgeTable(samples, targets, inputfile.name, rgeContainer);
+}
 
-    // const canvas = document.getElementById("canvas");
-    // CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(samples, inputfile.name));
-    // document.getElementById("rge-charts").appendChild(canvas);
-
+/**
+ * @param {Event} e
+ */
+function createRgeGraph(e){
+    if(CHART !== null) CHART.destroy();
+    const canvas = document.getElementById("canvas");
+    const filename = document.getElementById("filename").textContent;
+    const title = filename.split(".csv")[0];
+    const sampleEles = document.getElementsByClassName("results-sample");
+    const nonHiddenSamples = [];
+    for(let sampleEle of sampleEles){
+        /**
+         * @type {classes.RtqpcrSample}
+         */
+        const sample = sampleEle.sample;
+        if(!sample.isHidden) nonHiddenSamples.push(sample);
+    }
+    CHART = new chartjs.Chart(canvas, createRgeBarGraphOptions(nonHiddenSamples, title));
+    document.getElementById("rge-charts").appendChild(canvas);
 }
 
 /**
@@ -41659,6 +41673,8 @@ function createRgeTable(samples, targets, title, container){
     else table.classList.remove("smaller-table");
     table.appendChild(tableBody);
     container.appendChild(table);
+    const graphSection = document.getElementById("rge-graph-section");
+    if (graphSection.style.display === "") graphSection.style.display = "flex";
 
 }
 
@@ -41746,6 +41762,7 @@ function handleReferenceSampleChange(e){
     //Calculate the relative gene expression values
     //"ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)", "%KD"
     sample.goi.deltadeltaCts = sample.goi.rges.map(rge => rge/sample.refSample.goi.averageRge);
+    sample.goi.averageddCt = ss.mean(sample.goi.deltadeltaCts);
     sample.goi.percentKds = sample.goi.deltadeltaCts.map(deltadeltaCt => (1 - deltadeltaCt) * 100);
     document.getElementById(`${sample.name}-ΔΔCts (2^-ΔCts/Reference Sample Average 2^-ΔCt)`).textContent = sample.goi.deltadeltaCts.map(deltadeltaCt => deltadeltaCt.toFixed(2)).join(", ");
     document.getElementById(`${sample.name}-%KD`).textContent = sample.goi.percentKds.map(percentKd =>  percentKd.toFixed(2)).join(", ");
@@ -41866,14 +41883,15 @@ function createLightWeightSamples(samples){
 }
 
 
-
 /**
  * @param {classes.RtqpcrSample[]} samples
- * @param {string} filename
+ * @param {string} title
  * @param {string} goi
  * @returns {chartjs.ChartConfiguration}
  */
-function createRgeBarGraphOptions(samples, filename){
+function createRgeBarGraphOptions(samples, title){
+    const goiName = samples[0].goi.name;
+    samples.sort((a, b) =>  a.goi.averageddCt-b.goi.averageddCt || isNaN(a.goi.averageddCt)-isNaN(b.goi.averageddCt))
     return {
         type:"bar",
         data:{
@@ -41881,7 +41899,7 @@ function createRgeBarGraphOptions(samples, filename){
             datasets:[
                 {
                     label:"Relative Gene Expression",
-                    data:samples.map(sample=>sample.goi === null?0:sample.goi.rge),
+                    data:samples.map(sample=>sample.goi.averageddCt),
                     backgroundColor:samples.map(sample => sample.color),
                     borderColor:"black",
                     borderWidth: 1,
@@ -41889,7 +41907,7 @@ function createRgeBarGraphOptions(samples, filename){
             ]
         },
         options:{
-            maintainAspectRatio:false,
+            maintainAspectRatio:true,
             scales:{
                 x:{
                     grid:{
@@ -41915,7 +41933,7 @@ function createRgeBarGraphOptions(samples, filename){
                     },
                     title:{
                         display:true,
-                        text:`Relative Gene Expression of GOI`,
+                        text:`Average ΔΔCt ${goiName}`,
                         font:{
                             size:18,
                             weight:"bold",
@@ -41928,7 +41946,7 @@ function createRgeBarGraphOptions(samples, filename){
             plugins:{
                 title:{
                     display:true,
-                    text: filename,
+                    text: title,
                     font:{
                         size:20,
                     },

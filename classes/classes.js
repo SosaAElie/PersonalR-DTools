@@ -68,7 +68,8 @@
  * @property {number} stdev - The sample standard deviation of all cqs
  * @property {number} bestStdev - The sample standard deviation of the best duplicate
  * @property {number[]} deltaCts - ct (gene of interest) - ct (housekeeping gene)
- * @property {number[]} deltadeltaCts - ΔCt (unknown sample or target sample) - ΔCt (reference sample or control sample)
+ * @property {number[]} deltadeltaCts - 2^-ΔCt(target sample) / 2^-ΔCt (reference sample)
+ * @property {number[]} averageddCt - Average 2^-ΔCt(target sample) / 2^-ΔCt (reference sample)
  * @property {number[]} rges - Relative Gene Expression, 2^-ΔCt
  * @property {number} averageRge - Average Relative Gene Expression, 2^-ΔCt
  * @property {number[]} percentKds - The amount of knockdown relative to the reference sample expressed as a percentage
@@ -248,6 +249,7 @@ function createTarget(name, reporter, cq, wellNum, wellPos, color){
         stdev:NaN,
         deltaCts:[],
         deltadeltaCts:[],
+        averageddCt:NaN,
         rges:[],
         color:color,
         pcrEfficiency:1,
