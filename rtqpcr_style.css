@@ -248,13 +248,14 @@ canvas{
     justify-self: center;
 }
 .steps{
-    text-align: left;
     display: flex;
-    flex-direction: column;
+    text-align: left;
     align-items: center;
+    flex-direction: column;
     line-height: 3rem;
+}
+li{
     width: 40vw;
-    justify-self: center;
 }
 .steps>h3{
     text-decoration: underline;
