@@ -14,9 +14,43 @@
         <div id = "header">
             <h1 class="roboto-bold"><a href="index.html">BioTech <b>R&D</b> Tools</a></h1>
             <p id = "description">
-                <b>Purpose: </b> To determine relative gene expression of unknowns relative to a reference.
+                <b>Purpose: </b> To calculate gene expression of unknowns relative to a reference sample. Source: <a href = "Resources/delta-cq-solaris-technote.pdf">delta-cq-solaris-technote.pdf</a>
             </p>
         </div>
+        <div class = "steps">
+            <h3>Follow the Steps Below:</h3>
+            <ol>
+                <li>
+                Download your csv file with "Results" in the file name from  
+                <a href = "https://identity.thermofisher.com/account-center/signin-identifier.html">ThermoFisher DataConnect</a>.
+                </li>
+                <li>
+                    Upload the csv results file.
+                </li>
+                <li>
+                    Ensure that the 384 well diagram matches the template used for the run.
+                    <span class = "red-text">If it does not, do not continue.</span>
+                </li>
+                <li>
+                    The table labeled "Results Summary" contains Cq/Ct values from the results file
+                    organized by target.
+                </li>
+                <li>
+                    The table labeled "Relative Gene Expression Results" allows you to:
+                    <ol class = "sub-list">
+                        <li>Select a gene of interest and house keeping gene for all samples to calculate the relative gene expression for the gene of interest.</li>
+                        <li>Select a reference sample to calculate the gene expression relative to the selected sample. <b>Each sample can have its own reference sample or the same reference sample can be applied to all.</b></li>
+                        <li>Results can be downloaded via the "Download Excel" button.</li>
+                        <li>For multiple genes of interest, select a gene then download excel file, then repeat for all remaining genes.</li>
+                    </ol>
+                </li>
+                <li>
+                    (Optional) Clicking the graph button will display the average relative gene expression for each sample as a bar graph.
+                    <ol class = "sub-list">
+                        <li><span class = "green-text">Green bars</span> are samples that have been selected as a reference sample.</li>
+                    </ol>
+                </li>
+            </ol>
         </div>
         <div id = "file-inputs">
             <label for = "rawdata-input">Upload your results from the QuantStudio 7 Pro</label>
