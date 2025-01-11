@@ -224,15 +224,27 @@ function handleReferenceSampleChangeAll(e){
 }
 
 /**
+ * @param {HTMLInputElement} element
+ * @param {string} message
+ * @param {classes.RtqpcrSample} sample
+ */
+function displayError(element, message, sample){
+    element.setCustomValidity(message);
+    element.reportValidity();
+    element.value = sample.refSample !==  null?sample.refSample.name:"";
+    return;
+}
+
+/**
  * @param {Event} e
  */
 function handleReferenceSampleChange(e){
+    console.log(this.value);
     /**
      * @type {HTMLTableRowElementElement}
      */
     const sampleEle = e.target.parentElement.parentElement.parentElement;
-    const refSampleAllEle = document.getElementById("refsample-select-all");
-    if(e.target.id !== "refsample-select-all" && refSampleAllEle.firstChild.value !== "None") refSampleAllEle.firstChild.value = "None";
+    
     if(sampleEle.classList.contains("hidden")) return;
     const userSelectedRefSample = e.target.value;
     
@@ -243,10 +255,27 @@ function handleReferenceSampleChange(e){
     const sample = sampleEle.sample;
 
     if(userSelectedRefSample === "None" || sample.hkg === null || sample.goi === null) return;
+    
+    /**
+     * @type {HTMLTableRowElement|null}
+     */
+    const refSampleEle = document.getElementById(userSelectedRefSample);
+    if(refSampleEle === null){
+        displayError(this, "Sample does not exist.", sample);
+        return;
+    }
+    
     /**
      * @type {classes.RtqpcrSample}
-     */
-    const refSample = document.getElementById(userSelectedRefSample).sample;
+    */
+   const refSample = refSampleEle.sample;
+
+   if(refSample.isHidden){
+       displayError(this, "Sample was not probed for the selected target gene.", sample);
+       return;
+    }
+
+    this.setCustomValidity("");
     refSample.isRefSample = true;
     refSample.color = "#E7F0DC"
     refSample.refSampleCount++;
@@ -348,20 +377,20 @@ function createDataListSampleEle(samples){
     const container = document.createElement("div");
     const textInputEle = document.createElement("input");
     const id = helpers.getRandomColor();
-    const selectEle = document.createElement("datalist");
+    const datalistEle = document.createElement("datalist");
     const noneOptionEle = document.createElement("option");
     noneOptionEle.textContent = "None";
-    selectEle.appendChild(noneOptionEle);
+    datalistEle.appendChild(noneOptionEle);
     for(let sample of samples){
         const optionEle = document.createElement("option");
         optionEle.textContent = sample.name;
-        selectEle.appendChild(optionEle);
+        datalistEle.appendChild(optionEle);
     }
-
     textInputEle.setAttribute("list", id);
-    selectEle.id = id;
+    textInputEle.defaultValue = "None";
+    datalistEle.id = id;
     container.appendChild(textInputEle);
-    container.appendChild(selectEle);
+    container.appendChild(datalistEle);
     return container;
 }
 
