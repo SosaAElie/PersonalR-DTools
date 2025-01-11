@@ -277,3 +277,9 @@ ol>li::marker{
 .green-text{
     color: green;
 }
+
+@media (max-width: 450px) {
+    li{
+        width: auto;
+    }
+}

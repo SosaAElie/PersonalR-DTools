@@ -376,3 +376,15 @@ button{
 button:hover{
     background-color: rgb(204, 219, 224);
 }
+
+@media (max-width: 450px) {
+    #figure-container{
+        flex-direction: column;
+    }
+    .figures>img{
+        width: 100%;
+    }
+    .figures{
+        width: auto;
+    }
+}

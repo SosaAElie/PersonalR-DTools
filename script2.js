@@ -41632,7 +41632,7 @@ function createRgeTable(samples, targets, title, container){
                 th.appendChild(selectEle);
             } 
             else{
-                const selectEle = createSampleSelect(samples);
+                const selectEle = createDataListSampleEle(samples);
                 selectEle.id = "refsample-select-all";
                 selectEle.addEventListener("change", handleReferenceSampleChangeAll);
                 th.appendChild(selectEle);
@@ -41645,7 +41645,7 @@ function createRgeTable(samples, targets, title, container){
     table.appendChild(tableHeaders);
 
 
-    const selectRefSampleEle = createSelectRefSampleEle(samples);
+    const selectRefSampleEle = createDataListSampleEle(samples);
     for(let sample of samples){
         const row = document.createElement("tr");
         row.className = "rge-sample";
@@ -41658,7 +41658,7 @@ function createRgeTable(samples, targets, title, container){
                 const selectEle = selectRefSampleEle.cloneNode(true);
                 selectEle.className = "refsample-select";
                 selectEle.id = `${sample.name}-${header}`;
-                selectEle.addEventListener("change", handleReferenceSampleChange);
+                selectEle.firstChild.addEventListener("change", handleReferenceSampleChange);
                 td.appendChild(selectEle);
             }
             else{
@@ -41718,8 +41718,8 @@ function createTargetSelect(targets){
 function handleReferenceSampleChangeAll(e){
     const refsampleSelects = document.getElementsByClassName("refsample-select");
     for(let refsampleSelect of refsampleSelects) {
-        refsampleSelect.value = e.target.value;
-        refsampleSelect.dispatchEvent(new CustomEvent("change", {target:{value:e.target.value}}));
+        refsampleSelect.firstChild.value = e.target.value;
+        refsampleSelect.firstChild.dispatchEvent(new CustomEvent("change", {target:{value:e.target.value}}));
     };
 }
 
@@ -41730,7 +41730,9 @@ function handleReferenceSampleChange(e){
     /**
      * @type {HTMLTableRowElementElement}
      */
-    const sampleEle = e.target.parentElement.parentElement;
+    const sampleEle = e.target.parentElement.parentElement.parentElement;
+    const refSampleAllEle = document.getElementById("refsample-select-all");
+    if(e.target.id !== "refsample-select-all" && refSampleAllEle.firstChild.value !== "None") refSampleAllEle.firstChild.value = "None";
     if(sampleEle.classList.contains("hidden")) return;
     const userSelectedRefSample = e.target.value;
     
@@ -41839,9 +41841,14 @@ function createResultsTable(samples, targetNames, targetColors, title, container
 
 /**
  * @param {Sample[]} samples
+ * @returns {HTMLElement}
  */
-function createSelectRefSampleEle(samples){
-    const selectEle = document.createElement("select");
+function createDataListSampleEle(samples){
+    // const selectEle = document.createElement("select");
+    const container = document.createElement("div");
+    const textInputEle = document.createElement("input");
+    const id = helpers.getRandomColor();
+    const selectEle = document.createElement("datalist");
     const noneOptionEle = document.createElement("option");
     noneOptionEle.textContent = "None";
     selectEle.appendChild(noneOptionEle);
@@ -41850,7 +41857,12 @@ function createSelectRefSampleEle(samples){
         optionEle.textContent = sample.name;
         selectEle.appendChild(optionEle);
     }
-    return selectEle;
+
+    textInputEle.setAttribute("list", id);
+    selectEle.id = id;
+    container.appendChild(textInputEle);
+    container.appendChild(selectEle);
+    return container;
 }
 
 /**
