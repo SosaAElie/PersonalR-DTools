@@ -48,7 +48,7 @@
  * @property {Function} getTableData - returns an array containing data to display on a table
  * @property {Function} getResultsSummaryTableData - returns an array containing data to display on a table
  * @property {Function} getExcelData - returns an array containing data to write to an excel file
- * @property {Function} getTargetFromPosition - returns target based off the well position passed in
+ * @property {Function} getTargetsFromPosition - returns target based off the well position passed in
  * @property {RtqpcrSample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
  * @property {string} color - The color that the bar in the bar graph will be to represent this sample
  * @property {boolean} isHidden - Whether this sample is hidden on the RGE results table UI
@@ -187,13 +187,14 @@ function createRtqpcrSample(name, target, well, wellPosition){
         },
         /**
          * @param {string} wellPos
-         * @returns {Target|null}
+         * @returns {Target[]|null[]}
          */
-        getTargetFromPosition(wellPos){
+        getTargetsFromPosition(wellPos){
+            const targets = []
             for(let target of this.targets.values()){
-                if(target.wellPositions.includes(wellPos)) return target;
+                if(target.wellPositions.includes(wellPos)) targets.push(target);
             }
-            return null;
+            return targets;
         },
         /**
          * 

@@ -10,8 +10,8 @@ let CHART = null;
  * @property {string} wellPosition - The well position the sample was loaded in
  * @property {number} wellNumber - The well number the same was loaded in
  * @property {string} name - The name of the sample
- * @property {string} color - The color of the target
- * @property {string} targetName - The name of the target
+ * @property {string[]} colors - The color of the target
+ * @property {string[]} targetNames - The name of the target
  */
 
 
@@ -404,20 +404,34 @@ function createLightWeightSamples(samples){
     for(let i = 1; i < 385; i++){
         let wellPositionNumber = i%24;
         if(wellPositionNumber === 0) wellPositionNumber = 24;
-        lws.set(i, {name:"None", wellPosition:`${wellPositionLetter}${wellPositionNumber}`, wellNumber:i});
+        lws.set(i, {name:"none", wellPosition:`${wellPositionLetter}${wellPositionNumber}`, wellNumber:i, colors:[]});
         if(i%24 === 0) wellPositionLetter = String.fromCharCode((wellPositionLetter.charCodeAt(0)+1));
     }
     for(let sample of samples){
         for(let i = 0; i < sample.wellPositions.length; i++){
-            const target = sample.getTargetFromPosition(sample.wellPositions[i]);
+            /**
+             * @type {classes.Target[]}
+             */
+            const targets = sample.getTargetsFromPosition(sample.wellPositions[i]);
             lws.set(sample.wells[i], 
                 {
                     name:sample.name,
                     wellPosition:sample.wellPositions[i],
                     wellNumber:sample.wells[i],
-                    targetName:target.name,
-                    color:target.color,
+                    targetName:targets.map(target => target.name),
+                    colors:targets.map(target => target.color),
                 });
+            // if (lws.get(sample.wells[i]).name !== "none") lws.get(sample.wells[i]).colors.push(targets.color);
+            // else{
+            //     lws.set(sample.wells[i], 
+            //         {
+            //             name:sample.name,
+            //             wellPosition:sample.wellPositions[i],
+            //             wellNumber:sample.wells[i],
+            //             targetName:targets.name,
+            //             colors:[targets.color],
+            //         });
+            // }
         }
     }
     return Array.from(lws.values());
@@ -811,6 +825,7 @@ function createWkbk(data, sheetname = "sheet1"){
  * @returns {void}
 **/
 function diagram384Well(lightSamples, parent, diagramTitle){
+    console.log(lightSamples)
     const title = document.createElement("h3");
     title.id = "diagram-title";
     title.textContent = diagramTitle;
@@ -825,8 +840,12 @@ function diagram384Well(lightSamples, parent, diagramTitle){
         circularDiv.className = "well";
         circularDiv.appendChild(hoverText);
         circularDiv.appendChild(wellPosition)
-        if(sample.name.toUpperCase()!=="NONE") circularDiv.style.backgroundColor = sample.color;
         parent.appendChild(circularDiv);
+        if(sample.name.toLowerCase() === "none") continue;
+        //If there is only 1 color, then there is only 1 target being probed for in the well, set the color of the well to the only color in the array
+        //else determine the starting and end points of each color of each target based off of their index and the length of the array and set the well to those colors
+        if(sample.colors.length === 1) circularDiv.style.backgroundColor = sample.colors[0];
+        else circularDiv.style.background = `repeating-linear-gradient(to right, ${sample.colors.map((color, i, arr) =>  `${color} ${(i/arr.length)*100}% ${(i+1/arr.length)*100}%`).join(",")})`;
     }
 }
 
