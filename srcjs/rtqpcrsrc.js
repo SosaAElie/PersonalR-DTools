@@ -104,7 +104,7 @@ function createRgeTable(samples, targets, title, container){
         "Gene of Interest",
         "House Keeping Gene",
         "GOI Cts",
-        "HKG Cts",
+        "HGK Average",
         "ΔCts",
         "2^-ΔCts",
         "Reference Sample",
@@ -421,17 +421,6 @@ function createLightWeightSamples(samples){
                     targetName:targets.map(target => target.name),
                     colors:targets.map(target => target.color),
                 });
-            // if (lws.get(sample.wells[i]).name !== "none") lws.get(sample.wells[i]).colors.push(targets.color);
-            // else{
-            //     lws.set(sample.wells[i], 
-            //         {
-            //             name:sample.name,
-            //             wellPosition:sample.wellPositions[i],
-            //             wellNumber:sample.wells[i],
-            //             targetName:targets.name,
-            //             colors:[targets.color],
-            //         });
-            // }
         }
     }
     return Array.from(lws.values());
@@ -595,10 +584,10 @@ function handleHkgChange(e){
         if(goiName !== "None"){
             sample.goi = sample.targets.get(goiName);
             
-            //Assumes that the number of replicates for all targets are the same
-            sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
-            sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
-            sample.goi.averageRge = ss.mean(sample.goi.rges);
+            // Assumes that the number of replicates for all targets are the same
+            // sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
+            // sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+            // sample.goi.averageRge = ss.mean(sample.goi.rges);
             document.getElementById(`${sample.name}-Gene of Interest`).textContent = goiName;
             document.getElementById(`${sample.name}-GOI Cts`).textContent = sample.goi.cqs.map(cq => cq.toFixed(2)).join(", ");
             document.getElementById(`${sample.name}-ΔCts`).textContent = sample.goi.deltaCts.map(deltaCt => deltaCt.toFixed(2)).join(", ");
@@ -607,7 +596,8 @@ function handleHkgChange(e){
         if(sampleEle.classList.contains("hidden")) sampleEle.classList.remove("hidden");
         numOfNonHiddenSampleEles+=1;
         document.getElementById(`${sample.name}-House Keeping Gene`).textContent = hkg.name;
-        document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
+        // document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
+        document.getElementById(`${sample.name}-HGK Average`).textContent = sample.hkg.average.toFixed(2);
     }
     //Send the change event to the reference sample select element AFTER the hkg & gois have been updated
     for(let sampleEle of sampleEles){
@@ -665,7 +655,7 @@ function handleGoiChange(e){
             sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
             sample.goi.averageRge = ss.mean(sample.goi.rges);
             document.getElementById(`${sample.name}-House Keeping Gene`).textContent = hkgName;
-            document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
+            document.getElementById(`${sample.name}-HGK Average`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
             document.getElementById(`${sample.name}-ΔCts`).textContent = sample.goi.deltaCts.map(deltaCt => deltaCt.toFixed(2)).join(", ");
             document.getElementById(`${sample.name}-2^-ΔCts`).textContent = sample.goi.rges.map(rge => rge.toFixed(2)).join(", ");
         } 
@@ -694,15 +684,29 @@ function handleGoiChange(e){
  * @return {null}
  */
 function updateSampleAverageStdev(samples){
-    //Mutates the sample objects in the sample map by updating the average, stdev, bestDuplicates properties of the Target object property of the Sample
+    //Mutates the sample objects in the sample map by updating
+    //the average, stdev, bestDuplicates properties of the Target object property of the Sample
     for(let sample of samples){
         for(let target of sample.targets.values()){
-            target.bestDuplicates = getBestDuplicates(target.cqs);
-            target.bestAverage = ss.mean(target.bestDuplicates);
-            target.average = ss.mean(target.cqs);
-            if(target.cqs.length > 1) target.bestStdev = ss.sampleStandardDeviation(target.bestDuplicates);
-            if(target.cqs.length > 1) target.stdev = ss.sampleStandardDeviation(target.cqs);
-            else target.stdev = NaN;
+            const validCqs = target.cqs.filter( cq => !isNaN(cq));
+            target.validCqs = validCqs;
+            if(validCqs.length === 0){
+                continue;
+            }
+            else if(validCqs.length === 1){
+                target.bestDuplicates = validCqs;
+                target.bestAverage = validCqs[0];
+                target.bestStdev = NaN;
+                target.average = validCqs[0];
+                target.stdev = NaN;
+            }
+            else{
+                target.bestDuplicates = getBestDuplicates(target.validCqs);
+                target.bestAverage = ss.mean(target.bestDuplicates);
+                target.bestStdev = ss.sampleStandardDeviation(target.bestDuplicates);
+                target.average = ss.mean(target.validCqs);
+                target.stdev = ss.sampleStandardDeviation(target.validCqs);
+            }
         }
     }
     return null
@@ -765,28 +769,31 @@ function createSamplesAndTargets(rawdata){
         //If Sample and Target exists append well & well position to Sample (if necessary) & Cq to Target cqs
         if(arr.length > minLength && foundHeaders){
             const sampleData = [];
+            
+            //Collect all the relavent data from the row
             for(let i = 0; i < headerIndices.length; i++){
-                if(importantHeaders[i] === "Well" || importantHeaders[i] === "Cq" ){
-                    sampleData.push(parseFloat(arr[headerIndices[i]]));
-                }
-                else{
-                    sampleData.push(arr[headerIndices[i]]);
-                }
+                if(importantHeaders[i] === "Well" || importantHeaders[i] === "Cq" ) sampleData.push(parseFloat(arr[headerIndices[i]]));
+                else sampleData.push(arr[headerIndices[i]]);
             };
+
+            //TODO: Continue determing the number of NaNs here in order to calculate
+            //Cq average when there is at least 1 NaN value present
             const [sampleName, targetName, wellNumber, wellPosition, reporter, cq] = sampleData;
-            let color = helpers.getRandomColor(0.3);
+            let color = helpers.getRandomColor(0.4);
+            if(targets.has(targetName)) color = targets.get(targetName);
+            else targets.set(targetName, color)
+
             if(!samples.has(sampleName)){
-                if(targets.has(targetName)) color = targets.get(targetName);
-                else targets.set(targetName, color)
                 const target = classes.createTarget(targetName, reporter, cq, wellNumber, wellPosition, color);
+                if(isNaN(cq)) target.numberNaN++;
                 const sample = classes.createRtqpcrSample(sampleName, target, wellNumber, wellPosition);
                 samples.set(sample.name, sample);
             }
             else{
                 const sample = samples.get(sampleName);
                 if(!sample.targets.has(targetName)){
-                    if(targets.has(targetName)) color = targets.get(targetName);
-                    else targets.set(targetName, color)
+                    // if(targets.has(targetName)) color = targets.get(targetName);
+                    // else targets.set(targetName, color)
                     const target = classes.createTarget(targetName, reporter, cq, wellNumber, wellPosition, color);
                     targets.has(target.name)?"":targets.set(target.name, target.name)
                     sample.targets.set(target.name, target);                    
@@ -800,6 +807,9 @@ function createSamplesAndTargets(rawdata){
                     sample.wells.push(wellNumber);
                     sample.wellPositions.push(wellPosition);
                 }
+                //After creating or updating the target
+                //update the targets number of NaNs property
+                if(isNaN(cq)) sample.targets.get(targetName).numberNaN++;
             }
         }
     }
@@ -825,7 +835,6 @@ function createWkbk(data, sheetname = "sheet1"){
  * @returns {void}
 **/
 function diagram384Well(lightSamples, parent, diagramTitle){
-    console.log(lightSamples)
     const title = document.createElement("h3");
     title.id = "diagram-title";
     title.textContent = diagramTitle;

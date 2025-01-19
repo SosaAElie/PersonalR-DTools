@@ -62,6 +62,7 @@
  * @property {string[]} wellPositions - The wells that this target is associated with, i.e A1, B2, etc.
  * @property {string} reporter - The associated fluorescent reporter
  * @property {number[]} cqs - The associated Ct/Cq values
+ * @property {number[]} validCqs - All Cqs that are not NaN
  * @property {number[]} bestDuplicates - The best duplicates out of the total replicates in a run
  * @property {number} average - The average of all cqs
  * @property {number} bestAverage - The average of the best duplicates
@@ -74,6 +75,7 @@
  * @property {number} averageRge - Average Relative Gene Expression, 2^-ΔCt
  * @property {number[]} percentKds - The amount of knockdown relative to the reference sample expressed as a percentage
  * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
+ * @property {number} numberNaN - The number of NaN cts that the Target has
  * @property {Function} getResultsTableData - Returns a list of values that relate to the target to display in an HTML table
  */
 
@@ -152,8 +154,8 @@ function createRtqpcrSample(name, target, well, wellPosition){
         targets:new Map([[target.name, target]]),
         wells:[well],
         wellPositions:[wellPosition],
-        hkg:null,
-        goi:null,
+        _hkg:null,
+        _goi:null,
         isRefSample:false,
         refSample:null,
         isHidden:false,
@@ -224,7 +226,47 @@ function createRtqpcrSample(name, target, well, wellPosition){
                 this.name,
                 ...data,
             ]
-        }
+        },
+        /**
+         * @param {Target} target
+         */
+        set hkg(target){
+            console.log("setter hkg");
+            this._hkg = target;
+            if(this.goi){
+                //Calculate the delta ct of the GOI based off of the AVERAGE of the HKG
+                this.goi.deltaCts = this.goi.cqs.map(cq => cq - target.average);
+                this.goi.rges = this.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+                this.goi.averageRge = this.goi.rges.reduce((prev, curr) => prev + curr)/(this.goi.rges.length - this.goi.numberNaN);
+            }
+        },
+        /**
+         * @returns {Target}
+         */
+        get hkg(){
+            console.log("getter hkg");
+            return this._hkg;
+        },
+        /**
+         * @param {Target} target
+        */
+       set goi(target){
+            console.log("setter goi");
+            this._goi = target;
+            if(this.hkg){
+                //Calculate the delta ct of the GOI based off of the AVERAGE of the HKG
+                this.goi.deltaCts = this.goi.cqs.map(cq => cq - this.hkg.average);
+                this.goi.rges = this.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+                this.goi.averageRge = this.goi.rges.reduce((prev, curr) => isNaN(curr)?prev:prev + curr)/(this.goi.rges.length - this.goi.numberNaN);
+            }
+        },
+        /**
+         * @returns {Target}
+        */
+       get goi(){
+            console.log("getter goi");
+            return this._goi;
+        },
     }
 }
 
@@ -244,14 +286,18 @@ function createTarget(name, reporter, cq, wellNum, wellPos, color){
         wellPositions:[wellPos],
         reporter,
         cqs:[cq],
+        validCqs:[],
         bestDuplicates:[],
         average:NaN,
         bestAverage:NaN,
         stdev:NaN,
+        bestStdev:NaN,
+        averageRge:NaN,
         deltaCts:[],
         deltadeltaCts:[],
         averageddCt:NaN,
         rges:[],
+        numberNaN:0,
         color:color,
         pcrEfficiency:1,
         percentKds:[],
