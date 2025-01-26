@@ -239,7 +239,8 @@ function displayError(element, message, sample){
  * @param {Event} e
  */
 function handleReferenceSampleChange(e){
-    console.log(this.value);
+    
+    //This grabs the row element from where the event originated from
     /**
      * @type {HTMLTableRowElementElement}
      */
@@ -509,24 +510,72 @@ function createRgeBarGraphOptions(samples, title){
  * @param {Event} e
  */
 function handleDownloadExcelClick(e){
+    //If there are no samples present then return immediately
     const sampleElements = document.getElementsByClassName("results-sample");
     if(sampleElements.length <= 0) return;
 
-    const excelData = [
-        ["Sample Name","isReferenceSample?", "Gene of Interest", "GOI Replicates", "GOI Average", "GOI Stdev","House-Keeping Gene","HKG Replicates", "HKG Average", "HKG Stdev","ΔCts","2^-ΔCts", "Reference Sample", "ΔΔCts", "%KDs"],
-    ];
+    //Grab the name of all targets via the goi-select or hkg-select elements
+    //Removes the first string since it should be "None"
+    const targetNames = Array.from(document.getElementById("goi-select").children)
+                            .map(optionEle => optionEle.textContent)
+                            .slice(1);
+
+
+    /**
+     * @type {classes.RtqpcrSample[]}
+     */
+    const samples = [];
     const filename = document.getElementById("filename").textContent;
+    const headers = ["Sample",];
+    for(let targetName of targetNames){
+        headers.push(`${targetName}:Wells`);
+        headers.push(`${targetName}:Cqs`);
+        headers.push(`${targetName}:Cq Average (StDev)`);
+    }
+
+    const cqResults = [
+        headers,
+    ];
+
     for(let sampleEle of sampleElements){
         /**
          * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
-
-        excelData.push(sample.getExcelData());
+        samples.push(sample);
+        cqResults.push(sample.getResultsSummaryTableData(targetNames));
     }
 
     //Create excel object in memory
-    const wkbk = createWkbk(excelData, "results");
+    const wkbk = createWkbk(cqResults, "Cq Results");
+
+    for (let targetName of targetNames){
+        const rgeExcelData = [
+            ["Sample",
+            "isReferenceSample?",
+            "Gene of Interest",
+            "GOI Cqs",
+            "GOI Average",
+            "GOI Stdev",
+            "House-Keeping Gene",
+            "HKG Cqs",
+            "HKG Average",
+            "HKG Stdev",
+            "ΔCts",
+            "2^-ΔCts",
+            "Reference Sample",
+            "ΔΔCts",
+            "%KDs",
+            ],
+        ];
+        for (let sample of samples){
+            const excelData = sample.getExcelData(targetName);
+            if(excelData === null) continue;
+            rgeExcelData.push(excelData);
+        }
+        appendWorksheet(wkbk, rgeExcelData, targetName);
+    }
+        
     const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
     const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 
@@ -534,10 +583,10 @@ function handleDownloadExcelClick(e){
     const link = window.URL.createObjectURL(blob);
     const anchorElem = document.createElement("a");
     anchorElem.href = link;
-    anchorElem.download = filename.replace(".csv", ".xlsx");
+    anchorElem.download = filename.replace(".csv", "_Results.xlsx");
 
     //Prevent the bubbling of the click event that is initiated when the parent button element is clicked
-    anchorElem.addEventListener("click", e => e.stopPropagation())
+    anchorElem.addEventListener("click", e => e.stopPropagation());
     anchorElem.click();
 
     //Clean up
@@ -583,7 +632,7 @@ function handleHkgChange(e){
         sample.hkg = hkg;
         if(goiName !== "None"){
             sample.goi = sample.targets.get(goiName);
-            
+            sample.goi.hkg = hkg;
             // Assumes that the number of replicates for all targets are the same
             // sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
             // sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
@@ -603,7 +652,7 @@ function handleHkgChange(e){
     for(let sampleEle of sampleEles){
         if(sampleEle.classList.contains("hidden")) continue;
         const sample = sampleEle.sample;
-        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
+        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`).firstChild;;
         refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
     }
 
@@ -635,11 +684,13 @@ function handleGoiChange(e){
          * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
+        //This condition filters the samples when only the GOI has been selected, but no HKG has been selected yet
         if(hkgName === "None" && !sample.targets.has(goiName)) {
             sampleEle.classList.add("hidden");
             sample.isHidden = true;
             continue;
         }
+        //If a HKG has been selected then filter samples based on whether they have the GOI or the HKG
         else if(hkgName !== "None" && (!sample.targets.has(goiName) || !sample.targets.has(hkgName))){
             sampleEle.classList.add("hidden");
             sample.isHidden = true;
@@ -651,11 +702,12 @@ function handleGoiChange(e){
         sample.goi = goi;
         if(hkgName !== "None"){
             sample.hkg = sample.targets.get(hkgName);
-            sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
-            sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
-            sample.goi.averageRge = ss.mean(sample.goi.rges);
+            goi.hkg = sample.hkg;
+            // sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
+            // sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+            // sample.goi.averageRge = ss.mean(sample.goi.rges);
             document.getElementById(`${sample.name}-House Keeping Gene`).textContent = hkgName;
-            document.getElementById(`${sample.name}-HGK Average`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
+            document.getElementById(`${sample.name}-HGK Average`).textContent = sample.hkg.average.toFixed(2);
             document.getElementById(`${sample.name}-ΔCts`).textContent = sample.goi.deltaCts.map(deltaCt => deltaCt.toFixed(2)).join(", ");
             document.getElementById(`${sample.name}-2^-ΔCts`).textContent = sample.goi.rges.map(rge => rge.toFixed(2)).join(", ");
         } 
@@ -670,7 +722,7 @@ function handleGoiChange(e){
     for(let sampleEle of sampleEles){
         if(sampleEle.classList.contains("hidden")) continue;
         const sample = sampleEle.sample;
-        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
+        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`).firstChild;
         refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
     }
 
@@ -856,6 +908,35 @@ function diagram384Well(lightSamples, parent, diagramTitle){
         if(sample.colors.length === 1) circularDiv.style.backgroundColor = sample.colors[0];
         else circularDiv.style.background = `repeating-linear-gradient(to right, ${sample.colors.map((color, i, arr) =>  `${color} ${(i/arr.length)*100}% ${(i+1/arr.length)*100}%`).join(",")})`;
     }
+}
+
+/**
+ * @param {xlsx.WorkBook} wkbk
+ * @param {string[][]} data
+ * @param {string} wkstName
+ * @param {string} image
+ * @returns {null}
+ */
+function appendWorksheet(wkbk, data, wkstName, image = null){
+    if(image !== null){
+        wkbk.Sheets["graph"]["!images"] = [
+            {
+                name: 'image1.jpg',
+                data: image,
+                opts: { base64: true },
+                position: {
+                    type: 'twoCellAnchor',
+                    attrs: { editAs: 'oneCell' },
+                    from: { col: 2, row : 2 },
+                    to: { col: 6, row: 5 }
+                }
+            }
+        ]
+        return null;
+    }
+    const wkst = xlsx.utils.aoa_to_sheet(data);
+    xlsx.utils.book_append_sheet(wkbk, wkst, wkstName);
+    return null;
 }
 
 main()

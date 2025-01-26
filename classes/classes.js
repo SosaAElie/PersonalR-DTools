@@ -41,13 +41,13 @@
  * @property {Map<string, Target>} targets - The target genes
  * @property {number[]} wells - The well numbers the sample was loaded in i.e 1,2,3...384
  * @property {string[]} wellPositions - The well positions the sample was loaded in i.e A1, B1, C1, etc.
- * @property {Target|null} hkg - House Keeping Gene
- * @property {Target|null} goi - Gene of Interest
+ * @property {Target|null} hkg - The current House Keeping Gene
+ * @property {Target|null} goi - The current Gene of Interest
  * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
  * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
  * @property {Function} getTableData - returns an array containing data to display on a table
  * @property {Function} getResultsSummaryTableData - returns an array containing data to display on a table
- * @property {Function} getExcelData - returns an array containing data to write to an excel file
+ * @property {Function} getExcelData - returns an array containing target relative gene expression data to write to an excel file
  * @property {Function} getTargetsFromPosition - returns target based off the well position passed in
  * @property {RtqpcrSample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
  * @property {string} color - The color that the bar in the bar graph will be to represent this sample
@@ -76,6 +76,7 @@
  * @property {number[]} percentKds - The amount of knockdown relative to the reference sample expressed as a percentage
  * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
  * @property {number} numberNaN - The number of NaN cts that the Target has
+ * @property {Target} hkg - The house keeping gene used to calculate the values stored in the this target
  * @property {Function} getResultsTableData - Returns a list of values that relate to the target to display in an HTML table
  */
 
@@ -162,28 +163,30 @@ function createRtqpcrSample(name, target, well, wellPosition){
         refSampleCount:0,
         color:"rgba(255, 105, 105, 1)",
         /**
-         * @returns {string[]}
+         * @param {string} targetName
+         * @returns {string[]|null}
          */
-        getExcelData(){
+        getExcelData(targetName){
             const precision = 2;
+            const target = this.targets.get(targetName);
             return (
-                this.goi === null || this.hkg === null?[this.name, new Array(14).fill("")]:
+                target === undefined || target.hkg === null ? null:
                 [
                     this.name,
                     this.isRefSample,
-                    this.goi.name,
-                    this.goi.cqs.map(cq => cq.toFixed(precision)).join(", "),
-                    this.goi.average.toFixed(precision),
-                    this.goi.stdev.toFixed(precision),
-                    this.hkg.name,
-                    this.hkg.cqs.map(cq => cq.toFixed(precision)).join(", "),
-                    this.hkg.average.toFixed(precision),
-                    this.hkg.stdev.toFixed(precision),
-                    this.goi.deltaCts.map(cq => cq.toFixed(precision)).join(", "),
-                    this.goi.rges.map(cq => cq.toFixed(precision)).join(", "),
+                    target.name,
+                    target.cqs.map(cq => cq.toFixed(precision)).join(", "),
+                    target.average.toFixed(precision),
+                    target.stdev.toFixed(precision),
+                    target.hkg.name,
+                    target.hkg.cqs.map(cq => cq.toFixed(precision)).join(", "),
+                    target.hkg.average.toFixed(precision),
+                    target.hkg.stdev.toFixed(precision),
+                    target.deltaCts.map(cq => cq.toFixed(precision)).join(", "),
+                    target.rges.map(cq => cq.toFixed(precision)).join(", "),
                     this.refSample === null?"":this.refSample.name,
-                    this.goi.deltadeltaCts.map(cq => cq.toFixed(precision)).join(", "),
-                    this.goi.percentKds.map(cq => cq.toFixed(precision)).join(", "),
+                    target.deltadeltaCts.map(cq => cq.toFixed(precision)).join(", "),
+                    target.percentKds.map(cq => cq.toFixed(precision)).join(", "),
                 ]
             )
         },
@@ -231,7 +234,6 @@ function createRtqpcrSample(name, target, well, wellPosition){
          * @param {Target} target
          */
         set hkg(target){
-            console.log("setter hkg");
             this._hkg = target;
             if(this.goi){
                 //Calculate the delta ct of the GOI based off of the AVERAGE of the HKG
@@ -244,14 +246,12 @@ function createRtqpcrSample(name, target, well, wellPosition){
          * @returns {Target}
          */
         get hkg(){
-            console.log("getter hkg");
             return this._hkg;
         },
         /**
          * @param {Target} target
         */
        set goi(target){
-            console.log("setter goi");
             this._goi = target;
             if(this.hkg){
                 //Calculate the delta ct of the GOI based off of the AVERAGE of the HKG
@@ -264,7 +264,6 @@ function createRtqpcrSample(name, target, well, wellPosition){
          * @returns {Target}
         */
        get goi(){
-            console.log("getter goi");
             return this._goi;
         },
     }
@@ -301,6 +300,7 @@ function createTarget(name, reporter, cq, wellNum, wellPos, color){
         color:color,
         pcrEfficiency:1,
         percentKds:[],
+        hkg:null,
         getResultsTableData(){
             return [
                 this.wellPositions.join(", "),
