@@ -13,6 +13,7 @@ let BARGRAPH = null;
  * @property {string} wellPosition - The well position the sample was loaded in
  * @property {number} wellNumber - The well number the same was loaded in
  * @property {string} name - The name of the sample
+ * @property {number} absorbance - The absorbance value of the sample in the well
  * @property {string} type - The type of the sample
  */
 
@@ -187,7 +188,7 @@ async function merge(rawdataFile, templateFile){
             const type = parsedSample.get("type");
 
             //Create a light sample object for each item in the template
-            lightweightSamples.push({name, wellNumber, wellPosition, type});
+            lightweightSamples.push({name, wellNumber, wellPosition, type, absorbance:y});
 
             //Skip over the samples labeled as none
             if(name === "none") continue;
@@ -883,7 +884,7 @@ function diagram96Well(lightSamples, parent, diagramTitle){
         const wellPosition = document.createElement("p");
         wellPosition.textContent = lightSample.wellPosition;
         const hoverText = document.createElement("span");
-        hoverText.textContent = lightSample.name;
+        hoverText.textContent = `${lightSample.name} : ${lightSample.absorbance}`;
         hoverText.className = "hovertext"
         circularDiv.className = "well";
         circularDiv.appendChild(hoverText);
