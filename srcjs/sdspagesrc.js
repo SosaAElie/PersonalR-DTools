@@ -3,6 +3,7 @@ const chartjs = require("chart.js/auto");
 const xlsx = require("xlsx");
 const helpers = require("../utils/helpers");
 const classes = require("../classes/classes");
+const { callback } = require("chart.js/helpers");
 
 //Global variable to store the reference to the created chart & chart image for excel
 let LINEGRAPH = null;
@@ -533,19 +534,22 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
             },
             datasets:[  
                 {
+                    labels:standards.map(standard => standard.name),
                     label:"Standards",
-                    data:standards.map(standard => {return {x:standard.x, y:standard.averageY}}),
+                    data:standards.map(standard => {return {x:standard.x.toFixed(2), y:standard.averageY.toFixed(2)}}),
                     pointBackgroundColor:"#D6EFD8",
                     pointBorderColor:"black"
                 },
                 {
+                    labels:unknowns.map(unknown => unknown.name),
                     label:"Unknowns",
-                    data: unknowns.map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
+                    data: unknowns.map(sample => {return {x:sample.interpolatedX.toFixed(2), y:sample.averageY.toFixed(2)}}),
                     pointBorderColor:"black"
                 },
                 {
+                    labels:standards.map(standard => standard.name),
                     label:`Regression Model: R-Squared: ${rSquared.toFixed(2)}`,
-                    data: regressionType === "4pl"?mockData:standards.map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
+                    data: regressionType === "4pl"?mockData:standards.map(standard => {return {x:standard.interpolatedX.toFixed(2), y:standard.averageY.toFixed(2)}}),
                     showLine:true,
                     pointRadius:regressionType === "4pl"?0:3,
                 },
@@ -612,8 +616,15 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
                     labels:{
                         color:"black"
                     }
-                }
-                
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const label = ctx.dataset.labels[ctx.dataIndex];
+                            return label + " (" + ctx.parsed.x + ", " + ctx.parsed.y + ")";
+                        },
+                    },
+                },
             },
         }
     }
@@ -884,7 +895,7 @@ function diagram96Well(lightSamples, parent, diagramTitle){
         const wellPosition = document.createElement("p");
         wellPosition.textContent = lightSample.wellPosition;
         const hoverText = document.createElement("span");
-        hoverText.textContent = `${lightSample.name} : ${lightSample.absorbance}`;
+        hoverText.textContent = `${lightSample.name} : ${lightSample.absorbance.toFixed(2)}`;
         hoverText.className = "hovertext"
         circularDiv.className = "well";
         circularDiv.appendChild(hoverText);

@@ -413,14 +413,16 @@ function createLightWeightSamples(samples){
             /**
              * @type {classes.Target[]}
              */
-            const targets = sample.getTargetsFromPosition(sample.wellPositions[i]);
+            const targetsInWell = sample.getTargetsFromPosition(sample.wellPositions[i]);
+            // console.log(sample.name, i, target.cqs.length, i%target.cqs.length);
             lws.set(sample.wells[i], 
                 {
                     name:sample.name,
                     wellPosition:sample.wellPositions[i],
                     wellNumber:sample.wells[i],
-                    targetName:targets.map(target => target.name),
-                    colors:targets.map(target => target.color),
+                    targetName:targetsInWell.map(target => target.name),
+                    colors:targetsInWell.map(target => target.color),
+                    cqs:targetsInWell.map(target => target.cqs[i%target.cqs.length].toFixed(2)),
                 });
         }
     }
@@ -905,8 +907,13 @@ function diagram384Well(lightSamples, parent, diagramTitle){
         if(sample.name.toLowerCase() === "none") continue;
         //If there is only 1 color, then there is only 1 target being probed for in the well, set the color of the well to the only color in the array
         //else determine the starting and end points of each color of each target based off of their index and the length of the array and set the well to those colors
-        if(sample.colors.length === 1) circularDiv.style.backgroundColor = sample.colors[0];
-        else circularDiv.style.background = `repeating-linear-gradient(to right, ${sample.colors.map((color, i, arr) =>  `${color} ${(i/arr.length)*100}% ${(i+1/arr.length)*100}%`).join(",")})`;
+        if(sample.colors.length === 1){
+            circularDiv.style.backgroundColor = sample.colors[0];
+            hoverText.textContent += `: ${sample.cqs[0]}`;
+        } 
+        else{
+            circularDiv.style.background = `repeating-linear-gradient(to right, ${sample.colors.map((color, i, arr) =>  `${color} ${(i/arr.length)*100}% ${(i+1/arr.length)*100}%`).join(",")})`;
+        } 
     }
 }
 
