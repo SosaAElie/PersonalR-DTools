@@ -161,6 +161,18 @@ td>input{
     position: absolute;
     z-index: 1;
 }
+
+.hoverInput{
+    visibility: inherit;
+    width: 95px;
+    background-color:inherit;
+    color: inherit;
+    text-align: inherit;
+    border-radius: inherit;
+    font-weight: lighter;
+    font-size: inherit;
+    font-style: inherit;
+}
 .well:hover .hovertext {
     visibility: visible;
 }
@@ -302,7 +314,7 @@ ol>li::marker{
     font-size: large;
 }
 
-.outsideUnknown>td{
+.extrapolated>td{
     color: rgb(255, 0, 0);
     border-color: black;
 }

@@ -338,7 +338,7 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
         "Type", 
         "Replicate Well Values", 
         subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)",
-        `Interpolated Concentration [${unit}]`,
+        `Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${targetUnit}]`,
         `Protein[${mass}]/Well`,
@@ -442,7 +442,7 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
         "Individual Values",
         "Average",
         "StDev",
-        `Interpolated Concentration [${units}]`,
+        `Concentration [${units}]`,
         `${dilutionFactor}X Concentration [${units}]`,
         `${dilutionFactor}X Concentration [${convertedUnits}]`,
     ];
@@ -457,9 +457,13 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
     headerContainer.appendChild(headerRow);
 
     //Determine the lowest & highest standard in order to change the text to red if the sample is outside the standard curve 
-    const standardYs = standards.map(standard => standard.averageY);
-    const lowest = ss.min(standardYs)
-    const highest = ss.max(standardYs)
+    // const standardYs = standards.map(standard => standard.averageY);
+    // const lowest = ss.min(standardYs);
+    // const highest = ss.max(standardYs);
+
+    //The standards should've been sorted already in the outer function
+    const lowest = standards.at(-1).averageY;
+    const highest = standards.at(0).averageY;
     
     for(let standard of standards){        
         const row = document.createElement("tr");
@@ -468,20 +472,21 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
             td.textContent = data;
             row.appendChild(td);
         }
+        row.className = `standard ${standard.name}`;
         body.appendChild(row);
     };
 
     for(let unknown of unknowns){       
         const row = document.createElement("tr");
         
-        //If unknown y value is outside the standard curve change text to red
-        if(unknown.averageY <= lowest || unknown.averageY >= highest) row.className = "outsideUnknown";
-
         for (let data of unknown.getTableData()){
             const td = document.createElement("td");
             td.textContent = data;
             row.appendChild(td);
         }
+
+        //If unknown y value is outside the standard curve change text to red
+        row.className = (unknown.averageY <= lowest || unknown.averageY >= highest) ? `sample ${unknown.name} extrapolated` : `sample ${unknown.name}`
         body.appendChild(row);
     }
     
@@ -904,26 +909,37 @@ function createWell(lightSample){
     //Create HTML Elements to add to DOM
     const well = document.createElement("div");
     const wellPosition = document.createElement("p");
-    const hoverText = document.createElement("input");
+    const hoverContainer = document.createElement("div");
+    const hoverInput = document.createElement("input");
+    const hoverSpan = document.createElement("div");
 
     //Add text content
     wellPosition.textContent = lightSample.wellPosition;
-    hoverText.defaultValue = `${lightSample.name} : ${lightSample.absorbance.toFixed(2)}`;
+    hoverInput.defaultValue = lightSample.name;
+    hoverSpan.textContent = lightSample.absorbance.toFixed(2);
 
     //Add class names
-    hoverText.className = "hovertext"
+    hoverInput.className = "hoverInput";
+    hoverContainer.className = "hovertext";
     well.className = lightSample.type === "none" ? 
                     `well ${lightSample.wellPosition}` 
                     : 
                     `well ${lightSample.type} ${lightSample.wellPosition} ${lightSample.name}`;
 
     // Append to the well, div element
-    well.appendChild(hoverText);
+    hoverContainer.appendChild(hoverInput);
+    hoverContainer.appendChild(hoverSpan);
+    well.appendChild(hoverContainer);
     well.appendChild(wellPosition);
 
-    //Add event listener to hover text element
-    // hoverText.addEventListener("focusout", e =>{
-    // })
+    // Add event listener to hover text element
+    hoverInput.addEventListener("focusout", e =>{
+        const relatedElements = document.getElementsByClassName(lightSample.name);
+        for (let i = 1; i < relatedElements.length; i++){
+            const currElement = relatedElements[i];
+            currElement.firstChild.textContent = e.target.value;
+        }
+    })
     return well;
 }
 
@@ -1079,6 +1095,7 @@ function createProteinGelLoadingTable(unknowns, parent){
     const body = document.createElement("tbody");
     for(let unknown of unknowns){        
         const row = document.createElement("tr");
+        row.className = `SDS-PAGE ${unknown.name}`;
         const gelData = [unknown.name, unknown.convertedX.toFixed(2), ...unknown.sdspageValues.getGelData()];
 
         //Ensure that both the headers array and the amount of values for each row are the same in length
