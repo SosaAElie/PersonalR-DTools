@@ -420,7 +420,7 @@ function createLightWeightSamples(samples){
                     name:sample.name,
                     wellPosition:sample.wellPositions[i],
                     wellNumber:sample.wells[i],
-                    targetName:targetsInWell.map(target => target.name),
+                    targetNames:targetsInWell.map(target => target.name),
                     colors:targetsInWell.map(target => target.color),
                     cqs:targetsInWell.map(target => target.cqs[i%target.cqs.length].toFixed(2)),
                 });
@@ -886,7 +886,6 @@ function createWkbk(data, sheetname = "sheet1"){
  * @param {LightweightSample[]} lightSamples
  * @param {Element} parent
  * @param {string} diagramTitle
- * @returns {void}
 **/
 function diagram384Well(lightSamples, parent, diagramTitle){
     const title = document.createElement("h3");
@@ -894,29 +893,55 @@ function diagram384Well(lightSamples, parent, diagramTitle){
     title.textContent = diagramTitle;
     parent.appendChild(title);
     for(let sample of lightSamples){
-        const circularDiv = document.createElement("div");
-        const wellPosition = document.createElement("p");
-        wellPosition.textContent = sample.wellPosition;
-        const hoverText = document.createElement("span");
-        hoverText.textContent = sample.name;
-        hoverText.className = "hovertext"
-        circularDiv.className = "well";
-        circularDiv.appendChild(hoverText);
-        circularDiv.appendChild(wellPosition)
-        parent.appendChild(circularDiv);
-        if(sample.name.toLowerCase() === "none") continue;
-        //If there is only 1 color, then there is only 1 target being probed for in the well, set the color of the well to the only color in the array
-        //else determine the starting and end points of each color of each target based off of their index and the length of the array and set the well to those colors
-        if(sample.colors.length === 1){
-            circularDiv.style.backgroundColor = sample.colors[0];
-            hoverText.textContent += `: ${sample.cqs[0]}`;
-        } 
-        else{
-            circularDiv.style.background = `repeating-linear-gradient(to right, ${sample.colors.map((color, i, arr) =>  `${color} ${(i/arr.length)*100}% ${(i+1/arr.length)*100}%`).join(",")})`;
-        } 
+        const well = createWell(sample);
+        parent.appendChild(well);
     }
 }
 
+/**
+ * @param {LightweightSample} lws
+ * @returns {HTMLDivElement}
+ */
+function createWell(lws){
+    //Create HTML elements
+    const well = document.createElement("div");
+    const wellPosition = document.createElement("p");
+    const hoverContainer = document.createElement("div");
+
+    //Add text content
+    wellPosition.textContent = lws.wellPosition;
+
+    //Add class names
+    hoverContainer.className = "hovertext"
+    well.className = `well ${lws.wellPosition}`;
+    well.appendChild(hoverContainer);
+    well.appendChild(wellPosition);
+    
+    //Create the on-hover element for each well with the sample name
+    const hoverName = document.createElement("div");
+    hoverName.textContent = lws.name;
+    hoverContainer.appendChild(hoverName);
+
+    if(lws.name.toLowerCase() === "none") return well;
+
+    //If there is only 1 color, then there is only 1 target being probed for in the well, set the color of the well to the only color in the array
+    //else determine the starting and end points of each color of each target based off of their index and the length of the array and set the well to those colors
+    if(lws.colors.length === 1){
+        well.style.backgroundColor = lws.colors[0];
+        const hoverTarget = document.createElement("div");
+        hoverTarget.textContent = `${lws.targetNames[0]}:${lws.cqs[0]}`;
+        hoverContainer.appendChild(hoverTarget);
+    } 
+    else{
+        well.style.background = `repeating-linear-gradient(to right, ${lws.colors.map((color, i, arr) =>  `${color} ${(i/arr.length)*100}% ${(i+1/arr.length)*100}%`).join(",")})`;
+        for(let i = 0; i < lws.targetNames.length; i++){
+            const hoverTarget = document.createElement("div");
+            hoverTarget.textContent = `${lws.targetNames[i]}:${lws.cqs[i]}`;
+            hoverContainer.appendChild(hoverTarget);
+        }
+    } 
+    return well;
+}
 /**
  * @param {xlsx.WorkBook} wkbk
  * @param {string[][]} data

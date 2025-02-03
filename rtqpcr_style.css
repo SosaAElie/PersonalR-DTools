@@ -92,7 +92,7 @@ input{
     color: #fff;
     text-align: center;
     border-radius: 6px;
-    font-weight: lighter;
+    font-weight: normal;
     
     /* Position the tooltip */
     position: absolute;
