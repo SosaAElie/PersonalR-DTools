@@ -42380,6 +42380,7 @@ function createSamplesAndTargets(rawdata){
             //TODO: Continue determing the number of NaNs here in order to calculate
             //Cq average when there is at least 1 NaN value present
             const [sampleName, targetName, wellNumber, wellPosition, reporter, cq] = sampleData;
+            if (sampleName.trim() === "") continue;
             let color = helpers.getRandomColor(0.4);
             if(targets.has(targetName)) color = targets.get(targetName);
             else targets.set(targetName, color)
