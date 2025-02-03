@@ -16,6 +16,7 @@ let BARGRAPH = null;
  * @property {string} name - The name of the sample
  * @property {number} absorbance - The absorbance value of the sample in the well
  * @property {string} type - The type of the sample
+ * @property {string|undefined} unit - The unit of the sample if it is a standard
  */
 
 /**
@@ -51,7 +52,7 @@ let BARGRAPH = null;
 
 
 function main(){
-    document.getElementById("process-button").addEventListener("click", handleClick);
+    document.getElementById("process-button").addEventListener("click", handleProcess);
     document.getElementById("dilution-factor").addEventListener("input", handleNumericalInput);
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
@@ -105,11 +106,11 @@ function handleNumericalInput(e){
     if(parseInt(e.target.value) < 1){
         this.setCustomValidity("The Value Has To Be Greater Than or Equal to 1");
         this.reportValidity();
-        document.getElementById("process-button").removeEventListener("click", handleClick);
+        document.getElementById("process-button").removeEventListener("click", handleProcess);
     }
     else{        
         this.setCustomValidity("");
-        document.getElementById("process-button").addEventListener("click", handleClick);
+        document.getElementById("process-button").addEventListener("click", handleProcess);
     }
 }
 
@@ -121,7 +122,7 @@ function handleConversionInput(e){
     const volumes = ["L", "mL", "uL", "nL", "fL"];
     const unit = e.target.value;
     if(unit.indexOf("/") < 0){
-        document.getElementById("process-button").removeEventListener("click", handleClick);
+        document.getElementById("process-button").removeEventListener("click", handleProcess);
         this.setCustomValidity("Enter the units in the correct format, i.e. mass/volume");
         this.reportValidity();
     }
@@ -129,17 +130,17 @@ function handleConversionInput(e){
         this.setCustomValidity("");
         const [mass, volume] = unit.split("/");
         if(masses.indexOf(mass) < 0){
-            document.getElementById("process-button").removeEventListener("click", handleClick);
+            document.getElementById("process-button").removeEventListener("click", handleProcess);
             this.setCustomValidity("Not a Supported Unit of Mass, i.e. g, mg, ug, ng, fg");
             this.reportValidity();
         }
         else if(volumes.indexOf(volume) < 0){
-            document.getElementById("process-button").removeEventListener("click", handleClick);
+            document.getElementById("process-button").removeEventListener("click", handleProcess);
             this.setCustomValidity("Not a Supported Unit of Volume, i.e. L, mL, uL, nL, fL");
             this.reportValidity();            
         }
         else{
-            document.getElementById("process-button").addEventListener("click", handleClick);
+            document.getElementById("process-button").addEventListener("click", handleProcess);
             this.setCustomValidity("");            
         }
     }
@@ -189,7 +190,7 @@ async function merge(rawdataFile, templateFile){
             const type = parsedSample.get("type");
 
             //Create a light sample object for each item in the template
-            lightweightSamples.push({name, wellNumber, wellPosition, type, absorbance:y});
+            lightweightSamples.push({name, wellNumber, wellPosition, type, absorbance:y, unit:parsedSample.get("unit")});
 
             //Skip over the samples labeled as none
             if(name === "none") continue;
@@ -223,7 +224,7 @@ async function merge(rawdataFile, templateFile){
  * @param {Event} e
  * @returns {null}
  */
-function handleClick(e){
+function handleProcess(e){
     const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
     
@@ -338,7 +339,7 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
         "Type", 
         "Replicate Well Values", 
         subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)",
-        `Interpolated Concentration [${unit}]`,
+        `Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${targetUnit}]`,
         `Protein[${mass}]/Well`,
@@ -442,7 +443,7 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
         "Individual Values",
         "Average",
         "StDev",
-        `Interpolated Concentration [${units}]`,
+        `Concentration [${units}]`,
         `${dilutionFactor}X Concentration [${units}]`,
         `${dilutionFactor}X Concentration [${convertedUnits}]`,
     ];
@@ -457,9 +458,13 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
     headerContainer.appendChild(headerRow);
 
     //Determine the lowest & highest standard in order to change the text to red if the sample is outside the standard curve 
-    const standardYs = standards.map(standard => standard.averageY);
-    const lowest = ss.min(standardYs)
-    const highest = ss.max(standardYs)
+    // const standardYs = standards.map(standard => standard.averageY);
+    // const lowest = ss.min(standardYs);
+    // const highest = ss.max(standardYs);
+
+    //The standards should've been sorted already in the outer function
+    const lowest = standards.at(-1).averageY;
+    const highest = standards.at(0).averageY;
     
     for(let standard of standards){        
         const row = document.createElement("tr");
@@ -468,20 +473,21 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
             td.textContent = data;
             row.appendChild(td);
         }
+        row.className = `standard ${standard.name}`;
         body.appendChild(row);
     };
 
     for(let unknown of unknowns){       
         const row = document.createElement("tr");
         
-        //If unknown y value is outside the standard curve change text to red
-        if(unknown.averageY <= lowest || unknown.averageY >= highest) row.className = "outsideUnknown";
-
         for (let data of unknown.getTableData()){
             const td = document.createElement("td");
             td.textContent = data;
             row.appendChild(td);
         }
+
+        //If unknown y value is outside the standard curve change text to red
+        row.className = (unknown.averageY <= lowest || unknown.averageY >= highest) ? `sample ${unknown.name} extrapolated` : `sample ${unknown.name}`
         body.appendChild(row);
     }
     
@@ -891,25 +897,56 @@ function diagram96Well(lightSamples, parent, diagramTitle){
     title.textContent = diagramTitle;
     parent.appendChild(title);
     for(let lightSample of lightSamples){
-        const circularDiv = document.createElement("div");
-        const wellPosition = document.createElement("p");
-        wellPosition.textContent = lightSample.wellPosition;
-        const hoverText = document.createElement("span");
-        hoverText.textContent = `${lightSample.name} : ${lightSample.absorbance.toFixed(2)}`;
-        hoverText.className = "hovertext"
-        circularDiv.className = "well";
-        circularDiv.appendChild(hoverText);
-        circularDiv.appendChild(wellPosition)
-        switch(lightSample.type){
-            case "sample":
-                circularDiv.className+= " sample";
-                break;
-                case "standard":
-                circularDiv.className+= " standard";
-                break;
-        }
-        parent.appendChild(circularDiv);
+        const well = createWell(lightSample);
+        parent.appendChild(well);
     }
+}
+
+/**
+ * @param {LightweightSample} lightSample
+ * @returns {HTMLDivElement}
+ */
+function createWell(lightSample){
+    //Create HTML Elements to add to DOM
+    const well = document.createElement("div");
+    const wellPosition = document.createElement("p");
+    const hoverContainer = document.createElement("div");
+
+    const hoverNameId = `well ${lightSample.wellPosition} name`;
+    const hoverNameLabel = document.createElement("span");
+    const hoverName = document.createElement("div");
+    hoverName.id = hoverNameId;
+    
+    const hoverAbsId = `well ${lightSample.wellPosition} absorbance`;
+    const hoverAbsLabel = document.createElement("span");
+    const hoverAbs = document.createElement("div");
+    hoverAbs.id = hoverAbsId;
+
+    //Add text content
+    hoverNameLabel.textContent = "Name:";
+    hoverAbsLabel.textContent = "Abs:";
+    hoverName.defaultValue = lightSample.name;
+    wellPosition.textContent = lightSample.wellPosition;
+    hoverName.textContent = lightSample.name;
+    hoverAbs.textContent = lightSample.absorbance.toFixed(2);
+
+    //Add class names
+    hoverContainer.className = "hovertext";
+    well.className = lightSample.type === "none" ? 
+                    `well ${lightSample.wellPosition}` 
+                    : 
+                    `well ${lightSample.type} ${lightSample.wellPosition} ${lightSample.name}`;
+
+    // Append to the well, div element
+    hoverContainer.appendChild(hoverNameLabel);
+    hoverContainer.appendChild(hoverName);
+    hoverContainer.appendChild(hoverAbsLabel);
+    hoverContainer.appendChild(hoverAbs);
+
+    well.appendChild(hoverContainer);
+    well.appendChild(wellPosition);
+
+    return well;
 }
 
 
@@ -1064,6 +1101,7 @@ function createProteinGelLoadingTable(unknowns, parent){
     const body = document.createElement("tbody");
     for(let unknown of unknowns){        
         const row = document.createElement("tr");
+        row.className = `SDS-PAGE ${unknown.name}`;
         const gelData = [unknown.name, unknown.convertedX.toFixed(2), ...unknown.sdspageValues.getGelData()];
 
         //Ensure that both the headers array and the amount of values for each row are the same in length
