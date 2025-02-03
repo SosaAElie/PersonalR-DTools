@@ -16,6 +16,7 @@ let BARGRAPH = null;
  * @property {string} name - The name of the sample
  * @property {number} absorbance - The absorbance value of the sample in the well
  * @property {string} type - The type of the sample
+ * @property {string|undefined} unit - The unit of the sample if it is a standard
  */
 
 /**
@@ -189,7 +190,7 @@ async function merge(rawdataFile, templateFile){
             const type = parsedSample.get("type");
 
             //Create a light sample object for each item in the template
-            lightweightSamples.push({name, wellNumber, wellPosition, type, absorbance:y});
+            lightweightSamples.push({name, wellNumber, wellPosition, type, absorbance:y, unit:parsedSample.get("unit")});
 
             //Skip over the samples labeled as none
             if(name === "none") continue;
@@ -910,16 +911,26 @@ function createWell(lightSample){
     const well = document.createElement("div");
     const wellPosition = document.createElement("p");
     const hoverContainer = document.createElement("div");
-    const hoverInput = document.createElement("input");
-    const hoverSpan = document.createElement("div");
+
+    const hoverNameId = `well ${lightSample.wellPosition} name`;
+    const hoverNameLabel = document.createElement("span");
+    const hoverName = document.createElement("div");
+    hoverName.id = hoverNameId;
+    
+    const hoverAbsId = `well ${lightSample.wellPosition} absorbance`;
+    const hoverAbsLabel = document.createElement("span");
+    const hoverAbs = document.createElement("div");
+    hoverAbs.id = hoverAbsId;
 
     //Add text content
+    hoverNameLabel.textContent = "Name:";
+    hoverAbsLabel.textContent = "Abs:";
+    hoverName.defaultValue = lightSample.name;
     wellPosition.textContent = lightSample.wellPosition;
-    hoverInput.defaultValue = lightSample.name;
-    hoverSpan.textContent = lightSample.absorbance.toFixed(2);
+    hoverName.textContent = lightSample.name;
+    hoverAbs.textContent = lightSample.absorbance.toFixed(2);
 
     //Add class names
-    hoverInput.className = "hoverInput";
     hoverContainer.className = "hovertext";
     well.className = lightSample.type === "none" ? 
                     `well ${lightSample.wellPosition}` 
@@ -927,19 +938,14 @@ function createWell(lightSample){
                     `well ${lightSample.type} ${lightSample.wellPosition} ${lightSample.name}`;
 
     // Append to the well, div element
-    hoverContainer.appendChild(hoverInput);
-    hoverContainer.appendChild(hoverSpan);
+    hoverContainer.appendChild(hoverNameLabel);
+    hoverContainer.appendChild(hoverName);
+    hoverContainer.appendChild(hoverAbsLabel);
+    hoverContainer.appendChild(hoverAbs);
+
     well.appendChild(hoverContainer);
     well.appendChild(wellPosition);
 
-    // Add event listener to hover text element
-    hoverInput.addEventListener("focusout", e =>{
-        const relatedElements = document.getElementsByClassName(lightSample.name);
-        for (let i = 1; i < relatedElements.length; i++){
-            const currElement = relatedElements[i];
-            currElement.firstChild.textContent = e.target.value;
-        }
-    })
     return well;
 }
 

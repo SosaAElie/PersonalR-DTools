@@ -148,7 +148,7 @@ td>input{
 }
 .well .hovertext{
     visibility: hidden;
-    width: 100px;
+    width: auto;
     background-color: rgba(53, 48, 48, 0.885);
     color: #fff;
     text-align: center;
@@ -156,16 +156,15 @@ td>input{
     font-weight: lighter;
     font-size: larger;
     font-style: normal;
-    
+    display: grid;
+    grid-template-columns: auto auto;
     /* Position the tooltip */
     position: absolute;
     z-index: 1;
 }
 
 .hoverInput{
-    visibility: inherit;
-    width: 95px;
-    background-color:inherit;
+    width: 90%;
     color: inherit;
     text-align: inherit;
     border-radius: inherit;
@@ -173,6 +172,7 @@ td>input{
     font-size: inherit;
     font-style: inherit;
 }
+
 .well:hover .hovertext {
     visibility: visible;
 }
@@ -325,7 +325,7 @@ ol>li::marker{
     justify-content: center;
 }
 
-button{
+#buttons > button{
     font-size: large;
     border-style:solid;
     border-radius: 20px;
@@ -335,7 +335,7 @@ button{
     background-color: inherit;
     padding: 10px;
 }
-button:hover{
+#buttons > button:hover{
     background-color: rgb(147, 207, 141);
 }
 td{
