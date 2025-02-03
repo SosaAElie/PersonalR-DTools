@@ -51,7 +51,7 @@ let BARGRAPH = null;
 
 
 function main(){
-    document.getElementById("process-button").addEventListener("click", handleClick);
+    document.getElementById("process-button").addEventListener("click", handleProcess);
     document.getElementById("dilution-factor").addEventListener("input", handleNumericalInput);
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
@@ -105,11 +105,11 @@ function handleNumericalInput(e){
     if(parseInt(e.target.value) < 1){
         this.setCustomValidity("The Value Has To Be Greater Than or Equal to 1");
         this.reportValidity();
-        document.getElementById("process-button").removeEventListener("click", handleClick);
+        document.getElementById("process-button").removeEventListener("click", handleProcess);
     }
     else{        
         this.setCustomValidity("");
-        document.getElementById("process-button").addEventListener("click", handleClick);
+        document.getElementById("process-button").addEventListener("click", handleProcess);
     }
 }
 
@@ -121,7 +121,7 @@ function handleConversionInput(e){
     const volumes = ["L", "mL", "uL", "nL", "fL"];
     const unit = e.target.value;
     if(unit.indexOf("/") < 0){
-        document.getElementById("process-button").removeEventListener("click", handleClick);
+        document.getElementById("process-button").removeEventListener("click", handleProcess);
         this.setCustomValidity("Enter the units in the correct format, i.e. mass/volume");
         this.reportValidity();
     }
@@ -129,17 +129,17 @@ function handleConversionInput(e){
         this.setCustomValidity("");
         const [mass, volume] = unit.split("/");
         if(masses.indexOf(mass) < 0){
-            document.getElementById("process-button").removeEventListener("click", handleClick);
+            document.getElementById("process-button").removeEventListener("click", handleProcess);
             this.setCustomValidity("Not a Supported Unit of Mass, i.e. g, mg, ug, ng, fg");
             this.reportValidity();
         }
         else if(volumes.indexOf(volume) < 0){
-            document.getElementById("process-button").removeEventListener("click", handleClick);
+            document.getElementById("process-button").removeEventListener("click", handleProcess);
             this.setCustomValidity("Not a Supported Unit of Volume, i.e. L, mL, uL, nL, fL");
             this.reportValidity();            
         }
         else{
-            document.getElementById("process-button").addEventListener("click", handleClick);
+            document.getElementById("process-button").addEventListener("click", handleProcess);
             this.setCustomValidity("");            
         }
     }
@@ -223,7 +223,7 @@ async function merge(rawdataFile, templateFile){
  * @param {Event} e
  * @returns {null}
  */
-function handleClick(e){
+function handleProcess(e){
     const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
     
@@ -891,25 +891,40 @@ function diagram96Well(lightSamples, parent, diagramTitle){
     title.textContent = diagramTitle;
     parent.appendChild(title);
     for(let lightSample of lightSamples){
-        const circularDiv = document.createElement("div");
-        const wellPosition = document.createElement("p");
-        wellPosition.textContent = lightSample.wellPosition;
-        const hoverText = document.createElement("span");
-        hoverText.textContent = `${lightSample.name} : ${lightSample.absorbance.toFixed(2)}`;
-        hoverText.className = "hovertext"
-        circularDiv.className = "well";
-        circularDiv.appendChild(hoverText);
-        circularDiv.appendChild(wellPosition)
-        switch(lightSample.type){
-            case "sample":
-                circularDiv.className+= " sample";
-                break;
-                case "standard":
-                circularDiv.className+= " standard";
-                break;
-        }
-        parent.appendChild(circularDiv);
+        const well = createWell(lightSample);
+        parent.appendChild(well);
     }
+}
+
+/**
+ * @param {LightweightSample} lightSample
+ * @returns {HTMLDivElement}
+ */
+function createWell(lightSample){
+    //Create HTML Elements to add to DOM
+    const well = document.createElement("div");
+    const wellPosition = document.createElement("p");
+    const hoverText = document.createElement("input");
+
+    //Add text content
+    wellPosition.textContent = lightSample.wellPosition;
+    hoverText.defaultValue = `${lightSample.name} : ${lightSample.absorbance.toFixed(2)}`;
+
+    //Add class names
+    hoverText.className = "hovertext"
+    well.className = lightSample.type === "none" ? 
+                    `well ${lightSample.wellPosition}` 
+                    : 
+                    `well ${lightSample.type} ${lightSample.wellPosition} ${lightSample.name}`;
+
+    // Append to the well, div element
+    well.appendChild(hoverText);
+    well.appendChild(wellPosition);
+
+    //Add event listener to hover text element
+    // hoverText.addEventListener("focusout", e =>{
+    // })
+    return well;
 }
 
 

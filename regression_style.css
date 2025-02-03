@@ -155,6 +155,7 @@ td>input{
     border-radius: 6px;
     font-weight: lighter;
     font-size: larger;
+    font-style: normal;
     
     /* Position the tooltip */
     position: absolute;
