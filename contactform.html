@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="style.css">
+        <title>BioTech R&D Tools</title>
+    </head>
+    <header>
+        <h1 id = "title"><a href="index.html">BioTech <b>R&D</b> Tools</a></h1>
+        <p>A set of personal R&D tools I use to automate my lab work.</p>
+    </header>
+    <body>
+        <form action="https://api.web3forms.com/submit" method="POST" id = "contact-form" >
+            <input type="hidden" name="access_key" value="2ef69076-9205-4118-b5d8-36383845219b">
+            <label for = "user-email">E-mail:</label>
+            <input name = "email" id = "user-email" type = "email" required/>
+            <label for = "subject">Subject:</label>
+            <input name = "message" id = "subject" type = "text" required/>
+            <textarea id = "content" required></textarea>
+            <input type="checkbox" name="botcheck" class="hidden" style="display: none;">
+            <input type="hidden" name="redirect" value="https://mywebsite.com/thanks.html">
+            <button id = "submit" type = "submit">Submit</button>
+        </form>
+    </body>
+    <script async defer>
+        const form = document.getElementById("contact-form");
+
+        form.addEventListener('submit', e => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const object = Object.fromEntries(formData);
+        const json = JSON.stringify(object);
+
+            fetch('https://api.web3forms.com/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: json
+                })
+                .then(async (response) => {
+                    let json = await response.json();
+                    const result = document.createElement("div");
+                    result.id = "submission-result";
+                    if (response.status === 200) {
+                        result.textContent = "Email sent successfully!";
+                        form.replaceChild(result, document.getElementById("submit"));
+                    } 
+                    else {
+                        console.log(response);
+                        result.textContent = json.message;
+                        document.body.appendChild(result);
+                    }
+                })
+                .catch(error => {
+                    console.log(error);
+                    result.textContent = "Something went wrong!";
+                    document.body.appendChild(result);
+                })
+        });
+    </script>
+</html>
