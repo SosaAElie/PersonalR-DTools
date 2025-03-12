@@ -225,7 +225,7 @@ input[type="number"] {
 }
 caption{
     font-weight: bold;
-    border: inherit;
+    border-bottom: 1px solid black;
     position: sticky;
     top:0;
     height: 25px;
@@ -347,9 +347,13 @@ table{
     display: block;
     overflow-y: auto;
 }
-table, th, td{
+table{
     border: 1px solid black;
+    border-bottom: none;
     border-collapse: collapse;
+}
+td,th{
+    border-bottom: 1px solid black;
 }
 
 input[type="number"] {
@@ -359,6 +363,10 @@ input[type="number"] {
 td:nth-child(1){
     font-weight: bold;
     background-color: rgb(221, 219, 219);
+    border-right: 1px solid black;
+}
+th:nth-child(1){
+    border-right: 1px solid black;
 }
 @media (max-width: 1500px){
     #chart-template-container{
