@@ -70,7 +70,7 @@
             <br>
             <div id = file-inputs>
                 <label for = "rawdata-input">SoftMaxPro Raw Data</label>
-                <input id = "rawdata-input" type="file" accept=".txt" required>
+                <input id = "rawdata-input" type="file" accept=".txt,.tsv" required>
                 <p class = "filenames" >None</p>
                 <label for = "template-input" >96-Well Plate Template</label>
                 <input id = "template-input" type="file" accept=".csv" required> 
@@ -84,7 +84,7 @@
                 <div id = "regression-inputs">
                     <h3 class = "subtitle">Regression Model</h3>
                     <div class = "radio card">
-                        <h6 class = "regression-title" for = "linear">Linear Regression</h6>
+                        <h6 class = "card-title" for = "linear">Linear Regression</h6>
                         <input id = "linear" type = "radio" name = "regression" value = "linear">
                         <img class = "card-images" src = "Images/LinearRegressionImage.jpg">
                         <p class = "desc">
@@ -93,7 +93,7 @@
                         </p>
                     </div>
                     <div class = "radio card">
-                        <h6 class = "regression-title" for = "log">Logarithmic Regression</h6>
+                        <h6 class = "card-title" for = "log">Logarithmic Regression</h6>
                         <input id = "log" type = "radio" name = "regression" value="log">
                         <img class = "card-images" src = "Images/LogRegressionImage.jpg">
                         <p class = "desc">
@@ -102,7 +102,7 @@
                         </p>
                     </div>
                     <div class = "radio card">
-                        <h6 class = "regression-title" for = "4pl">4-Parameter Hill Equation</h6>
+                        <h6 class = "card-title" for = "4pl">4-Parameter Hill Equation</h6>
                         <input id = "4pl" type = "radio" name = "regression" value="4pl">
                         <img class = "card-images" src = "Images/4PLRegressionImage.jpg">
                         <p class = "desc">
@@ -110,30 +110,37 @@
                             asymptotes in a sigmodial shape.
                         </p>
                     </div>
-                    <!-- <div class = "radio card">
-                        <label for ="subtract-blank">Subtract Blank?</label>
-                        <input id = "subtract-blank"type="checkbox">
-                    </div> -->
                 </div>
                 <div id = "chart-settings">
-                    <h3>Chart Settings</h3>
+                    <h3 class = "subtitle2">Chart Settings</h3>
                     <div id = "x-scale">
-                        <div class="radio">
-                            <label for = "linear-scale">Linear X-Scale</label>
-                            <input id = "linear-scale" value="linear" type = "radio" name = "scale" checked>
+                        <div class="radio card">
+                            <h6 class = "card-title" for = "linear-scale">Linear X-Scale</h6>
+                            <input id = "linear-scale" value="linear" type = "radio" name = "scale">
+                            <img class = "card-images" src = "Images/LinearXScaleImage.jpg">
+                            <p class = "desc">
+                                X-axis is set assuming the x-values are close together.
+                            </p>
                         </div>
-                        <div class="radio">
-                            <label for = "logarithmic-scale">Logarithmic X-Scale</label>
+                        <div class="radio card">
+                            <h6 class = "card-title" for = "logarithmic-scale">Logarithmic X-Scale</h6>
                             <input id = "logarithmic-scale" value="logarithmic" type = "radio" name = "scale"> 
+                            <img class = "card-images" src = "Images/LogXScaleImage.jpg">
+                            <p class = "desc">
+                                X-axis is set assuming the x-values are far apart.
+                            </p>
                         </div>
                     </div>
                     <div id = "extrapolated">
-                        <div class="radio">
-                            <label for = "hideExtrapolated">Hide Extrapolated Unknowns?</label>
+                        <div class="radio card">
+                            <h6 class = "card-title" for = "hideExtrapolated">Hide Extrapolated Unknowns?</h6>
                             <input id = "hideExtrapolated" type="checkbox">
+                            <img class = "card-images" src = "Images/ExtrapolatedValuesImage.jpg">
+                            <p class = "desc">
+                                Removes the data that is outside the standard curve.
+                            </p>
                         </div>
                     </div>
-                    
                 </div>
                 <div id = "buttons">
                     <button id = "process-button" type = "button">Interpolate Data</button>

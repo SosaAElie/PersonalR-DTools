@@ -4,15 +4,17 @@ body{
     font-style: normal;
     accent-color: black;
     font-size: large;
-    background-image: radial-gradient(circle at 100% 100%, rgba(199, 198, 198, 0.592), white);
+    /* background-image: radial-gradient(circle at 100% 100%, rgba(199, 198, 198, 0.592), white);
     background-repeat: no-repeat;
-    background-attachment: fixed;
+    background-attachment: fixed; */
 }
 #file-inputs{
     display: grid;
     grid-template-rows: auto;
     grid-template-columns: auto auto;
     line-height: 2rem;
+    row-gap: 1rem;
+    column-gap: 1rem;
     align-self: center;
     justify-content: space-around;
 }
@@ -23,15 +25,25 @@ body{
     align-items: center;
 }
 
-input[type = "radio"]{
+input[type = "radio"], input[type = "checkbox"]{
     display: none;
 }
 #regression-inputs{
     display: grid;
     grid-template-columns: auto auto auto;
     grid-template-rows: auto auto;
-    column-gap: 5vw;
+    column-gap: 3vw;
     row-gap: 1rem;
+}
+#chart-settings{
+    display: grid;
+    grid-template-columns: 66% 33%;
+    grid-template-rows: auto auto;
+    column-gap: 1vw;
+    row-gap: 1rem;
+}
+#x-scale>.card{
+    width: 45%;
 }
 .card-images{
     width: 60%;
@@ -39,12 +51,24 @@ input[type = "radio"]{
     align-self: center;
     border-style: solid;
     border-width: 1px;
+    border-radius: 10%;
 }
 .subtitle{
     grid-column: span 3;
     font-size: xx-large;
     text-decoration: none;
 }
+.subtitle2{
+    grid-column: span 2;
+    font-size: xx-large;
+    text-decoration: none;
+}
+#x-scale{
+    display: flex;
+    justify-content:left;
+    column-gap: 5px;
+}
+
 .card{
     display: flex;
     flex-direction: column;
@@ -52,21 +76,27 @@ input[type = "radio"]{
     border-width: 1px;
     border-color: black;
     border-style: solid;
+    border-radius: 10%;
+    min-width: 45%;
+    min-height: 95%;
+    box-shadow: 5px 5px;
+    margin: 1px;
 }
+
 .desc{
     margin: 1rem;
     line-height: 2.5rem;
 }
 .clicked-card{
-    background-color:  #D6EFD8;
+    background-color:  #F2B949;
 }
 .card:hover{
-    background-color:   #D6EFD8;
+    background-color:   #F2B949;
 }
 .clicked-card:hover{
-    background-color: rgb(116, 210, 102);
+    background-color: #be9033;
 }
-.regression-title{
+.card-title{
     font-size: 28px;
     font-weight: bold;
     text-align: center;
@@ -77,21 +107,11 @@ input[type = "radio"]{
     display: flex;
     flex-direction: column;
     align-self: center;
-    /* align-items: center; */
-    /* width: 50vw; */
     text-align: center;
     line-height: 3rem;
+    row-gap: 5vw;
 }
-/* #chart-inputs{
-    display: grid;
-    margin-top: 1%;
-    grid-template-columns: auto auto;
-    justify-content: space-evenly;
-    align-self: center;
-    width: 50vw;
-    text-align: left;
-    line-height: 2rem;
-} */
+
 li{
     line-height: 3rem;
     width: 40vw;
@@ -111,9 +131,9 @@ li>img{
 
 #buttons{
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
     grid-column: span 2;
-    margin: 1%;
+    column-gap: 1%;
 }
 .filenames{
     margin: 0;
@@ -133,10 +153,10 @@ li>img{
 }
 
 
-#process-button{
+/* #process-button{
     grid-column: span 2;
     width: auto;
-}
+} */
 
 #table-container{
     display: flex;
@@ -196,6 +216,21 @@ td>input{
     text-wrap: nowrap;
     margin-bottom: 10px;
 }
+.bubble{
+    border-radius: 10px;
+    border-style: solid;
+    border-width: 1px;
+    width: 100px;
+    justify-self: center;
+}
+#file-inputs>label{
+    box-shadow: 2px 2px;
+    border-radius: 10px;
+    border-style: solid;
+}
+#file-inputs>label:hover{
+    background-color: #F2B949;
+}
 
 .well{ 
     font-weight: normal;
@@ -203,6 +238,7 @@ td>input{
     justify-content: center;
     background-color: white;
     color: black;
+    box-shadow: 1px 1px;
 }
 .well .hovertext{
     visibility: hidden;
@@ -257,7 +293,7 @@ option{
     background-color: white
 }
 tr:hover{
-    background-color: rgba(157, 224, 145, 0.7);
+    background-color: #F2B949;
 }
 
 
@@ -272,10 +308,10 @@ input[type="text"] {
     text-align: center;
 }
 .clicked-row{
-    background-color: rgba(157, 224, 145, 0.7);
+    background-color: #F2B949;
 }
 .clicked-row:hover{
-    background-color: rgb(116, 210, 102);
+    background-color: #be9033;
 }
 input[type="number"] {
     width:60px;
@@ -392,9 +428,11 @@ ol>li::marker{
     font-weight: normal;
     background-color: inherit;
     padding: 10px;
+    background-color: #F2B949;
+    box-shadow: 1px 1px;
 }
 #buttons > button:hover{
-    background-color: rgb(147, 207, 141);
+    background-color: #be9033;
 }
 td{
     width: 5%;
@@ -426,6 +464,7 @@ td:nth-child(1){
 th:nth-child(1){
     border-right: 1px solid black;
 }
+
 @media (max-width: 1500px){
     #chart-template-container{
         display: flex;
@@ -474,13 +513,13 @@ th:nth-child(1){
     #template-diagram{
         gap: 4px;
     }
-    #regression-inputs{
+    #regression-inputs, #chart-settings{
         display: flex;
         flex-direction: column;
         row-gap: 1rem;
         width: 95vw;
     }
-    .subtitle{
+    .subtitle, .subtitle2{
         text-align: center;
     }
 

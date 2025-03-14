@@ -94,13 +94,19 @@
  */
 function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x, ys){
     /**
-     * @returns {string[]} 
+     * @returns {Map<string,string>} 
      */
     function getTableData(){
-        return [
-            this.name, this.type, this.wellPositions.join(", "), this.ys.map(y => y.toFixed(2)).join(", "), this.averageY.toFixed(2), this.stdev.toFixed(2), 
-            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2)
-        ];
+        return new Map([
+            ["name", this.name],
+            ["type", this.type],
+            ["wellPositions", this.wellPositions.join(", ")],
+            ["ys", this.ys.map(y => y.toFixed(2)).join(", ")],
+            ["averageAndStDev", `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`],
+            ["interpolatedX", this.interpolatedX.toFixed(2)],
+            ["undilutedX", this.undilutedX.toFixed(2)],
+            ["convertedX", this.convertedX.toFixed(2)]
+        ])
     }
 
     /**
@@ -41568,18 +41574,34 @@ function main(){
  * @param {Event} e
  */
 function clickedCard(e){
+    if(e.target.nodeName === "INPUT") return;
     const className = "clicked-card";
-    const currentlySelectedCard = document.querySelector("."+className);
-    if(currentlySelectedCard !== null) currentlySelectedCard.classList.remove(className);
     /**
      * @type {HTMLElement}
-     */
-    const newlySelectedCard = e.currentTarget;
-    newlySelectedCard.classList.contains(className)?newlySelectedCard.classList.remove(className):newlySelectedCard.classList.add(className)
-    //Assumes that the 2nd element in the card is the radio button
-    const radioButton = newlySelectedCard.children.item(1);
-    radioButton.checked = !radioButton.checked;
-    console.log(newlySelectedCard, radioButton.checked);
+    */
+   const newlySelectedCard = e.currentTarget;
+   
+   //Assumes that the 2nd element in the card is the input element (radio or checkbox)
+   const inputElement = newlySelectedCard.children.item(1);
+   const attr = inputElement.attributes.getNamedItem("name");
+   
+   
+   //This applies to the checkbox for removing extrapolated values from the scatter plot
+   if(attr === null){
+        inputElement.click();
+        newlySelectedCard.classList.contains(className)?newlySelectedCard.classList.remove(className):newlySelectedCard.classList.add(className);
+    }
+    //This applies to everything else
+    else{
+        const type = attr.value;
+
+        const currentlySelectedCards = Array.from(document.querySelectorAll("." + className));
+        const currentlySelectedCard = currentlySelectedCards.filter(currentlySelectedCard => currentlySelectedCard.querySelector(`input[name="${type}"]`))[0];
+        
+        if(currentlySelectedCard !== undefined) currentlySelectedCard.classList.remove(className);
+        newlySelectedCard.classList.add(className);
+        inputElement.click();
+    }
 }
 
 /**
@@ -41619,7 +41641,8 @@ function handleXScale(e){
  * @param {InputEvent} e
 */
 function handleNumericalInput(e){
-    if(parseInt(e.target.value) < 1){
+    const value = parseInt(e.target.value);
+    if(value < 1 || isNaN(value)){
         this.setCustomValidity("The Value Has To Be Greater Than or Equal to 1");
         this.reportValidity();
         document.getElementById("process-button").removeEventListener("click", handleProcess);
@@ -41743,14 +41766,26 @@ async function merge(rawdataFile, templateFile){
 function handleProcess(e){
     const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
-    
     //If there is no template or raw data file selected return
     if(!rawdataFile || !templateFile) return;
     
     //If there is no selected regression type return
-    const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
-    if (regressionType === undefined) return; 
+    const regressionInputs = document.getElementById("regression-inputs");
+    const regressionType = getSelectedRadioButton(regressionInputs);
+    if(regressionType === null)return;
 
+    //Get user inputs for x-scale type and regression type
+    const xScaleInputs = document.getElementById("x-scale");
+    const xScale = getSelectedRadioButton(xScaleInputs);
+    if(xScale === null) return;
+
+    //Get whether or not to show extrapolated results
+    /**
+     * @type {boolean}
+     */
+    const extrapolated = document.getElementById("hideExtrapolated").checked;
+
+    
     const excelDownloadButton = document.getElementById("download-button");
     const chartCanvas = document.getElementById("regression-chart");
     const tableContainer = document.getElementById("table-container");
@@ -41758,7 +41793,6 @@ function handleProcess(e){
     const targetUnits = document.getElementById("units-conversion").value;
     const diagramContainer = document.getElementById("template-diagram");
     const gelTableContainer = document.getElementById("gel-table-container");
-    // const subtractBlank = document.getElementById("subtract-blank").checked;
     const proteinBarChart = document.getElementById("protein-bar-chart");
     
     //Delete current UI elements
@@ -41778,19 +41812,12 @@ function handleProcess(e){
         const samples = Array.from(parsedData.samples.values());
         const standards = samples.filter(sample => sample.type === "standard");
         const unknowns = samples.filter(sample => sample.type === "sample");
-
-        // if(subtractBlank){
-        //     const blank = ss.min(standards.map(standard => standard.averageY));
-        //     samples.forEach(sample => sample.averageY-=blank)
-        // }
+        
         const xAndYStandards = standards.map(standard => [standard.x, standard.averageY]);
         let regressionObject;
 
         //Create a 96 well diagram of the template on the UI
         diagram96Well(parsedData.lightweightSamples, diagramContainer, parsedData.templateFilename);
-        
-        //Get user inputs for x-scale type and regression type
-        const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
         
 
         //Obtain the parameters of best fit using selected regression type
@@ -41824,7 +41851,7 @@ function handleProcess(e){
         regressionChartContainer.style.width = "48vw";
         barChartContainer.style.height = "60vh";
         barChartContainer.style.width = "98vw";
-        LINEGRAPH = new chartjs.Chart(chartCanvas,createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, parsedData.filename, eq, regressionType));
+        LINEGRAPH = new chartjs.Chart(chartCanvas,createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, parsedData.filename, eq, regressionType, extrapolated));
         BARGRAPH = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns, parsedData.filename));
         createRegressionResultsTable(unknowns,standards,tableContainer, unit, targetUnits, dilutionFactor);
         createProteinGelLoadingTable(unknowns, gelTableContainer);
@@ -41857,7 +41884,7 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
         "Name", 
         "Type", 
         "Replicate Well Values", 
-        subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)",
+        "Average(Stdev)",
         `Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${targetUnit}]`,
@@ -41907,19 +41934,17 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
 /**
  * @param {HTMLDivElement} container
  * @param {boolean} valueOnly
- * @returns {string}
+ * @returns {string|null}
  */
 function getSelectedRadioButton(container){
     const radioDivs = Array.from(container.querySelectorAll(".radio"));
-    // const selected = [];
     for(let radioDiv of radioDivs){
         for(let child of radioDiv.children){
             //Return as soon as the first checked radio button is found
             if(child.tagName === "INPUT" && child.checked === true) return child.defaultValue;
         }
-        // selected.push(...Array.from(radioDiv.children).filter(element=>element.tagName === "INPUT" && element.checked === true))
     }
-    // return valueOnly?selected[0].defaultValue:selected[0];
+    return null
 }
 
 /**
@@ -41960,8 +41985,7 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
         "Type",
         "Wells",
         "Individual Values",
-        "Average",
-        "StDev",
+        "Average (StDev)",
         `Concentration [${units}]`,
         `${dilutionFactor}X Concentration [${units}]`,
         `${dilutionFactor}X Concentration [${convertedUnits}]`,
@@ -41987,26 +42011,44 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
     
     for(let standard of standards){        
         const row = document.createElement("tr");
-        for (let data of standard.getTableData()){
+        for (let [k, v] of standard.getTableData().entries()){
             const td = document.createElement("td");
-            td.textContent = data;
+            td.className = k
+            if(k === "type"){
+                const div = document.createElement("div");
+                div.className = `${v} bubble`;
+                div.textContent = v;
+                td.appendChild(div);
+            }
+            else{
+                td.textContent = v;
+            }
             row.appendChild(td);
         }
-        row.className = `standard ${standard.name}`;
+        row.className = `${standard.name}`;
         body.appendChild(row);
     };
 
     for(let unknown of unknowns){       
         const row = document.createElement("tr");
         
-        for (let data of unknown.getTableData()){
+        for (let [k, v] of unknown.getTableData().entries()){
             const td = document.createElement("td");
-            td.textContent = data;
+            td.className = k
+            if(k === "type"){
+                const div = document.createElement("div");
+                div.className = `${v} bubble`;
+                div.textContent = v;
+                td.appendChild(div);
+            }
+            else{
+                td.textContent = v;
+            }
             row.appendChild(td);
         }
 
         //If unknown y value is outside the standard curve change text to red
-        row.className = (unknown.averageY <= lowest || unknown.averageY >= highest) ? `sample ${unknown.name} extrapolated` : `sample ${unknown.name}`
+        row.className = (unknown.averageY <= lowest || unknown.averageY >= highest) ? `${unknown.name} extrapolated` : `${unknown.name}`
         body.appendChild(row);
     }
     
@@ -42027,9 +42069,10 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
  * @param {string} title
  * @param {CallableFunction} eq
  * @param {string} regressionType
+ * @param {boolean} extrapolated
  * @returns {chartjs.ChartConfiguration}
  */
-function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, title, eq, regressionType){
+function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, title, eq, regressionType, extrapolated){
     const standardYs = standards.map(standard => standard.averageY);
     const maxY = ss.max(standardYs);
     const minY = ss.min(standardYs);
@@ -42048,14 +42091,15 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
             mockData.push({x:mockX, y:mockY});
         }
     }
-
+    const allUnknowns = unknowns.map(unknown => {return {x:unknown.interpolatedX.toFixed(), y:unknown.averageY.toFixed(2)}});
+    const filteredUnknowns = unknowns.map(unknown => {return unknown.averageY <= maxY && unknown.averageY >= minY ? {x:unknown.interpolatedX, y:unknown.averageY}:{x:null, y:null}});
     //Return the chart options object
     return {
         type:"scatter",
         data:{
             storage:{
-                allUnknowns: unknowns.map(unknown => {return {x:unknown.interpolatedX, y:unknown.averageY}}),
-                filteredUnknowns: unknowns.map(unknown => {return unknown.averageY <= maxY && unknown.averageY >= minY ? {x:unknown.interpolatedX, y:unknown.averageY}:{x:null, y:null}}),
+                allUnknowns: allUnknowns,
+                filteredUnknowns: filteredUnknowns,
             },
             datasets:[  
                 {
@@ -42068,14 +42112,18 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
                 {
                     labels:unknowns.map(unknown => unknown.name),
                     label:"Unknowns",
-                    data: unknowns.map(sample => {return {x:sample.interpolatedX.toFixed(2), y:sample.averageY.toFixed(2)}}),
-                    pointBorderColor:"black"
+                    data: extrapolated?filteredUnknowns:allUnknowns,
+                    pointBorderColor:"black",
+                    pointBackgroundColor:"#ff69695c",
                 },
                 {
                     labels:standards.map(standard => standard.name),
                     label:`Regression Model: R-Squared: ${rSquared.toFixed(2)}`,
                     data: regressionType === "4pl"?mockData:standards.map(standard => {return {x:standard.interpolatedX.toFixed(2), y:standard.averageY.toFixed(2)}}),
                     showLine:true,
+                    // pointBorderColor: "black",
+                    // pointBackgroundColor:"#F2B949",
+                    // borderColor:"#F2B949",
                     pointRadius:regressionType === "4pl"?0:3,
                 },
             ]

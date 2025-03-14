@@ -93,13 +93,19 @@
  */
 function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x, ys){
     /**
-     * @returns {string[]} 
+     * @returns {Map<string,string>} 
      */
     function getTableData(){
-        return [
-            this.name, this.type, this.wellPositions.join(", "), this.ys.map(y => y.toFixed(2)).join(", "), this.averageY.toFixed(2), this.stdev.toFixed(2), 
-            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2)
-        ];
+        return new Map([
+            ["name", this.name],
+            ["type", this.type],
+            ["wellPositions", this.wellPositions.join(", ")],
+            ["ys", this.ys.map(y => y.toFixed(2)).join(", ")],
+            ["averageAndStDev", `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`],
+            ["interpolatedX", this.interpolatedX.toFixed(2)],
+            ["undilutedX", this.undilutedX.toFixed(2)],
+            ["convertedX", this.convertedX.toFixed(2)]
+        ])
     }
 
     /**
