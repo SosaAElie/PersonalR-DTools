@@ -80,7 +80,7 @@ function clickedCard(e){
     //Assumes that the 2nd element in the card is the radio button
     const radioButton = newlySelectedCard.children.item(1);
     radioButton.checked = !radioButton.checked;
-    console.log(radioButton.checked);
+    console.log(newlySelectedCard, radioButton.checked);
 }
 
 /**
@@ -245,9 +245,13 @@ function handleProcess(e){
     const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
     
-    //If there is no template or raw data file selected return null
-    if(!rawdataFile || !templateFile) return null;
+    //If there is no template or raw data file selected return
+    if(!rawdataFile || !templateFile) return;
     
+    //If there is no selected regression type return
+    const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
+    if (regressionType === undefined) return; 
+
     const excelDownloadButton = document.getElementById("download-button");
     const chartCanvas = document.getElementById("regression-chart");
     const tableContainer = document.getElementById("table-container");
@@ -288,7 +292,7 @@ function handleProcess(e){
         
         //Get user inputs for x-scale type and regression type
         const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
-        const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
+        
 
         //Obtain the parameters of best fit using selected regression type
         if(regressionType === "log") regressionObject = getLogRegression(xAndYStandards);
