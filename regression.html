@@ -82,23 +82,38 @@
             </div>
             <div id = "chart-inputs">
                 <div id = "regression-inputs">
-                    <h3>Regression Model</h3>
-                    <div class = "radio">
-                        <label for = "linear">Linear Regression</label>
+                    <h3 class = "subtitle">Regression Model</h3>
+                    <div class = "radio card">
+                        <label class = "regression-title" for = "linear">Linear Regression</label>
                         <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
+                        <img class = "card-images" src = "Images/LinearRegressionImage.jpg">
+                        <p class = "desc">
+                            Most accurate when the dependent variable changes 
+                            at a constant rate alongside the independent variable. 
+                        </p>
                     </div>
-                    <div class = "radio">
-                        <label for = "log">Logarithmic Regression</label>
+                    <div class = "radio card">
+                        <label class = "regression-title" for = "log">Logarithmic Regression</label>
                         <input id = "log" type = "radio" name = "regression" value="log">
+                        <img class = "card-images" src = "Images/LogRegressionImage.jpg">
+                        <p class = "desc">
+                            Most accurate when the dependent variable changes 
+                            at a slow rate relative to the independent variable.
+                        </p>
                     </div>
-                    <div class = "radio">
-                        <label for = "4pl">4-Parameter Hill Equation</label>
+                    <div class = "radio card">
+                        <label class = "regression-title" for = "4pl">4-Parameter Hill Equation</label>
                         <input id = "4pl" type = "radio" name = "regression" value="4pl">
+                        <img class = "card-images" src = "Images/4PLRegressionImage.jpg">
+                        <p class = "desc">
+                            Most accurate when the data presents upper and lower
+                            asymptotes in a sigmodial shape.
+                        </p>
                     </div>
-                    <div class = "radio">
+                    <!-- <div class = "radio card">
                         <label for ="subtract-blank">Subtract Blank?</label>
                         <input id = "subtract-blank"type="checkbox">
-                    </div>
+                    </div> -->
                 </div>
                 <div id = "chart-settings">
                     <h3>Chart Settings</h3>

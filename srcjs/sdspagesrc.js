@@ -57,13 +57,30 @@ function main(){
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
     document.getElementById("template-input").addEventListener("input", updateLabel);
-
+    document.querySelectorAll(".card").forEach(element => element.addEventListener("click", clickedCard))
     Array.from(document.getElementById("x-scale").children)
         .forEach(div=>{
             Array.from(div.children).filter(element=>element.tagName === "INPUT")
             .forEach(element=>element.addEventListener("change", handleXScale));
         });
     document.getElementById("hideExtrapolated").addEventListener("change", handleHideExtrapolated);
+}
+/**
+ * @param {Event} e
+ */
+function clickedCard(e){
+    const className = "clicked-card";
+    const currentlySelectedCard = document.querySelector("."+className);
+    if(currentlySelectedCard !== null) currentlySelectedCard.classList.remove(className);
+    /**
+     * @type {HTMLElement}
+     */
+    const newlySelectedCard = e.currentTarget;
+    newlySelectedCard.classList.contains(className)?newlySelectedCard.classList.remove(className):newlySelectedCard.classList.add(className)
+    //Assumes that the 2nd element in the card is the radio button
+    const radioButton = newlySelectedCard.children.item(1);
+    radioButton.checked = !radioButton.checked;
+    console.log(radioButton.checked);
 }
 
 /**
@@ -238,7 +255,7 @@ function handleProcess(e){
     const targetUnits = document.getElementById("units-conversion").value;
     const diagramContainer = document.getElementById("template-diagram");
     const gelTableContainer = document.getElementById("gel-table-container");
-    const subtractBlank = document.getElementById("subtract-blank").checked;
+    // const subtractBlank = document.getElementById("subtract-blank").checked;
     const proteinBarChart = document.getElementById("protein-bar-chart");
     
     //Delete current UI elements
@@ -259,10 +276,10 @@ function handleProcess(e){
         const standards = samples.filter(sample => sample.type === "standard");
         const unknowns = samples.filter(sample => sample.type === "sample");
 
-        if(subtractBlank){
-            const blank = ss.min(standards.map(standard => standard.averageY));
-            samples.forEach(sample => sample.averageY-=blank)
-        }
+        // if(subtractBlank){
+        //     const blank = ss.min(standards.map(standard => standard.averageY));
+        //     samples.forEach(sample => sample.averageY-=blank)
+        // }
         const xAndYStandards = standards.map(standard => [standard.x, standard.averageY]);
         let regressionObject;
 
@@ -310,7 +327,7 @@ function handleProcess(e){
         createProteinGelLoadingTable(unknowns, gelTableContainer);
         
         //Add functionality to the excel button
-        excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e,parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, subtractBlank, parameters, rSquared));
+        excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e,parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, parameters, rSquared));
 
     })
 }
@@ -322,11 +339,10 @@ function handleProcess(e){
  * @param {number} dilutionFactor
  * @param {string} unit
  * @param {string} targetUnit
- * @param {boolean} subtractBlank
  * @param {Map<string, number>} parameters
  * @param {number} rSquared
  */
-function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor, unit, targetUnit, subtractBlank, parameters, rSquared){
+function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor, unit, targetUnit, parameters, rSquared){
     //Create pseudoExcels in memory in order to write to excel and create downloadable link
     const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
     psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);

@@ -22,7 +22,65 @@ body{
     flex-direction: column;
     align-items: center;
 }
+
+input[type = "radio"]{
+    display: none;
+}
+#regression-inputs{
+    /* background-color: red; */
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto;
+    column-gap: 5vw;
+    row-gap: 1rem;
+}
+.card-images{
+    width: 60%;
+    height: 60%;
+    align-self: center;
+}
+.subtitle{
+    grid-column: span 3;
+    font-size: xx-large;
+    text-decoration: none;
+}
+.card{
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    border-width: 1px;
+    border-color: black;
+    border-style: solid;
+}
+.desc{
+    margin: 1rem;
+    line-height: 2.5rem;
+}
+.clicked-card{
+    background-color:  #D6EFD8;
+}
+.card:hover{
+    background-color:   #D6EFD8;
+}
+.clicked-card:hover{
+    background-color: rgb(116, 210, 102);
+}
+.regression-title{
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+}
+
 #chart-inputs{
+    display: flex;
+    flex-direction: column;
+    align-self: center;
+    /* align-items: center; */
+    /* width: 50vw; */
+    text-align: center;
+    line-height: 3rem;
+}
+/* #chart-inputs{
     display: grid;
     margin-top: 1%;
     grid-template-columns: auto auto;
@@ -31,7 +89,7 @@ body{
     width: 50vw;
     text-align: left;
     line-height: 2rem;
-}
+} */
 li{
     line-height: 3rem;
     width: 40vw;
@@ -72,6 +130,7 @@ li>img{
     justify-content: space-between;
 }
 
+
 #process-button{
     grid-column: span 2;
     width: auto;
@@ -85,9 +144,6 @@ li>img{
 
 input[type = "file"]{
     display: none;
-}
-label:hover{
-    background-color: rgba(204, 219, 224, 0.404);
 }
 input{
     background-color: inherit;
