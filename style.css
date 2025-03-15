@@ -4,13 +4,21 @@ body{
     font-style: normal;
     text-align: center;
     accent-color: black;
-    background-image: linear-gradient(to bottom, rgba(199, 198, 198, 0.592), white);
-    background-repeat: no-repeat;
-    background-attachment: fixed;
 }
 #contact{
     font-size: larger;
     text-decoration: none;
+    border: 1px solid black;
+    color: black;
+    border-radius: 10px;
+    box-shadow: 1px 1px;
+    padding: 2px;
+}
+#contact:hover{
+    background-color: #F2B949;
+}
+footer{
+    margin-top: 25vh;
 }
 #contact-form{
     display: grid;
@@ -40,17 +48,6 @@ body{
     font-family: inherit;
 }
 
-.container{
-    display: grid;
-    grid-template-columns: auto auto;
-    justify-content: space-around;
-}
-
-caption{
-    font-weight: bold;
-    border: inherit;
-}
-
 header{
     text-align: center;
     height: min-content;
@@ -74,28 +71,44 @@ h1>a:hover{
     font-size: 102%;
 }
 
-#figure-container{
+.card{
     display: flex;
-    justify-content: space-around;
-}
-
-.figures:hover{
-    background-color: #dddddd7c;
-}
-.figures>img{
+    flex-direction: column;
+    text-align: left;
+    border-width: 1px;
+    border-color: black;
     border-style: solid;
-    width: 31vw;
-    height: 40vh;
-}
-.figures>h3{
-    font-weight: bolder;
-    margin-bottom: 0;
-}
-.figures{
-    color: black;
+    border-radius: 10%;
+    width: 35vw;
+    height: 50vh;
+    box-shadow: 5px 5px;
+    margin: 1px;
     text-decoration: none;
-    width: min-content;
-    padding: 1%;
+    color:black;
+    row-gap: 1rem;
+    padding-top: 1rem;
+}
+.desc{
+    margin: 1rem;
+    line-height: 2.5rem;
+    font-size: large;
+}
+.card:hover{
+    background-color:   #F2B949;
+}
+.card-images{
+    width: 60%;
+    height: 60%;
+    align-self: center;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 10%;
+}
+.card-title{
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    margin: 0px;
 }
 h1{
     font-weight: lighter;
@@ -105,18 +118,6 @@ h1{
 p>b{
     font-size: 18px;
 }
-h3{
-    text-decoration: underline;
-    font-family: "Roboto", sans-serif;
-    font-weight: bolder;
-    margin: 0;
-    padding: 0;
-}
-#description{
-    font-style: oblique;
-    font-size: large;
-}
-
 button{
     font-size: large;
     border-style:solid;
@@ -124,21 +125,25 @@ button{
     border-width: 2px;
     font-family: "Roboto", sans-serif;
     font-weight: normal;
-    background-color: inherit;
+    background-color: #F2B949;
     padding: 10px;
 }
 button:hover{
-    background-color: rgba(175, 219, 175, 0.622);
+    background-color: #be9033;
+}
+#figure-container{
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-items: center;
 }
 
 @media (max-width: 450px) {
     #figure-container{
+        display: flex;
         flex-direction: column;
+        row-gap: 5vw;
     }
-    .figures>img{
-        width: 100%;
-    }
-    .figures{
-        width: auto;
+    .card{
+        width: 95vw;
     }
 }
