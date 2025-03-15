@@ -1191,6 +1191,7 @@ function createProteinGelLoadingTable(unknowns, parent){
                 const input = document.createElement("input");
                 input.id = `${header}-${unknown.name}`;
                 input.value = volPerWell;
+                input.type = "number";
                 unknown.sdspageValues.volPerWell = volPerWell;
                 input.addEventListener("input", e => handleWellVolChange(e, unknown, vol));
                 input.addEventListener("click", handleInputClick);
@@ -1200,6 +1201,7 @@ function createProteinGelLoadingTable(unknowns, parent){
                 const input = document.createElement("input");
                 input.id = `${header}-${unknown.name}`;
                 input.value = replicates;
+                input.type = "number";
                 unknown.sdspageValues.replicates = replicates;
                 input.addEventListener("input", e => handleReplicateChange(e, unknown, vol, mass));
                 input.addEventListener("click", handleInputClick);

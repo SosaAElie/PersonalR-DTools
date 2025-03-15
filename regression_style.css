@@ -26,6 +26,12 @@ body{
     flex-direction: column;
     align-items: center;
 }
+.steps>ol{
+    display: grid;
+    grid-template-columns: auto auto;
+    row-gap: 2vw;
+    column-gap: 5vw;
+}
 
 input[type = "radio"], input[type = "checkbox"]{
     display: none;
@@ -305,19 +311,12 @@ tr:hover{
     row-gap: 1vh;
     align-items: center;
 }
-input[type="text"] {
-    width: 60px;
-    text-align: center;
-}
+
 .clicked-row{
     background-color: #F2B949;
 }
 .clicked-row:hover{
     background-color: #be9033;
-}
-input[type="number"] {
-    width:60px;
-    text-align: center;
 }
 caption{
     font-weight: bold;
@@ -454,9 +453,18 @@ td,th{
     border-bottom: 1px solid black;
 }
 
-input[type="number"] {
+input[type="number"], input[type="text"]  {
     width:60px;
     text-align: center;
+    border-style: solid;
+    border-radius: 10px;
+    border-width: 1px;
+    box-shadow: 2px 2px;
+    border-color: black;
+}
+
+input[type="number"]:hover, input[type="text"]:hover{
+    background-color: #F2B949;
 }
 td:nth-child(1){
     font-weight: bold;
@@ -466,7 +474,10 @@ td:nth-child(1){
 th:nth-child(1){
     border-right: 1px solid black;
 }
-
+input:focus{
+    outline: none;
+    background-color: #F2B949;
+}
 @media (max-width: 1500px){
     #chart-template-container{
         display: flex;
@@ -481,7 +492,7 @@ th:nth-child(1){
         min-width: 80vw;
     }
 }
-@media (max-width: 450px) {
+@media (max-width: 800px) {
     #chart-inputs{
         display: flex;
         flex-direction: column;
@@ -523,6 +534,10 @@ th:nth-child(1){
     }
     .subtitle, .subtitle2{
         text-align: center;
+    }
+    .steps>ol{
+        display: flex;
+        flex-direction: column;
     }
 
 }
