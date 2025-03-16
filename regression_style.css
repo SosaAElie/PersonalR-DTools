@@ -235,6 +235,7 @@ td>input{
 #file-inputs>label{
     box-shadow: 2px 2px;
     border-radius: 10px;
+    border-width: 1px;
     border-style: solid;
 }
 #file-inputs>label:hover{

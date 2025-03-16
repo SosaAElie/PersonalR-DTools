@@ -4,6 +4,7 @@ body{
     font-style: normal;
     text-align: center;
     accent-color: black;
+    height: 100%;
 }
 #contact{
     font-size: larger;
@@ -18,7 +19,8 @@ body{
     background-color: #F2B949;
 }
 footer{
-    margin-top: 25vh;
+    margin-top: 20vh;
+    position: sticky;
 }
 #contact-form{
     display: grid;
@@ -80,7 +82,8 @@ h1>a:hover{
     border-style: solid;
     border-radius: 10%;
     width: 35vw;
-    height: 50vh;
+    /* height: 50vh; */
+    height:100%;
     box-shadow: 5px 5px;
     margin: 1px;
     text-decoration: none;
@@ -105,7 +108,7 @@ h1>a:hover{
     border-radius: 10%;
 }
 .card-title{
-    font-size: 28px;
+    font-size: 3ch;
     font-weight: bold;
     text-align: center;
     margin: 0px;
@@ -114,9 +117,6 @@ h1{
     font-weight: lighter;
     font-size: 7vh;
     margin-bottom: 0;
-}
-p>b{
-    font-size: 18px;
 }
 button{
     font-size: large;
@@ -145,5 +145,9 @@ button:hover{
     }
     .card{
         width: 95vw;
+    }
+    .card-images{
+        width: 60%;
+        height: 60%;
     }
 }
