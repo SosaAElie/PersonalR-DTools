@@ -114,7 +114,7 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
     function getExcelData(){
         return [
             this.name, this.type, this.ys.map(y => y.toFixed(2)).join(","), `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`, 
-            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2), ...this.sdspageValues.getGelData()
+            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2), ...this.sdspageValues.getGelData(all = true)
         ]
     }
 
@@ -127,10 +127,14 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
  */
 function createSdsPageValues(){
     /**
+     * @param {boolean} all
      * @returns {string[]}
      */
-    function getGelData(){
-        return Array.from(Object.values(this)).filter((val, i, arr) => typeof val === "number").map(prop => prop.toFixed(2));
+    function getGelData(all = false){
+        return all ?
+        Array.from(Object.values(this)).filter((val, i, arr) => typeof val === "number").map(val => val.toFixed(2))
+        : 
+        Array.from(Object.entries(this)).filter((kAndv, i, arr) => typeof kAndv[1] === "number" && (i < 2 || i >=5)).map(kAndv => kAndv[1].toFixed(2))
     }
 
     return{

@@ -4,9 +4,6 @@ body{
     font-style: normal;
     accent-color: black;
     font-size: large;
-    /* background-image: radial-gradient(circle at 100% 100%, rgba(199, 198, 198, 0.592), white);
-    background-repeat: no-repeat;
-    background-attachment: fixed; */
 }
 #file-inputs{
     display: grid;
@@ -128,6 +125,7 @@ li{
 }
 li>img{
     width:100%;
+    border-radius: 10px;
 }
 
 #chart-template-container{
@@ -161,11 +159,6 @@ li>img{
     justify-content: space-between;
 }
 
-
-/* #process-button{
-    grid-column: span 2;
-    width: auto;
-} */
 
 #table-container{
     display: flex;
@@ -206,7 +199,7 @@ input::-webkit-inner-spin-button {
     height: 3.5rem;
     width: 3.5rem;
     border-style:solid;
-    border-width: 2px;
+    border-width: 1.5px;
     border-color: black;
     border-radius: 50%;
     display: flex;
@@ -243,7 +236,7 @@ td>input{
 }
 
 .well{ 
-    font-weight: normal;
+    font-weight: bold;
     font-size: small;
     justify-content: center;
     background-color: white;
@@ -262,6 +255,7 @@ td>input{
     font-style: normal;
     display: grid;
     grid-template-columns: auto auto;
+    line-height: 1.25rem;
     /* Position the tooltip */
     position: absolute;
     z-index: 1;
@@ -302,8 +296,6 @@ select{
 option{
     background-color: white
 }
-
-
 
 .container{
     display: flex;

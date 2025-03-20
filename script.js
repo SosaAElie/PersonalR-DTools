@@ -115,7 +115,7 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
     function getExcelData(){
         return [
             this.name, this.type, this.ys.map(y => y.toFixed(2)).join(","), `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`, 
-            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2), ...this.sdspageValues.getGelData()
+            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2), ...this.sdspageValues.getGelData(all = true)
         ]
     }
 
@@ -128,10 +128,14 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
  */
 function createSdsPageValues(){
     /**
+     * @param {boolean} all
      * @returns {string[]}
      */
-    function getGelData(){
-        return Array.from(Object.values(this)).filter((val, i, arr) => typeof val === "number").map(prop => prop.toFixed(2));
+    function getGelData(all = false){
+        return all ?
+        Array.from(Object.values(this)).filter((val, i, arr) => typeof val === "number").map(val => val.toFixed(2))
+        : 
+        Array.from(Object.entries(this)).filter((kAndv, i, arr) => typeof kAndv[1] === "number" && (i < 2 || i >=5)).map(kAndv => kAndv[1].toFixed(2))
     }
 
     return{
@@ -42522,8 +42526,10 @@ function createWell(lightSample){
  * @param {Element} parent
 **/
 function createProteinGelLoadingTable(unknowns, parent){
+    //Starting values, these are relatively arbitrary 
     const proteinPerWell = 20;
     const volPerWell = 12;
+
     const unit = unknowns[0].targetUnit;
     const [mass, vol] = unit.split("/");
     const dilutionFactor = unknowns[0].dilutionFactor;
@@ -42546,9 +42552,9 @@ function createProteinGelLoadingTable(unknowns, parent){
     //Create input element and attach input event handler to update all replicates for samples simulatenously 
     replicatesInput.addEventListener("input", e=>{
         const replicates = parseFloat(e.target.value);
-        if(replicates < 0 || replicates === NaN) return;
+        if(replicates < 0 || isNaN(replicates)) return;
+
         for(let unknown of unknowns){
-            
             //Perform Calculations
             const replicateVol = unknown.sdspageValues.volPerWell * replicates;
             const replicateProteinVol = unknown.sdspageValues.proteinVolPerWell * replicates;
@@ -42564,10 +42570,10 @@ function createProteinGelLoadingTable(unknowns, parent){
             
             //Update UI
             document.getElementById(`Replicates-${unknown.name}`).value = replicates;
-            document.getElementById(`Replicate Vol[${vol}]-${unknown.name}`).textContent = replicateVol.toFixed(2);
-            document.getElementById(`Replicate Protein Vol[${vol}]-${unknown.name}`).textContent = replicateProteinVol.toFixed(2);
-            document.getElementById(`Replicate 4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = replicateLaemmliVol.toFixed(2);
-            document.getElementById(`Replicate H2O Vol[${vol}]-${unknown.name}`).textContent = replicateBufferVol.toFixed(2);
+            document.getElementById(`Vol[${vol}]-${unknown.name}`).textContent = replicateVol.toFixed(2);
+            document.getElementById(`Protein Vol[${vol}]-${unknown.name}`).textContent = replicateProteinVol.toFixed(2);
+            document.getElementById(`4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = replicateLaemmliVol.toFixed(2);
+            document.getElementById(`H2O Vol[${vol}]-${unknown.name}`).textContent = replicateBufferVol.toFixed(2);
         }
         
     })
@@ -42579,7 +42585,7 @@ function createProteinGelLoadingTable(unknowns, parent){
     proteinPerWellInput.defaultValue =  20;
     proteinPerWellInput.addEventListener("input", e => {
         const proteinPerWell = parseFloat(e.target.value);
-        if(proteinPerWell < 0 || proteinPerWell === NaN) return;
+        if(proteinPerWell < 0 || isNaN(proteinPerWell)) return;
         for(let unknown of unknowns){
 
             //Perform calculations
@@ -42593,8 +42599,8 @@ function createProteinGelLoadingTable(unknowns, parent){
 
             //Update UI
             document.getElementById(`Protein[${mass}]/Well-${unknown.name}`).value = proteinPerWell;
-            document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVolPerWell.toFixed(2);
-            document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+            // document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVolPerWell.toFixed(2);
+            // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
             document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
         }
     })
@@ -42606,7 +42612,7 @@ function createProteinGelLoadingTable(unknowns, parent){
     volPerWellInput.defaultValue = 12;
     volPerWellInput.addEventListener("input", e => {
         const volPerWell = parseFloat(e.target.value);
-        if(volPerWell < 0 || volPerWell === NaN) return;
+        if(volPerWell < 0 || isNaN(volPerWell)) return;
         for(let unknown of unknowns){
             //Perform calculations
             const laemmliVolPerWell = volPerWell/4;
@@ -42619,8 +42625,8 @@ function createProteinGelLoadingTable(unknowns, parent){
             
             //Update UI
             document.getElementById(`Vol[${vol}]/Well-${unknown.name}`).value = volPerWell;
-            document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
-            document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+            // document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
+            // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
             document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
         }
     })
@@ -42636,21 +42642,17 @@ function createProteinGelLoadingTable(unknowns, parent){
         `${dilutionFactor}X Concentration [${unit}]`,
         `Protein[${mass}]/Well`,
         `Vol[${vol}]/Well`,
-        `Protein Vol[${vol}]/Well`,
-        `4X Laemmli Vol[${vol}]/Well`,
-        `H2O[${vol}]/Well`,
         "Replicates",
-        `Replicate Vol[${vol}]`,
-        `Replicate Protein Vol[${vol}]`,
-        `Replicate 4X Laemmli Vol[${vol}]`,
-        `Replicate H2O Vol[${vol}]`,
+        `Vol[${vol}]`,
+        `Protein Vol[${vol}]`,
+        `4X Laemmli Vol[${vol}]`,
+        `H2O Vol[${vol}]`,
     ];
 
     for(let header of headers){
         const headerTitle = document.createElement("th");
         headerTitle.textContent = header;
         if(header === "Replicates"){
-            headerTitle.textContent+=": ";
             headerTitle.appendChild(replicatesInput);
         }
         else if(header === `Protein[${mass}]/Well`){
@@ -42760,13 +42762,13 @@ function createProteinGelLoadingTable(unknowns, parent){
         //Update the UI
         document.getElementById(`Protein[${mass}]/Well-${unknown.name}`).textContent = proteinPerWell.toFixed(2);
         document.getElementById(`Vol[${vol}]/Well-${unknown.name}`).textContent = volPerWell.toFixed(2);
-        document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVol.toFixed(2);
-        document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVol.toFixed(2);
-        document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVol.toFixed(2);
-        document.getElementById(`Replicate Vol[${vol}]-${unknown.name}`).textContent = replicateVol.toFixed(2);
-        document.getElementById(`Replicate Protein Vol[${vol}]-${unknown.name}`).textContent = replicateProteinVol.toFixed(2);
-        document.getElementById(`Replicate 4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = replicateLaemmliVol.toFixed(2);
-        document.getElementById(`Replicate H2O Vol[${vol}]-${unknown.name}`).textContent = replicateBufferVol.toFixed(2);
+        // document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVol.toFixed(2);
+        // document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVol.toFixed(2);
+        // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVol.toFixed(2);
+        document.getElementById(`Vol[${vol}]-${unknown.name}`).textContent = replicateVol.toFixed(2);
+        document.getElementById(`Protein Vol[${vol}]-${unknown.name}`).textContent = replicateProteinVol.toFixed(2);
+        document.getElementById(`4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = replicateLaemmliVol.toFixed(2);
+        document.getElementById(`H2O Vol[${vol}]-${unknown.name}`).textContent = replicateBufferVol.toFixed(2);
     }
     
 }
@@ -42783,7 +42785,7 @@ function handleTotalProteinChange(e, unknown, mass, vol){
     e.stopPropagation();
     e.preventDefault();
     const proteinPerWell = parseFloat(e.target.value);
-    if(proteinPerWell < 0 || proteinPerWell === undefined) return;
+    if(proteinPerWell < 0 || isNaN(proteinPerWell)) return;
 
     //Perform Calculations
     const proteinVolPerWell = proteinPerWell/unknown.convertedX;;
@@ -42797,9 +42799,9 @@ function handleTotalProteinChange(e, unknown, mass, vol){
     unknown.sdspageValues.bufferVolPerWell = bufferVolPerWell;
     
     //Update UI
-    document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVolPerWell.toFixed(2);
-    document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
-    document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+    // document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVolPerWell.toFixed(2);
+    // document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
+    // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
     document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
 }
 
@@ -42813,7 +42815,7 @@ function handleWellVolChange(e, unknown, vol){
     e.stopPropagation();
     e.preventDefault();
     const volPerWell = parseFloat(e.target.value);
-    if(volPerWell < 0 || volPerWell === undefined) return;
+    if(volPerWell < 0 || isNaN(volPerWell) ) return;
 
     //Perform Calculations
     const laemmliVolPerWell = volPerWell/4;
@@ -42825,9 +42827,9 @@ function handleWellVolChange(e, unknown, vol){
     unknown.sdspageValues.bufferVolPerWell = bufferVolPerWell;
 
     //Update UI
-    document.getElementById(`Vol[${vol}]/Well-${unknown.name}`).textContent = volPerWell.toFixed(2);
-    document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
-    document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+    // document.getElementById(`Vol[${vol}]/Well-${unknown.name}`).textContent = volPerWell.toFixed(2);
+    // document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
+    // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
     document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
 }
 /**
@@ -42849,7 +42851,7 @@ function handleReplicateChange(e, unknown, vol, mass){
     e.stopPropagation();
     e.preventDefault();
     const replicates = parseFloat(e.target.value);
-    if(replicates < 0 || replicates === NaN) return;
+    if(replicates < 0 || isNaN(replicates)) return;
     
     //Update the unknowns properties
     unknown.sdspageValues.replicates = replicates;
@@ -42860,10 +42862,10 @@ function handleReplicateChange(e, unknown, vol, mass){
 
     //Update the UI
     document.getElementById(`Replicates-${unknown.name}`).textContent = replicates.toString();
-    document.getElementById(`Replicate Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateVol.toFixed(2);
-    document.getElementById(`Replicate Protein Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateProteinVol.toFixed(2);
-    document.getElementById(`Replicate 4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateLaemmliVol.toFixed(2);
-    document.getElementById(`Replicate H2O Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateBufferVol.toFixed(2);
+    document.getElementById(`Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateVol.toFixed(2);
+    document.getElementById(`Protein Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateProteinVol.toFixed(2);
+    document.getElementById(`4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateLaemmliVol.toFixed(2);
+    document.getElementById(`H2O Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateBufferVol.toFixed(2);
     
 }
 
