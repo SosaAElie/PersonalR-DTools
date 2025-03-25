@@ -222,10 +222,10 @@ button:hover{
 .hidden{
     display: none;
 }
-table, th, td{
+th, tr, td{
     border: 1px solid black;
-    border-collapse: collapse;
     text-align: center;
+    width: 75vw;
 }
 caption{
     position: sticky;
@@ -247,6 +247,7 @@ thead{
     position: sticky;
     top:46px;
     background-color: rgb(221, 219, 219);
+    /* border-style: solid; */
 }
 .header-targets{
     height: 50px;
