@@ -4,6 +4,7 @@ body{
     font-style: normal;
     accent-color: black;
     font-size: large;
+    
 }
 #file-inputs{
     display: grid;
@@ -176,10 +177,6 @@ input{
     font-family: "Roboto", sans-serif;
     font-weight: 500;
     font-style: italic;
-    /* color: rgba(255, 252, 252, 0.818); */
-}
-input:hover{
-    background-color: rgba(204, 219, 224, 0.404);
 }
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -241,7 +238,7 @@ td>input{
     justify-content: center;
     background-color: white;
     color: black;
-    box-shadow: 1px 1px;
+    box-shadow: 1px 1px 1px 1px;
 }
 .well .hovertext{
     visibility: hidden;
@@ -446,6 +443,10 @@ input:focus{
 }
 tr:hover{
     background-color: #F2B949;
+}
+.editable>input{
+    display: block;
+    justify-self: center;
 }
 @media (max-width: 1500px){
     #chart-template-container{

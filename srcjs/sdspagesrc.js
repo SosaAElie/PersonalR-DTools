@@ -1145,12 +1145,15 @@ function createProteinGelLoadingTable(unknowns, parent){
         headerTitle.textContent = header;
         if(header === "Replicates"){
             headerTitle.appendChild(replicatesInput);
+            headerTitle.className = "editable";
         }
         else if(header === `Protein[${mass}]/Well`){
             headerTitle.appendChild(proteinPerWellInput);
+            headerTitle.className = "editable";
         }
         else if(header === `Vol[${vol}]/Well`){
             headerTitle.appendChild(volPerWellInput);
+            headerTitle.className = "editable";
         }
         headerRow.appendChild(headerTitle);
     }

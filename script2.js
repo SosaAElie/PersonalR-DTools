@@ -282,13 +282,19 @@ process.umask = function() { return 0; };
  */
 function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x, ys){
     /**
-     * @returns {string[]} 
+     * @returns {Map<string,string>} 
      */
     function getTableData(){
-        return [
-            this.name, this.type, this.wellPositions.join(", "), this.ys.map(y => y.toFixed(2)).join(", "), this.averageY.toFixed(2), this.stdev.toFixed(2), 
-            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2)
-        ];
+        return new Map([
+            ["name", this.name],
+            ["type", this.type],
+            ["wellPositions", this.wellPositions.join(", ")],
+            ["ys", this.ys.map(y => y.toFixed(2)).join(", ")],
+            ["averageAndStDev", `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`],
+            ["interpolatedX", this.interpolatedX.toFixed(2)],
+            ["undilutedX", this.undilutedX.toFixed(2)],
+            ["convertedX", this.convertedX.toFixed(2)]
+        ])
     }
 
     /**
@@ -297,7 +303,7 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
     function getExcelData(){
         return [
             this.name, this.type, this.ys.map(y => y.toFixed(2)).join(","), `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`, 
-            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2), ...this.sdspageValues.getGelData()
+            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2), ...this.sdspageValues.getGelData(all = true)
         ]
     }
 
@@ -310,10 +316,14 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
  */
 function createSdsPageValues(){
     /**
+     * @param {boolean} all
      * @returns {string[]}
      */
-    function getGelData(){
-        return Array.from(Object.values(this)).filter((val, i, arr) => typeof val === "number").map(prop => prop.toFixed(2));
+    function getGelData(all = false){
+        return all ?
+        Array.from(Object.values(this)).filter((val, i, arr) => typeof val === "number").map(val => val.toFixed(2))
+        : 
+        Array.from(Object.entries(this)).filter((kAndv, i, arr) => typeof kAndv[1] === "number" && (i < 2 || i >=5)).map(kAndv => kAndv[1].toFixed(2))
     }
 
     return{
@@ -42381,7 +42391,7 @@ function createSamplesAndTargets(rawdata){
             //Cq average when there is at least 1 NaN value present
             const [sampleName, targetName, wellNumber, wellPosition, reporter, cq] = sampleData;
             if (sampleName.trim() === "") continue;
-            let color = helpers.getRandomColor(0.4);
+            let color = helpers.getRandomColor(0.45);
             if(targets.has(targetName)) color = targets.get(targetName);
             else targets.set(targetName, color)
 
@@ -42470,7 +42480,7 @@ function createWell(lws){
     hoverName.textContent = lws.name;
     hoverContainer.appendChild(hoverName);
 
-    if(lws.name.toLowerCase() === "none") return well;
+    if(lws.name.toLowerCase() === "none" || lws.name.toLowerCase() === "empty") return well;
 
     //If there is only 1 color, then there is only 1 target being probed for in the well, set the color of the well to the only color in the array
     //else determine the starting and end points of each color of each target based off of their index and the length of the array and set the well to those colors
@@ -42481,7 +42491,20 @@ function createWell(lws){
         hoverContainer.appendChild(hoverTarget);
     } 
     else{
-        well.style.background = `repeating-linear-gradient(to right, ${lws.colors.map((color, i, arr) =>  `${color} ${(i/arr.length)*100}% ${(i+1/arr.length)*100}%`).join(",")})`;
+        /**
+         * @type {string[]}
+         */
+        const colors = [];
+        let start = 0;
+        const numberOfColors = lws.colors.length;
+        let step = 1/numberOfColors;
+        for (let i = 0; i < numberOfColors; i++){
+            const currentColor = lws.colors[i];
+            const end = ((i+1)/numberOfColors)*100;
+            colors.push(`${currentColor} ${start}% ${end}%`);
+            start+=step;
+        }
+        well.style.background = `repeating-linear-gradient(to right, ${colors.join(",")})`;
         for(let i = 0; i < lws.targetNames.length; i++){
             const hoverTarget = document.createElement("div");
             hoverTarget.textContent = `${lws.targetNames[i]}:${lws.cqs[i]}`;

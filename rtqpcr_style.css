@@ -62,8 +62,6 @@ input{
     font-style: italic;
 }
 
-
-
 #diagram384{
     display: grid;
     grid-template-columns: repeat(24, auto);
@@ -305,6 +303,10 @@ td:nth-child(1){
     font-weight: bold;
     background-color: #c0bcbc83;
 }
+th>select, th>div{
+    display: block;
+    justify-self: center;
+}
 @media (max-width: 450px) {
     li{
         width: auto;
@@ -313,5 +315,21 @@ td:nth-child(1){
         display: flex;
         flex-direction: column;
         /* width: 95vw; */
+    }
+    
+    #diagram384{
+        grid-template-columns: repeat(6, auto);
+        width: 100%;
+        margin-bottom: 5%;
+    }
+    #diagram-title{
+        grid-column: span 6;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        text-wrap: nowrap;
+        width: 100%;
+    }
+    table{
+        width: 100vw;
     }
 }
