@@ -178,24 +178,24 @@ function createRgeTable(samples, targets, title, container){
 
 }
 
-/**
- * 
- * @param {classes.RtqpcrSample[]} samples 
- */
-function createSampleSelect(samples){
-    const selectEle = document.createElement("select");
-    const noneOption = document.createElement("option");
-    noneOption.value = "None";
-    noneOption.text = "None";
-    selectEle.appendChild(noneOption);
-    for(let sample of samples){
-        const optionEle = document.createElement("option");
-        optionEle.value = sample.name;
-        optionEle.text = sample.name;
-        selectEle.appendChild(optionEle);
-    }
-    return selectEle;
-}
+// /**
+//  * 
+//  * @param {classes.RtqpcrSample[]} samples 
+//  */
+// function createSampleSelect(samples){
+//     const selectEle = document.createElement("select");
+//     const noneOption = document.createElement("option");
+//     noneOption.value = "None";
+//     noneOption.text = "None";
+//     selectEle.appendChild(noneOption);
+//     for(let sample of samples){
+//         const optionEle = document.createElement("option");
+//         optionEle.value = sample.name;
+//         optionEle.text = sample.name;
+//         selectEle.appendChild(optionEle);
+//     }
+//     return selectEle;
+// }
 
 /**
  * 

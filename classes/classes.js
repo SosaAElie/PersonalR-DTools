@@ -212,7 +212,6 @@ function createRtqpcrSample(name, target, well, wellPosition){
             return targets;
         },
         /**
-         * 
          * @param {string} targetName 
          * @returns {string[]}
          */

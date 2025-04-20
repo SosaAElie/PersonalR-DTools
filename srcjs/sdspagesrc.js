@@ -3,7 +3,6 @@ const chartjs = require("chart.js/auto");
 const xlsx = require("xlsx");
 const helpers = require("../utils/helpers");
 const classes = require("../classes/classes");
-const { callback } = require("chart.js/helpers");
 
 //Global variable to store the reference to the created chart & chart image for excel
 let LINEGRAPH = null;
