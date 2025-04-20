@@ -1,0 +1,519 @@
+body{
+    font-family: "Roboto", sans-serif;
+    font-weight: 300;
+    font-style: normal;
+    accent-color: black;
+    font-size: large;
+    
+}
+#file-inputs{
+    display: grid;
+    grid-template-rows: auto;
+    grid-template-columns: auto auto;
+    line-height: 2rem;
+    row-gap: 1rem;
+    column-gap: 1rem;
+    align-self: center;
+    justify-content: space-around;
+    text-align: center;
+}
+
+
+.steps{
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 5rem;
+}
+.steps>ol{
+    display: grid;
+    grid-template-columns: auto auto;
+    row-gap: 2vw;
+    column-gap: 5vw;
+}
+
+input[type = "radio"], input[type = "checkbox"]{
+    display: none;
+}
+#regression-inputs{
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto;
+    column-gap: 3vw;
+    row-gap: 1rem;
+}
+#chart-settings{
+    display: grid;
+    grid-template-columns: 66% 33%;
+    grid-template-rows: auto auto;
+    column-gap: 1vw;
+    row-gap: 1rem;
+}
+#x-scale>.card{
+    width: 45%;
+}
+.card-images{
+    width: 60%;
+    height: 60%;
+    align-self: center;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 10%;
+}
+.subtitle{
+    grid-column: span 3;
+    font-size: xx-large;
+    text-decoration: none;
+}
+.subtitle2{
+    grid-column: span 2;
+    font-size: xx-large;
+    text-decoration: none;
+}
+#x-scale{
+    display: flex;
+    justify-content:left;
+    column-gap: 4%;
+}
+
+.card{
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    border-width: 1px;
+    border-color: black;
+    border-style: solid;
+    border-radius: 10%;
+    min-width: 45%;
+    min-height: 95%;
+    box-shadow: 5px 5px;
+    margin: 1px;
+}
+
+.desc{
+    margin: 1rem;
+    line-height: 2.5rem;
+}
+.clicked-card{
+    background-color:  #F2B949;
+}
+.card:hover{
+    background-color:   #F2B949;
+}
+.clicked-card:hover{
+    background-color: #be9033;
+}
+.card-title{
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    margin: 0px;
+}
+
+#chart-inputs{
+    display: flex;
+    flex-direction: column;
+    align-self: center;
+    text-align: center;
+    line-height: 3rem;
+    row-gap: 5vw;
+}
+
+li{
+    line-height: 3rem;
+    width: 40vw;
+    text-align: left;
+}
+li>img{
+    width:100%;
+    border-radius: 10px;
+}
+
+#chart-template-container{
+    display: grid;
+    grid-template-columns: 50% 50%;
+    width: 100%;
+    justify-content: center;
+    align-content: center;
+}
+
+#buttons{
+    display: flex;
+    justify-content: center;
+    grid-column: span 2;
+    column-gap: 1%;
+}
+.filenames{
+    margin: 0;
+    text-overflow:ellipsis;
+    overflow: hidden;
+    text-wrap:nowrap;
+    text-align: left;
+    max-width: 200px;
+}
+.filenames:hover{
+    overflow: visible;
+}
+
+.radio{
+    display: flex;
+    justify-content: space-between;
+}
+
+
+#table-container{
+    display: flex;
+    position: relative;
+    justify-content: center;
+}
+
+input[type = "file"]{
+    display: none;
+}
+input{
+    background-color: inherit;
+    border-style: none;
+    font-size: medium;
+    font-family: "Roboto", sans-serif;
+    font-weight: 500;
+    font-style: italic;
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#template-diagram{
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    text-align: center;
+    justify-self: center;
+    align-self: center;
+    gap: 2px;
+}
+#template-diagram>div{
+    height: 3.5rem;
+    width: 3.5rem;
+    border-style:solid;
+    border-width: 1.5px;
+    border-color: black;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+}
+
+td>input{
+    text-align: center;
+    width: 75px;
+}
+#diagram-title{
+    grid-column: span 12;
+    text-decoration: none;
+    font-size: medium;
+    font-weight: bold;
+    text-wrap: nowrap;
+    margin-bottom: 10px;
+}
+.bubble{
+    border-radius: 10px;
+    border-style: solid;
+    border-width: 1px;
+    width: 100px;
+    justify-self: center;
+}
+#file-inputs>label{
+    box-shadow: 2px 2px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-style: solid;
+}
+#file-inputs>label:hover{
+    background-color: #F2B949;
+}
+
+.well{ 
+    font-weight: bold;
+    font-size: small;
+    justify-content: center;
+    background-color: white;
+    color: black;
+    box-shadow: 1px 1px 1px 1px;
+}
+.well .hovertext{
+    visibility: hidden;
+    width: auto;
+    background-color: rgba(53, 48, 48, 0.885);
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    font-weight: lighter;
+    font-size: larger;
+    font-style: normal;
+    display: grid;
+    grid-template-columns: auto auto;
+    line-height: 1.25rem;
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+}
+
+.hoverInput{
+    width: 90%;
+    color: inherit;
+    text-align: inherit;
+    border-radius: inherit;
+    font-weight: lighter;
+    font-size: inherit;
+    font-style: inherit;
+}
+
+.well:hover .hovertext {
+    visibility: visible;
+}
+.sample{
+    background-color: #ff69695c;
+    
+}
+.standard{
+    background-color: #D6EFD8;
+}
+.headers{
+    position:sticky;
+    top: 26px;
+    background-color: rgb(221, 219, 219);
+}
+
+select{
+    background-color: inherit;
+    color:inherit;
+    border-style: none;
+    font-size: large;
+}
+option{
+    background-color: white
+}
+
+.container{
+    display: flex;
+    flex-direction: column;
+    row-gap: 1vh;
+    align-items: center;
+}
+
+.clicked-row{
+    background-color: #F2B949;
+}
+.clicked-row:hover{
+    background-color: #be9033;
+}
+caption{
+    font-weight: bold;
+    border-bottom: 1px solid black;
+    position: sticky;
+    top:0;
+    height: 25px;
+    background-color: rgb(221, 219, 219);
+}
+
+
+#header{
+    text-align: center;
+    height: min-content;
+}
+
+#banner{
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 0;
+    opacity: 30%;
+}
+h1>a{
+    color: black;
+    text-decoration: none;
+}
+h1>a:hover{
+    font-size: 102%;
+}
+h1{
+    font-weight: lighter;
+    font-size: 7vh;
+    margin-bottom: 0;
+}
+p>b{
+    font-size: 18px;
+}
+h3{
+    text-decoration: underline;
+    font-family: "Roboto", sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.sub-list{
+    list-style-type:lower-roman;
+}
+.sub-list>li::marker{
+    font-size:large;
+}
+
+ol>li::marker{
+    font-weight: bolder;
+    font-size: 2rem;
+}
+#red-text{
+    color: red;
+}
+#description{
+    font-style: oblique;
+    font-size: large;
+}
+
+.extrapolated>td{
+    color: rgb(255, 0, 0);
+    border-color: black;
+}
+
+#regression-section{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#buttons > button{
+    font-size: large;
+    border-style:solid;
+    border-radius: 20px;
+    border-width: 2px;
+    font-family: "Roboto", sans-serif;
+    font-weight: normal;
+    background-color: inherit;
+    padding: 10px;
+    background-color: #F2B949;
+    box-shadow: 1px 1px;
+}
+#buttons > button:hover{
+    background-color: #be9033;
+}
+td{
+    width: 5%;
+    text-align: center;
+}
+
+table{
+    width: 75vw;
+    display: block;
+    overflow-y: auto;
+    border: 1px solid black;
+    border-bottom: none;
+    border-collapse: collapse;
+}
+td,th{
+    border-bottom: 1px solid black;
+}
+
+input[type="number"], input[type="text"]  {
+    width:60px;
+    text-align: center;
+    border-style: solid;
+    border-radius: 10px;
+    border-width: 1px;
+    box-shadow: 2px 2px;
+    border-color: black;
+}
+
+input[type="number"]:hover, input[type="text"]:hover{
+    background-color: #F2B949;
+}
+td:nth-child(1){
+    font-weight: bold;
+    background-color: rgb(221, 219, 219);
+    border-right: 1px solid black;
+}
+th:nth-child(1){
+    border-right: 1px solid black;
+}
+input:focus{
+    outline: none;
+    background-color: #F2B949;
+}
+tr:hover{
+    background-color: #F2B949;
+}
+.editable>input{
+    display: block;
+    justify-self: center;
+}
+
+#charts{
+    width: 50vw;
+    height: 50vh;
+}
+@media (max-width: 1500px){
+    #chart-template-container{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        row-gap: 5vh;
+    }
+    table{
+        min-width: 99vw;
+    }
+    #regression-chart-container{
+        min-width: 80vw;
+    }
+}
+@media (max-width: 800px) {
+    #chart-inputs{
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+        align-items: center;
+        width: 100vw;
+    }
+    li{
+        width: auto;
+    }
+    #file-inputs{
+        line-height: 3rem;
+    }
+    #chart-template-container{
+        display: flex;
+        flex-direction: column;
+    }
+    #regression-chart-container{
+        min-width: 100vw;
+    }
+    #bar-chart-container{
+        min-width: 90vw;
+    }
+    table{
+        min-width: 100vw;
+    }
+    #template-diagram>div{
+        height: 1.25rem;
+        width: 1.25rem;
+    }
+    #template-diagram{
+        gap: 4px;
+    }
+    #regression-inputs, #chart-settings{
+        display: flex;
+        flex-direction: column;
+        row-gap: 1rem;
+        width: 95vw;
+    }
+    .subtitle, .subtitle2{
+        text-align: center;
+    }
+    .steps>ol{
+        display: flex;
+        flex-direction: column;
+    }
+
+}
