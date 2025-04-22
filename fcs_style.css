@@ -13,7 +13,8 @@ body{
     line-height: 2rem;
     row-gap: 1rem;
     column-gap: 1rem;
-    align-self: center;
+    /* align-self: center; */
+    justify-self: center;
     justify-content: space-around;
     text-align: center;
 }
@@ -287,10 +288,15 @@ td>input{
 
 select{
     background-color: inherit;
-    color:inherit;
-    border-style: none;
+    text-align: center;
+    border-style: solid;
+    border-radius: 10px;
+    border-width: 1px;
+    box-shadow: 2px 2px;
+    border-color: black;
     font-size: large;
 }
+
 option{
     background-color: white
 }
@@ -418,7 +424,6 @@ td,th{
 }
 
 input[type="number"], input[type="text"]  {
-    width:60px;
     text-align: center;
     border-style: solid;
     border-radius: 10px;
@@ -427,7 +432,7 @@ input[type="number"], input[type="text"]  {
     border-color: black;
 }
 
-input[type="number"]:hover, input[type="text"]:hover{
+input[type="number"]:hover, input[type="text"]:hover, select:hover{
     background-color: #F2B949;
 }
 td:nth-child(1){
@@ -449,9 +454,20 @@ tr:hover{
     display: block;
     justify-self: center;
 }
-
+.axis{
+    display: flex;
+    flex-direction: row;
+    height: min-content;
+}
+.chart-container{
+    display: grid;
+    height: 100%;
+    width: 50%;
+    grid-template-columns: auto 50%;
+    justify-self: center;
+}
 #charts{
-    width: 50vw;
+    width: 100vw;
     height: 50vh;
 }
 @media (max-width: 1500px){

@@ -10,6 +10,12 @@ const ss = require("simple-statistics");
  * @property {number[]} yValues
  */
 
+/**
+ * @typedef {Object} CanvasChartObj
+ * @property {chartjs.Chart} chart
+ * @property {HTMLCanvasElement} canvas
+ */
+
 function main(){
     document.getElementById("fcs-input").addEventListener("input", handleFileInput);
 }
@@ -26,6 +32,7 @@ async function handleFileInput(e){
 
     for (let file of files){
         processFcsFile(file);
+        e.target.nextSibling.textContent+=file.name;
     };
 
 }
@@ -38,14 +45,36 @@ async function processFcsFile(file){
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const parsingOptions = {dataFormat:"asNumber", eventsToRead:-1};
     const parsedFcs = new FcsParser(parsingOptions, fileBuffer);
-    const allEventsData = getFcsForGraphing(parsedFcs, "FSC-A", "SSC-A");
-    const singletsData = getFcsForGraphing(parsedFcs, "FSC-A", "FSC-H");
-    const dapiData = getFcsForGraphing(parsedFcs, "FSC-A", "VL1-A");
-    const irfpData = getFcsForGraphing(parsedFcs, "RL2-A", "FSC-A");
-    createChart(document.getElementById("charts"), allEventsData, "scatter");
-    createChart(document.getElementById("charts"), singletsData, "scatter");
-    createChart(document.getElementById("charts"), dapiData, "scatter");
-    createChart(document.getElementById("charts"), irfpData, "histogram");
+    const allEventsData = getFcsForGraphing(parsedFcs, "SSC-A", "FSC-A");
+    const parentContainer = document.getElementById("charts");
+    const canvasChartObj = createChart(allEventsData, "scatter");
+    const chartContainer = completeChart(canvasChartObj, 
+        [
+            createAxisDropDown("x", parsedFcs, canvasChartObj), 
+            createAxisDropDown("y", parsedFcs, canvasChartObj),
+            createLogLinearDropDown("x", canvasChartObj),
+            createLogLinearDropDown("y", canvasChartObj),
+            createMaxMinAxisInput("x", canvasChartObj),
+            createMaxMinAxisInput("y", canvasChartObj),
+        ])
+    parentContainer.appendChild(chartContainer);
+
+}
+
+/**
+ * @param {CanvasChartObj} canvasChartObj
+ * @param {Array<HTMLElement>} userInputsAndChartData
+ */
+function completeChart(canvasChartObj, userInputsAndChartData){
+    const container = document.createElement("div");
+    container.className = "chart-container";
+    container.appendChild(canvasChartObj.canvas);
+    container.style.gridTemplateRows = userInputsAndChartData.length;
+    canvasChartObj.canvas.style.gridRow = `span ${userInputsAndChartData.length}`;
+    for(let i of userInputsAndChartData){
+        container.appendChild(i);
+    }
+    return container;
 }
 
 /**
@@ -76,7 +105,7 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
                     type:"linear",
                     beginAtZero:true,
                     min:0,
-                    // max:1_000_000,
+                    defaultMax:ss.max(xValues),
                     grid:{
                         color:"black",
                         tickColor:"black",
@@ -100,8 +129,8 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
                 y:{
                     beginAtZero:true,
                     type:"linear",
+                    defaultMax:ss.max(yValues),
                     min:0,
-                    max:400_000,
                     grid:{
                         color:"black",
                         tickColor:"black",
@@ -153,7 +182,6 @@ function createBins(data, dataTitle, numberOfBins){
     // const dataMax = ss.max(data);
     const dataMax = 50_000;
     const binWidth = Math.ceil(dataMax/numberOfBins);
-    console.log(dataMax, numberOfBins);
     const bins = [];
     const binned = [];
     for(let i = binWidth; i < dataMax+binWidth; i+=binWidth){
@@ -169,7 +197,6 @@ function createBins(data, dataTitle, numberOfBins){
             };
         }
     }
-    console.log(bins, binned)
     return{
         xTitle:dataTitle,
         yTitle:"Count",
@@ -191,7 +218,7 @@ function createHistogramOptions({xTitle, yTitle, xValues, yValues}){
         return {};
     }
     
-    const binnedData = createBins(xValues, xTitle, 10);
+    const binnedData = createBins(xValues, xTitle, 100);
 
     //Return the chart options object
     return {
@@ -284,18 +311,135 @@ function createHistogramOptions({xTitle, yTitle, xValues, yValues}){
 
 
 /**
- * @param {HTMLElement} parent -The parent element in which the child canvas html element will be appended to
  * @param {FcsToGraphObj} fcsData 
  * @param {string} type -scatter or histogram
- * @returns {chartJs.Chart}
+ * @returns {CanvasChartObj}
  */
-function createChart(parent, fcsData, type){
+function createChart(fcsData, type){
     const canvasEle = document.createElement("canvas");
-    parent.appendChild(canvasEle);
+    canvasEle.id = `chart-${Math.random()*Math.random()}`;
     const scatterPlotOptions = type === "scatter" ? createScatterPlotOptions(fcsData):createHistogramOptions(fcsData);
-    return new chartjs.Chart(canvasEle, scatterPlotOptions);
+    return {canvas:canvasEle, chart: new chartjs.Chart(canvasEle, scatterPlotOptions)};
 }
 
+/**
+ * @param {string} xOrY
+ * @param {CanvasChartObj} canvasChartObj
+ * @returns {HTMLDivElement}
+ */
+function createLogLinearDropDown(xOrY, canvasChartObj){
+    const labelEle = document.createElement("label");
+    labelEle.setAttribute("for", `${canvasChartObj.canvas.id}-${xOrY}-scale-label`);
+    labelEle.textContent = `${xOrY}-Scale: `;
+    const selectEle = document.createElement("select");
+    selectEle.id = `${canvasChartObj.canvas.id}-${xOrY}-scale-label`;
+
+    for(let scaleOption of ["linear", "logarithmic"]){
+        const optionEle = document.createElement("option");
+        optionEle.textContent = scaleOption;
+        optionEle.value = scaleOption;
+        selectEle.appendChild(optionEle);
+    }
+
+    const container = document.createElement("div");
+    container.appendChild(labelEle);
+    container.appendChild(selectEle);
+
+    selectEle.addEventListener("change", e =>{
+        const scale = e.target.value;
+        updateChartScale(xOrY, scale, canvasChartObj.chart);
+    })
+
+    return container;
+}
+
+/**
+ * @param {string} xOry
+ * @param {FcsParser} parsedFcs
+ * @param {CanvasChartObj} canvasChartObj
+ * @returns {HTMLDivElement}
+ */
+function createAxisDropDown(xOry, parsedFcs, canvasChartObj){
+    const xAxisTitles = parsedFcs.get$PnX('N');
+
+    const labelEle = document.createElement("label");
+    labelEle.textContent = `${xOry}-Axis: `;
+    labelEle.setAttribute("for", `${canvasChartObj.canvas.id}-${xOry}-axis-label`);
+
+    const selectEle = document.createElement("select");
+    selectEle.id = `${canvasChartObj.canvas.id}-${xOry}-axis-label`;
+
+    for (let xAxisTitle of xAxisTitles){
+        const optionEle = document.createElement("option");
+        optionEle.textContent = xAxisTitle;
+        optionEle.value = xAxisTitle;
+        selectEle.appendChild(optionEle);
+        if(xOry === "y" && xAxisTitle === "FSC-A") optionEle.selected = true;
+        else if(xOry === "x" && xAxisTitle === "SSC-A") optionEle.selected = true;
+
+    }
+
+
+    selectEle.addEventListener("change", e =>{
+        const otherAxisLabel = xOry === "y"?"x":"y";
+        const otherAxis = document.getElementById(`${canvasChartObj.canvas.id}-${otherAxisLabel}-axis-label`);
+        if(otherAxis === null || otherAxis.value === "null"){
+            console.log("Other axis does not have a value selected.");
+            return;
+        };
+
+        const axisTitle = e.target.value;
+        const otherAxisTitle = otherAxis.value;
+        const fcsData = getFcsForGraphing(parsedFcs, xOry === "x"?axisTitle:otherAxisTitle, xOry === "y"?axisTitle:otherAxisTitle);
+        updateChartData(fcsData, canvasChartObj.chart);
+    })
+
+    const container = document.createElement("div");
+
+    container.appendChild(labelEle);
+    container.appendChild(selectEle);
+    container.className = "axis"
+    return container;
+}
+
+/**
+ * @param {string} xOrY
+ * @param {CanvasChartObj} canvasChartObj
+ * @returns {HTMLDivElement}
+ */
+function createMaxMinAxisInput(xOrY, canvasChartObj){
+    const id = `${canvasChartObj.canvas.id}-${xOrY}-maxMin-label`;
+
+    const labelEle = document.createElement("label");
+    labelEle.textContent = `${xOrY}-Axis: `;
+    labelEle.setAttribute("for", id);
+    
+    const inputEle = document.createElement("input");
+    inputEle.type = "number";
+    inputEle.id = id;
+    inputEle.defaultValue = canvasChartObj.chart.options.scales[xOrY].defaultMax;
+
+    const container = document.createElement("div");
+    container.appendChild(labelEle);
+    container.appendChild(inputEle);
+
+    inputEle.addEventListener("change", e =>{
+        const value = parseInt(e.target.value);
+        if(value < 0) {
+            console.log("axis value cannot be less than 0");
+            return;
+        }
+        if(isNaN(value)){
+            inputEle.value = inputEle.defaultValue;
+            updateChartAxisMaxMin(xOrY, canvasChartObj.chart.options.scales[xOrY].defaultMax, canvasChartObj.chart);
+        }
+        else{
+            updateChartAxisMaxMin(xOrY, value, canvasChartObj.chart);
+        }
+    })
+    
+    return container;
+}
 /**
  * @param {FcsParser} parsedFcs -The options object passed into the new FcsParser needs to have 'dataFormat:"asNumber"' property.
  * @param {string} parameterName -The name of the parameter to obtain values from i.e SSC-A, FSC-A, etc.
@@ -337,6 +481,37 @@ function getParameterValues(parsedFcs, parameterName, numOfEvents = -1){
     }
 
     return data;
+}
+
+/**
+ * @param {FcsToGraphObj}fcsToGraphObj
+ * @param {chartjs.Chart}chart
+ */
+function updateChartData(fcsToGraphObj, chart){
+    chart.data.datasets[0].data = fcsToGraphObj.xValues.map((x, i) => {return{x, y:fcsToGraphObj.yValues[i]}});
+    chart.options.scales.x.title.text = fcsToGraphObj.xTitle;
+    chart.options.scales.y.title.text = fcsToGraphObj.yTitle;
+    chart.update();
+}
+
+/**
+ * @param {string} xOrY
+ * @param {string} scale
+ * @param {chartjs.Chart}chart
+ */
+function updateChartScale(xOrY, scale, chart){
+    chart.options.scales[xOrY].type = scale;
+    chart.update();
+}
+
+/**
+ * @param {string} xOrY
+ * @param {number} maxMin
+ * @param {chartjs.Chart}chart
+ */
+function updateChartAxisMaxMin(xOrY, maxMin, chart){
+    chart.options.scales[xOrY].max = maxMin;
+    chart.update();
 }
 
 /**
