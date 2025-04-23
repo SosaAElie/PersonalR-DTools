@@ -1,5 +1,6 @@
 const FcsParser = require("fcs");
 const chartjs = require("chart.js/auto");
+const chartjshelpers = require("chart.js/helpers");
 const ss = require("simple-statistics");
 
 /**
@@ -56,9 +57,32 @@ async function processFcsFile(file){
             createLogLinearDropDown("y", canvasChartObj),
             createMaxMinAxisInput("x", canvasChartObj),
             createMaxMinAxisInput("y", canvasChartObj),
+            createMetaData(allEventsData, canvasChartObj),
         ])
     parentContainer.appendChild(chartContainer);
 
+}
+
+/**
+ * @param {FcsToGraphObj} fcsData
+ * @param {CanvasChartObj} canvasChartObj
+ * @returns {HTMLDivElement}
+ */
+function createMetaData(fcsData, canvasChartObj){
+    const metaDataContainer = document.createElement("div");
+    metaDataContainer.className = "metadata";
+    metaDataContainer.id = `${canvasChartObj.canvas.id}-metadata`;
+
+    const numberOfEventsEle = document.createElement("p");
+    numberOfEventsEle.textContent = `Number of Events: ${fcsData.xValues.length}`;
+
+    const percentageOfEventGatedEle = document.createElement("p");
+    percentageOfEventGatedEle.textContent = "";
+
+    metaDataContainer.appendChild(numberOfEventsEle);
+    metaDataContainer.appendChild(percentageOfEventGatedEle);
+
+    return metaDataContainer;
 }
 
 /**
@@ -72,8 +96,9 @@ function completeChart(canvasChartObj, userInputsAndChartData){
     container.style.gridTemplateRows = userInputsAndChartData.length;
     canvasChartObj.canvas.style.gridRow = `span ${userInputsAndChartData.length}`;
     for(let i of userInputsAndChartData){
-        container.appendChild(i);
+        container.appendChild(i);    
     }
+
     return container;
 }
 
@@ -94,14 +119,24 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
             datasets:[  
                 {
                     data:xValues.map((x, i) => {return {x, y:yValues[i]}}),
-                    pointRadius:1
+                    radius: 1,
+                    hoverRadius: 1,  // No size increase on hover
+                    hitRadius: 1,    // Keeps click precision tight
+                    hoverBorderWidth: 0,
+                    borderWidth: 1
                 },
             ]
         },
         options:{
+            hover:{
+                mode:null,
+            },
             maintainAspectRatio:false,
             scales:{
                 x:{
+                    border:{
+                        color:"black",
+                    },
                     type:"linear",
                     beginAtZero:true,
                     min:0,
@@ -109,6 +144,7 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
                     grid:{
                         color:"black",
                         tickColor:"black",
+                        drawOnChartArea:false,
                     },
                     ticks:{
                         textStrokeColor:"black",
@@ -127,11 +163,15 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
                     
                 },
                 y:{
+                    border:{
+                        color:"black",
+                    },
                     beginAtZero:true,
                     type:"linear",
                     defaultMax:ss.max(yValues),
                     min:0,
                     grid:{
+                        drawOnChartArea:false,
                         color:"black",
                         tickColor:"black",
                     },
@@ -151,16 +191,64 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
                                
                 },
             },
-            events:[],
+            events:["click"],
+            onClick: function (e) {
+                const {x,y} = chartjshelpers.getRelativePosition(e, this);
+                
+                const chartX = this.scales.x.getValueForPixel(x);
+                const chartY = this.scales.y.getValueForPixel(y);
+                /**
+                 * @type {CanvasRenderingContext2D}
+                */
+               const ctx = this.ctx;
+               
+                //There will only ever be up to 2 datasets in a chart,
+                //the gating points and the actual event data itself
+                if (this.data.datasets.length === 1){
+                    const clickedPointsData = {
+                        data:[{x:chartX,y:chartY}],
+                        relativePositions:[{x,y}],
+                        pointRadius:2,
+                        backgroundColor:"black",
+                        borderColor:"black",
+                    }
+                    this.data.datasets.push(clickedPointsData);
+                    
+                    //position ctx at the starting location of the gate
+                    
+                }
+                else{
+                    this.data.datasets[1].data.push({x:chartX,y:chartY});
+                    this.data.datasets[1].relativePositions.push({x,y});
+                }
+
+               this.update();
+            },
+            animation:{
+                duration:0,
+                onComplete: function(e){
+                    if(this.data.datasets.length <= 1){
+                        console.log("No gate points present in chart dataset");
+                        return;
+                    }
+                    
+                    if(this.data.datasets[1].relativePositions.length === 1){
+                        console.log("only one point available");
+                        return;
+                    }
+
+                    this.ctx.beginPath();
+                    const gatePoints = this.data.datasets[1].relativePositions;
+                    const startingPoint = gatePoints[0];
+                    this.ctx.moveTo(startingPoint.x, startingPoint.y);
+                    for(let i = 1; i < gatePoints.length; i++){
+                        const {x,y} = gatePoints[i];
+                        this.ctx.lineTo(x,y);
+                        this.ctx.stroke();
+                    }
+                }
+            },
             plugins:{
-                // title:{
-                //     display:true,
-                //     text: title,
-                //     font:{
-                //         size:16,
-                //     },
-                //     color: "black",
-                // },
                 legend:{
                     display:false,
                 },
@@ -170,6 +258,17 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
             },
         }
     }
+}
+
+/**
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ */
+function enableGatingLine(ctx, x, y){
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo()
 }
 
 /**

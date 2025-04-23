@@ -470,6 +470,10 @@ tr:hover{
     width: 100vw;
     height: 50vh;
 }
+.metadata{
+    display: flex;
+    flex-direction: column;
+}
 @media (max-width: 1500px){
     #chart-template-container{
         display: flex;
