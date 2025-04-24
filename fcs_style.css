@@ -391,7 +391,7 @@ ol>li::marker{
     justify-content: center;
 }
 
-#buttons > button{
+button{
     font-size: large;
     border-style:solid;
     border-radius: 20px;
@@ -402,10 +402,11 @@ ol>li::marker{
     padding: 10px;
     background-color: #F2B949;
     box-shadow: 1px 1px;
-}
-#buttons > button:hover{
+}   
+button:hover{
     background-color: #be9033;
 }
+
 td{
     width: 5%;
     text-align: center;
@@ -473,6 +474,15 @@ tr:hover{
 .metadata{
     display: flex;
     flex-direction: column;
+}
+.contextmenu{
+    position: absolute;
+    display: none;
+    z-index: 1;
+}
+.gate-button{
+    width: 50%;
+    height: 70%;
 }
 @media (max-width: 1500px){
     #chart-template-container{

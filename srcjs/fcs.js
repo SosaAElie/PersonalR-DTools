@@ -57,6 +57,7 @@ async function processFcsFile(file){
             createLogLinearDropDown("y", canvasChartObj),
             createMaxMinAxisInput("x", canvasChartObj),
             createMaxMinAxisInput("y", canvasChartObj),
+            createEnterGateButton(canvasChartObj),
             createMetaData(allEventsData, canvasChartObj),
         ])
     parentContainer.appendChild(chartContainer);
@@ -75,12 +76,11 @@ function createMetaData(fcsData, canvasChartObj){
 
     const numberOfEventsEle = document.createElement("p");
     numberOfEventsEle.textContent = `Number of Events: ${fcsData.xValues.length}`;
-
-    const percentageOfEventGatedEle = document.createElement("p");
-    percentageOfEventGatedEle.textContent = "";
+    const numberOfGatedEventsEle = document.createElement("p");
+    numberOfGatedEventsEle.textContent = `Number of Gated Events: 0`;
 
     metaDataContainer.appendChild(numberOfEventsEle);
-    metaDataContainer.appendChild(percentageOfEventGatedEle);
+    metaDataContainer.appendChild(numberOfGatedEventsEle);
 
     return metaDataContainer;
 }
@@ -98,6 +98,11 @@ function completeChart(canvasChartObj, userInputsAndChartData){
     for(let i of userInputsAndChartData){
         container.appendChild(i);    
     }
+
+    canvasChartObj.canvas.addEventListener("click", function(e){
+        const contextmenu = document.getElementById(`contextmenu-${canvasChartObj.canvas.id}`);
+        if(contextmenu!==null) contextmenu.remove();
+    })
 
     return container;
 }
@@ -192,38 +197,7 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
                 },
             },
             events:["click"],
-            onClick: function (e) {
-                const {x,y} = chartjshelpers.getRelativePosition(e, this);
-                
-                const chartX = this.scales.x.getValueForPixel(x);
-                const chartY = this.scales.y.getValueForPixel(y);
-                /**
-                 * @type {CanvasRenderingContext2D}
-                */
-               const ctx = this.ctx;
-               
-                //There will only ever be up to 2 datasets in a chart,
-                //the gating points and the actual event data itself
-                if (this.data.datasets.length === 1){
-                    const clickedPointsData = {
-                        data:[{x:chartX,y:chartY}],
-                        relativePositions:[{x,y}],
-                        pointRadius:2,
-                        backgroundColor:"black",
-                        borderColor:"black",
-                    }
-                    this.data.datasets.push(clickedPointsData);
-                    
-                    //position ctx at the starting location of the gate
-                    
-                }
-                else{
-                    this.data.datasets[1].data.push({x:chartX,y:chartY});
-                    this.data.datasets[1].relativePositions.push({x,y});
-                }
-
-               this.update();
-            },
+            onClick: handleChartClick,
             animation:{
                 duration:0,
                 onComplete: function(e){
@@ -238,7 +212,7 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
                     }
 
                     this.ctx.beginPath();
-                    const gatePoints = this.data.datasets[1].relativePositions;
+                    const gatePoints = this.getDatasetMeta(1).data;
                     const startingPoint = gatePoints[0];
                     this.ctx.moveTo(startingPoint.x, startingPoint.y);
                     for(let i = 1; i < gatePoints.length; i++){
@@ -261,14 +235,81 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
 }
 
 /**
- * @param {CanvasRenderingContext2D} ctx
- * @param {number} x
- * @param {number} y
+ * @param {chartjs.ChartEvent} e
  */
-function enableGatingLine(ctx, x, y){
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo()
+function handleChartClick(e){
+    const {x,y} = chartjshelpers.getRelativePosition(e, this);
+    
+    const chartX = this.scales.x.getValueForPixel(x);
+    const chartY = this.scales.y.getValueForPixel(y);
+    /**
+     * @type {CanvasRenderingContext2D}
+    */
+    const ctx = this.ctx;
+    
+    //There will only ever be up to 2 datasets in a chart,
+    //the gating points and the actual event data itself
+    if (this.data.datasets.length === 1){
+        const clickedPointsData = {
+            data:[{x:chartX,y:chartY}],
+            relativePositions:[{x,y}],
+            gated:false,
+            pointRadius:2,
+            backgroundColor:"black",
+            borderColor:"black",
+        }
+        this.data.datasets.push(clickedPointsData);
+        
+    }
+    else{
+        this.data.datasets[1].data.push({x:chartX,y:chartY});
+        this.data.datasets[1].relativePositions.push({x,y});
+        const firstPoint = this.getDatasetMeta(1).data[0];
+        if((x <= firstPoint.x+5 && x >= firstPoint.x-5 ) && (y <= firstPoint.y+5 && y >= firstPoint.y-5)){
+            console.log("latest point is within a 5pixel area of the first point, closing gate.");
+            this.data.datasets[1].gated = true;
+            this.options.onClick = function(e){
+                console.log("gate closed already!");
+            }
+            this.canvas.addEventListener("contextmenu", e=>{
+
+                //Prevent the regular custom menu from appearing
+                e.preventDefault();
+
+                //move pre-exisiting contextmenus instead of making a new one
+                const contextmenuId = `contextmenu-${this.canvas.id}`;
+                const prevContextMenu = document.getElementById(contextmenuId);
+                if(prevContextMenu !== null){
+                    prevContextMenu.style.left = e.pageX + "px";
+                    prevContextMenu.style.top = e.pageY + "px";
+                    return;
+                }
+
+                //Create custom menu with a single option, to remove the gate if it does not exist already
+                const menuContainer = document.createElement("div");
+                menuContainer.style.left = e.pageX + "px";
+                menuContainer.style.top = e.pageY + "px";
+                menuContainer.style.display = menuContainer.style.display === ""?"block":"";
+                menuContainer.className = "contextmenu";
+                menuContainer.id = `contextmenu-${this.canvas.id}`;
+                const button = document.createElement("button");
+                button.textContent = "Remove Gate";
+                button.addEventListener("click", e =>{
+                    this.data.datasets.pop();
+                    this.update();
+                    document.getElementById(contextmenuId).remove();
+                    this.options.onClick = handleChartClick;
+                    document.getElementById(`${this.canvas.id}-metadata`).lastChild.textContent = "Number of Gated Events: 0";
+                })
+                menuContainer.appendChild(button);
+                document.body.appendChild(menuContainer);
+            });
+        }
+    }
+    
+
+    this.update();
+    
 }
 
 /**
@@ -557,6 +598,56 @@ function* getParameterValuesGenerator(parsedFcs, parameterName, numOfEvents = -1
     for (let i = 0; i < (numOfEvents > 0 ? numOfEvents:parsedFcs.dataAsNumbers.length); i++){
         yield parsedFcs.dataAsNumbers[i][parameterIndex];
     }
+}
+
+/**
+ * @param {CanvasChartObj} canvasChartObj
+ * @returns {HTMLButtonElement}
+ */
+function createEnterGateButton(canvasChartObj){
+    const button = document.createElement("button");
+    button.textContent = "Enter Gate";
+    button.className = "gate-button";
+    button.addEventListener("click", e =>{
+        //If there are no points then return
+        if(canvasChartObj.chart.data.datasets.length <= 1) return;
+        const gatedPointsDataset = canvasChartObj.chart.data.datasets[1];
+
+        //If there are points but there is no closed gate yet return
+        if(!gatedPointsDataset.gated) return;
+
+        //Determine if each point is within the gate and update the UI
+        const gatedPoints = gatedPointsDataset.data;
+        const eventPoints = canvasChartObj.chart.data.datasets[0].data;
+        
+        console.log("Gate is closed and ready to be entered!");
+        const numOfVertices = gatedPoints.length;
+        const withinGate = [];
+        for(let eventPoint of eventPoints){
+            const {x,y} = eventPoint;
+            let inside = false;
+            let p1 = gatedPoints[0];
+            let p2;
+            for(let i = 1; i <= numOfVertices; i++){
+                //Modulus operator used so that when the index is equal to the numOfVertices p2
+                //is set to the first point thereby closing the gate
+                p2 = gatedPoints[i%numOfVertices];
+                if(y > Math.min(p1.y, p2.y)){
+                    if(y <= Math.max(p1.y, p2.y)){
+                        if(x <= Math.max(p1.x, p2.x)){
+                            const xIntersection = ((y - p1.y) * (p2.x - p1.x)) / (p2.y - p1.y) + p1.x;
+                            if(p1.x === p2.x || x <= xIntersection) inside = !inside;
+                        }  
+                    }
+                }
+                p1 = p2;
+            }
+            if(inside) withinGate.push(eventPoint);
+        }
+        document.getElementById(`${canvasChartObj.canvas.id}-metadata`).lastChild.textContent = "Number of Gated Events: " + withinGate.length;
+    })
+
+    return button;
 }
 
 /**
