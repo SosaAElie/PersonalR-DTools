@@ -17,6 +17,19 @@ const ss = require("simple-statistics");
  * @property {HTMLCanvasElement} canvas
  */
 
+/**
+ * @typedef {Object} FcsEvent
+ * @property {Map<string, number} data
+ * @property {number} identifier
+ */
+
+/**
+ * @typedef {Object} ChartDataObject
+ * @property {number} x
+ * @property {number} y
+ * @property {FcsEvent} self
+ */
+
 function main(){
     document.getElementById("fcs-input").addEventListener("input", handleFileInput);
 }
@@ -46,20 +59,22 @@ async function processFcsFile(file){
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const parsingOptions = {dataFormat:"asNumber", eventsToRead:-1};
     const parsedFcs = new FcsParser(parsingOptions, fileBuffer);
-    const allEventsData = getFcsForGraphing(parsedFcs, "SSC-A", "FSC-A");
+    const fcsEvents = convertToFcsEventObjs(parsedFcs);
     const parentContainer = document.getElementById("charts");
-    const canvasChartObj = createChart(allEventsData, "scatter");
+
+    const canvasChartObj = createChartV2(fcsEvents, "SSC-A", "FSC-A", "scatter");
     const chartContainer = completeChart(canvasChartObj, 
         [
-            createAxisDropDown("x", parsedFcs, canvasChartObj), 
-            createAxisDropDown("y", parsedFcs, canvasChartObj),
+            createAxisDropDown("x", fcsEvents, canvasChartObj), 
+            createAxisDropDown("y", fcsEvents, canvasChartObj),
             createLogLinearDropDown("x", canvasChartObj),
             createLogLinearDropDown("y", canvasChartObj),
             createMaxMinAxisInput("x", canvasChartObj),
             createMaxMinAxisInput("y", canvasChartObj),
             createEnterGateButton(canvasChartObj),
-            createMetaData(allEventsData, canvasChartObj),
+            createMetaDataV2(fcsEvents, canvasChartObj),
         ])
+        
     parentContainer.appendChild(chartContainer);
 
 }
@@ -77,7 +92,28 @@ function createMetaData(fcsData, canvasChartObj){
     const numberOfEventsEle = document.createElement("p");
     numberOfEventsEle.textContent = `Number of Events: ${fcsData.xValues.length}`;
     const numberOfGatedEventsEle = document.createElement("p");
-    numberOfGatedEventsEle.textContent = `Number of Gated Events: 0`;
+    numberOfGatedEventsEle.textContent = `Number of Gated Events: 0 Percent Gated: 0%`;
+
+    metaDataContainer.appendChild(numberOfEventsEle);
+    metaDataContainer.appendChild(numberOfGatedEventsEle);
+
+    return metaDataContainer;
+}
+
+/**
+ * @param {FcsEvent[]} fcsEvents
+ * @param {CanvasChartObj} canvasChartObj
+ * @returns {HTMLDivElement}
+ */
+function createMetaDataV2(fcsEvents, canvasChartObj){
+    const metaDataContainer = document.createElement("div");
+    metaDataContainer.className = "metadata";
+    metaDataContainer.id = `${canvasChartObj.canvas.id}-metadata`;
+
+    const numberOfEventsEle = document.createElement("p");
+    numberOfEventsEle.textContent = `Number of Events: ${fcsEvents.length}`;
+    const numberOfGatedEventsEle = document.createElement("p");
+    numberOfGatedEventsEle.textContent = `Number of Gated Events: 0 Percent Gated: 0%`;
 
     metaDataContainer.appendChild(numberOfEventsEle);
     metaDataContainer.appendChild(numberOfGatedEventsEle);
@@ -235,6 +271,223 @@ function createScatterPlotOptions({xTitle, yTitle, xValues, yValues}){
 }
 
 /**
+ * @param {FcsEvent[]} fcsEvents
+ * @param {string} xAxisTitle
+ * @param {string} yAxisTitle
+ * @returns {chartjs.ChartConfiguration}
+ */
+function createScatterPlotOptionsV2(fcsEvents, xAxisTitle, yAxisTitle){
+
+    const data = fcsEvents.map(fcsEvent => {return{x:fcsEvent.data.get(xAxisTitle), y:fcsEvent.data.get(yAxisTitle), self:fcsEvent}});
+   
+    //Return the chart options object
+    return {
+        type:"scatter",
+        data:{
+            datasets:[  
+                {
+                    data:data,
+                    radius: 1,
+                    hoverRadius: 1,  // No size increase on hover
+                    hitRadius: 1,    // Keeps click precision tight
+                    hoverBorderWidth: 0,
+                    borderWidth: 1
+                },
+            ]
+        },
+        options:{
+            hover:{
+                mode:null,
+            },
+            maintainAspectRatio:false,
+            scales:{
+                x:{
+                    border:{
+                        color:"black",
+                    },
+                    type:"linear",
+                    beginAtZero:true,
+                    min:0,
+                    defaultMax:ss.max(data.map(d => d.x)),
+                    grid:{
+                        color:"black",
+                        tickColor:"black",
+                        drawOnChartArea:false,
+                    },
+                    ticks:{
+                        textStrokeColor:"black",
+                        color:"black",
+                    },
+                    position:"bottom",
+                    title:{
+                        display:true,
+                        text:xAxisTitle,
+                        font:{
+                            size:14,
+                            weight:"bold",
+                        },
+                        color: "black",
+                    },
+                    
+                },
+                y:{
+                    border:{
+                        color:"black",
+                    },
+                    beginAtZero:true,
+                    type:"linear",
+                    defaultMax:ss.max(data.map(d => d.y)),
+                    min:0,
+                    grid:{
+                        drawOnChartArea:false,
+                        color:"black",
+                        tickColor:"black",
+                    },
+                    ticks:{
+                        textStrokeColor:"black",
+                        color:"black",
+                    },
+                    title:{
+                        display:true,
+                        text: yAxisTitle,
+                        font:{
+                            size:14,
+                            weight:"bold",
+                        },
+                        color: "black", 
+                    },
+                               
+                },
+            },
+            events:["click"],
+            onClick: handleChartClick,
+            animation:{
+                duration:0,
+                onComplete: function(e){
+                    if(this.data.datasets.length <= 1){
+                        console.log("No gate points present in chart dataset");
+                        return;
+                    }
+                    
+                    if(this.data.datasets[1].relativePositions.length === 1){
+                        console.log("only one point available");
+                        return;
+                    }
+
+                    this.ctx.beginPath();
+                    const gatePoints = this.getDatasetMeta(1).data;
+                    const startingPoint = gatePoints[0];
+                    this.ctx.moveTo(startingPoint.x, startingPoint.y);
+                    for(let i = 1; i < gatePoints.length; i++){
+                        const {x,y} = gatePoints[i];
+                        this.ctx.lineTo(x,y);
+                        this.ctx.stroke();
+                    }
+                }
+            },
+            plugins:{
+                legend:{
+                    display:false,
+                },
+                tooltip: {
+                    enabled:false,
+                },
+            },
+        }
+    }
+}
+
+/**
+ * @param {FcsEvent[]} fcsEvents
+ * @param {string} xTitle
+ * @returns {chartjs.ChartConfiguration}
+ */
+function createHistogramPlotOptionsV2(fcsEvents, xTitle){
+
+    const binnedData = createBins(fcsEvents, xTitle, 10000);
+    console.log(binnedData);
+    //Return the chart options object
+    return {
+        type:"bar",
+        data:{
+            datasets:[  
+                {
+                    data:binnedData,
+                    borderWidth: 1,
+                    barPercentage: 1,
+                    categoryPercentage: 1,
+                    borderRadius: 5,
+                },
+            ]
+        },
+        options:{
+            maintainAspectRatio:false,
+            scales:{
+                x:{
+                    type:"linear",
+                    beginAtZero:true,
+                    min:0,
+                    // max:1_000_000,
+                    grid:{
+                        color:"black",
+                        tickColor:"black",
+                    },
+                    ticks:{
+                        textStrokeColor:"black",
+                        color:"black",
+                        // stepSize:1,
+                    },
+                    position:"bottom",
+                    title:{
+                        display:true,
+                        text:xTitle,
+                        font:{
+                            size:14,
+                            weight:"bold",
+                        },
+                        color: "black",
+                    },
+                    
+                },
+                y:{
+                    beginAtZero:true,
+                    type:"linear",
+                    min:0,
+                    // max:400_000,
+                    grid:{
+                        color:"black",
+                        tickColor:"black",
+                    },
+                    ticks:{
+                        textStrokeColor:"black",
+                        color:"black",
+                    },
+                    title:{
+                        display:true,
+                        text: "Count",
+                        font:{
+                            size:14,
+                            weight:"bold",
+                        },
+                        color: "black", 
+                    },
+                               
+                },
+            },
+            events:[],
+            plugins:{
+                legend:{
+                    display:false,
+                },
+                tooltip: {
+                    enabled:false,
+                },
+            },
+        }
+    }
+}
+
+/**
  * @param {chartjs.ChartEvent} e
  */
 function handleChartClick(e){
@@ -262,9 +515,8 @@ function handleChartClick(e){
         
     }
     else{
-        this.data.datasets[1].data.push({x:chartX,y:chartY});
-        this.data.datasets[1].relativePositions.push({x,y});
         const firstPoint = this.getDatasetMeta(1).data[0];
+        //Check first if the points overlap enough to considered the same point
         if((x <= firstPoint.x+5 && x >= firstPoint.x-5 ) && (y <= firstPoint.y+5 && y >= firstPoint.y-5)){
             console.log("latest point is within a 5pixel area of the first point, closing gate.");
             this.data.datasets[1].gated = true;
@@ -272,10 +524,10 @@ function handleChartClick(e){
                 console.log("gate closed already!");
             }
             this.canvas.addEventListener("contextmenu", e=>{
-
+                
                 //Prevent the regular custom menu from appearing
                 e.preventDefault();
-
+                
                 //move pre-exisiting contextmenus instead of making a new one
                 const contextmenuId = `contextmenu-${this.canvas.id}`;
                 const prevContextMenu = document.getElementById(contextmenuId);
@@ -284,7 +536,7 @@ function handleChartClick(e){
                     prevContextMenu.style.top = e.pageY + "px";
                     return;
                 }
-
+                
                 //Create custom menu with a single option, to remove the gate if it does not exist already
                 const menuContainer = document.createElement("div");
                 menuContainer.style.left = e.pageX + "px";
@@ -295,16 +547,24 @@ function handleChartClick(e){
                 const button = document.createElement("button");
                 button.textContent = "Remove Gate";
                 button.addEventListener("click", e =>{
-                    this.data.datasets.pop();
-                    this.update();
+                    if(this.data.datasets.length === 2){
+                        this.data.datasets.pop();
+                        this.update();    
+                    } 
                     document.getElementById(contextmenuId).remove();
                     this.options.onClick = handleChartClick;
-                    document.getElementById(`${this.canvas.id}-metadata`).lastChild.textContent = "Number of Gated Events: 0";
+                    document.getElementById(`${this.canvas.id}-metadata`).lastChild.textContent = `Number of Gated Events: 0 Percent Gated: 0%`;
                 })
                 menuContainer.appendChild(button);
                 document.body.appendChild(menuContainer);
+                return;
             });
+
         }
+
+        //Add a new a point if the points do not overlap
+        this.data.datasets[1].data.push({x:chartX,y:chartY});
+        this.data.datasets[1].relativePositions.push({x,y});
     }
     
 
@@ -313,37 +573,39 @@ function handleChartClick(e){
 }
 
 /**
- * @param {number[]} data 
- * @param {string} dataTitle 
+ * @param {FcsEvent[]} fcsEvents 
+ * @param {string} xTitle 
  * @param {number} numberOfBins
- * @returns {FcsToGraphObj}
+ * @returns {ChartDataObject[]}
  */
-function createBins(data, dataTitle, numberOfBins){
-    // const dataMax = ss.max(data);
-    const dataMax = 50_000;
+function createBins(fcsEvents, xTitle, numberOfBins){
+    const data = fcsEvents.map(fcsEvent => fcsEvent.data.get(xTitle));
+    const dataMax = ss.max(data);
     const binWidth = Math.ceil(dataMax/numberOfBins);
-    const bins = [];
-    const binned = [];
+    /**
+     * @type {Map<number, FcsEvent[]>}
+     */
+    const binned = new Map();
     for(let i = binWidth; i < dataMax+binWidth; i+=binWidth){
-        bins.push(i);
-        binned.push(0);
+        binned.set(i, []);
     }
 
-    for(let i = 0; i < data.length; i++){
+    const bins = Array.from(binned.keys());
+    for(let i = 0; i < fcsEvents.length; i++){
         for (let j = 0; j < bins.length; j++){
-            if(data[i] < bins[j]) {
-                binned[j]+=1;
+            const fcsEvent = fcsEvents[i];
+            if(fcsEvent.data.get(xTitle) <= bins[j]) {
+                binned.get(bins[j]).push(fcsEvent);
                 break;
             };
         }
     }
-    return{
-        xTitle:dataTitle,
-        yTitle:"Count",
-        xValues:bins,
-        yValues:binned,
+    const results = [];
+    for(let [k,v] of binned.entries()){
+        results.push({x:k, y:v.length, self:v});
     }
 
+    return results;
 }
 
 
@@ -458,9 +720,24 @@ function createHistogramOptions({xTitle, yTitle, xValues, yValues}){
 function createChart(fcsData, type){
     const canvasEle = document.createElement("canvas");
     canvasEle.id = `chart-${Math.random()*Math.random()}`;
-    const scatterPlotOptions = type === "scatter" ? createScatterPlotOptions(fcsData):createHistogramOptions(fcsData);
+    const scatterPlotOptions = type === "scatter" ? createScatterPlotOptions(fcsData):createHistogramPlotOptionsV2(fcsData);
     return {canvas:canvasEle, chart: new chartjs.Chart(canvasEle, scatterPlotOptions)};
 }
+
+/**
+ * @param {FcsEvent[]} fcsEvents 
+ * @param {string} xAxisTitle 
+ * @param {string} yAxisTitle - For histogram, pass in "histogram"
+ * @returns {CanvasChartObj}
+ */
+function createChartV2(fcsEvents, xAxisTitle, yAxisTitle){
+    const canvasEle = document.createElement("canvas");
+    canvasEle.id = `chart-${Math.random()*Math.random()}`;
+    const scatterPlotOptions = yAxisTitle === "histogram" ? createHistogramPlotOptionsV2(fcsEvents, xAxisTitle):createScatterPlotOptionsV2(fcsEvents,xAxisTitle, yAxisTitle);
+    return {canvas:canvasEle, chart: new chartjs.Chart(canvasEle, scatterPlotOptions)};
+}
+
+
 
 /**
  * @param {string} xOrY
@@ -495,12 +772,11 @@ function createLogLinearDropDown(xOrY, canvasChartObj){
 
 /**
  * @param {string} xOry
- * @param {FcsParser} parsedFcs
+ * @param {FcsEvent[]} fcsEvents
  * @param {CanvasChartObj} canvasChartObj
  * @returns {HTMLDivElement}
  */
-function createAxisDropDown(xOry, parsedFcs, canvasChartObj){
-    const xAxisTitles = parsedFcs.get$PnX('N');
+function createAxisDropDown(xOry, fcsEvents, canvasChartObj){
 
     const labelEle = document.createElement("label");
     labelEle.textContent = `${xOry}-Axis: `;
@@ -509,11 +785,13 @@ function createAxisDropDown(xOry, parsedFcs, canvasChartObj){
     const selectEle = document.createElement("select");
     selectEle.id = `${canvasChartObj.canvas.id}-${xOry}-axis-label`;
 
-    for (let xAxisTitle of xAxisTitles){
+    for (let xAxisTitle of fcsEvents[0].data.keys()){
         const optionEle = document.createElement("option");
         optionEle.textContent = xAxisTitle;
         optionEle.value = xAxisTitle;
         selectEle.appendChild(optionEle);
+
+        //default labels for the default chart
         if(xOry === "y" && xAxisTitle === "FSC-A") optionEle.selected = true;
         else if(xOry === "x" && xAxisTitle === "SSC-A") optionEle.selected = true;
 
@@ -530,8 +808,8 @@ function createAxisDropDown(xOry, parsedFcs, canvasChartObj){
 
         const axisTitle = e.target.value;
         const otherAxisTitle = otherAxis.value;
-        const fcsData = getFcsForGraphing(parsedFcs, xOry === "x"?axisTitle:otherAxisTitle, xOry === "y"?axisTitle:otherAxisTitle);
-        updateChartData(fcsData, canvasChartObj.chart);
+        // const fcsData = getFcsForGraphing(fcsEvents, xOry === "x"?axisTitle:otherAxisTitle, xOry === "y"?axisTitle:otherAxisTitle);
+        updateChartData(fcsEvents, xOry === "x"?axisTitle:otherAxisTitle, xOry === "y"?axisTitle:otherAxisTitle, canvasChartObj.chart);
     })
 
     const container = document.createElement("div");
@@ -558,7 +836,6 @@ function createMaxMinAxisInput(xOrY, canvasChartObj){
     inputEle.type = "number";
     inputEle.id = id;
     inputEle.defaultValue = canvasChartObj.chart.options.scales[xOrY].defaultMax;
-
     const container = document.createElement("div");
     container.appendChild(labelEle);
     container.appendChild(inputEle);
@@ -622,9 +899,9 @@ function createEnterGateButton(canvasChartObj){
         
         console.log("Gate is closed and ready to be entered!");
         const numOfVertices = gatedPoints.length;
-        const withinGate = [];
+        const withinGateEvents = [];
         for(let eventPoint of eventPoints){
-            const {x,y} = eventPoint;
+            const {x,y, self} = eventPoint;
             let inside = false;
             let p1 = gatedPoints[0];
             let p2;
@@ -642,9 +919,23 @@ function createEnterGateButton(canvasChartObj){
                 }
                 p1 = p2;
             }
-            if(inside) withinGate.push(eventPoint);
+            if(inside) withinGateEvents.push(self);
         }
-        document.getElementById(`${canvasChartObj.canvas.id}-metadata`).lastChild.textContent = "Number of Gated Events: " + withinGate.length;
+        document.getElementById(`${canvasChartObj.canvas.id}-metadata`).lastChild.textContent = "Number of Gated Events: " + withinGateEvents.length + " Percent Gated: " + Math.round(withinGateEvents.length/eventPoints.length*100) + "%";
+
+        const gatedChart = createChartV2(withinGateEvents, "SSC-A", "FSC-A", "scatter");
+        const completeGatedChart = completeChart(gatedChart, [
+            createAxisDropDown("x", withinGateEvents, gatedChart), 
+            createAxisDropDown("y", withinGateEvents, gatedChart),
+            createLogLinearDropDown("x", gatedChart),
+            createLogLinearDropDown("y", gatedChart),
+            createMaxMinAxisInput("x", gatedChart),
+            createMaxMinAxisInput("y", gatedChart),
+            createEnterGateButton(gatedChart),
+            createMetaDataV2(withinGateEvents, gatedChart),
+        ])
+        const parentContainer = document.getElementById("charts");
+        parentContainer.appendChild(completeGatedChart);
     })
 
     return button;
@@ -658,7 +949,7 @@ function createEnterGateButton(canvasChartObj){
 */
 function getParameterValues(parsedFcs, parameterName, numOfEvents = -1){
     const allChannels = parsedFcs.get$PnX('N');
-    const parameterIndex = allChannels.indexOf(parameterName);
+    const parameterIndex = allChannels.indexOf(parameterName)-1;
     const data = [];
 
     if(parameterIndex < 0){
@@ -673,14 +964,41 @@ function getParameterValues(parsedFcs, parameterName, numOfEvents = -1){
     return data;
 }
 
+
+
 /**
- * @param {FcsToGraphObj}fcsToGraphObj
+ * @param {FcsParser} parsedFcs
+ * @returns {FcsEvent[]}
+ */
+function convertToFcsEventObjs(parsedFcs){
+    const allChannels = parsedFcs.get$PnX("N");
+    const results = [];
+    for(let i = 0; i < parsedFcs.dataAsNumbers.length; i++){
+        const eventObj = {
+            data:new Map(),
+            identifier:i,
+        }
+        for(let j = 1; j < allChannels.length; j++){
+            eventObj.data.set(allChannels[j], parsedFcs.dataAsNumbers[i][j-1]);
+        }
+        results.push(eventObj);
+    }
+    return results;
+}
+
+/**
+ * @param {FcsEvent[]} fcsEvents
+ * @param {string} xTitle
+ * @param {string} yTitle
  * @param {chartjs.Chart}chart
  */
-function updateChartData(fcsToGraphObj, chart){
-    chart.data.datasets[0].data = fcsToGraphObj.xValues.map((x, i) => {return{x, y:fcsToGraphObj.yValues[i]}});
-    chart.options.scales.x.title.text = fcsToGraphObj.xTitle;
-    chart.options.scales.y.title.text = fcsToGraphObj.yTitle;
+function updateChartData(fcsEvents, xTitle, yTitle, chart){
+    chart.data.datasets[0].data = fcsEvents.map(fcsEvent => {return{x:fcsEvent.data.get(xTitle), y:fcsEvent.data.get(yTitle), self:fcsEvent}});
+    
+    //If there was a gate in the chart, remove it when the data is replaced with different x axis and y axis
+    if(chart.data.datasets.length === 2) chart.data.datasets.pop();
+    chart.options.scales.x.title.text = xTitle;
+    chart.options.scales.y.title.text = yTitle;
     chart.update();
 }
 
