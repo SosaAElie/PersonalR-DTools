@@ -21,6 +21,7 @@ const ss = require("simple-statistics");
  * @typedef {Object} FcsEvent
  * @property {Map<string, number} data
  * @property {number} identifier
+ * @property {string} filename
  */
 
 /**
@@ -57,11 +58,15 @@ async function handleFileInput(e){
  */
 async function processFcsFile(file){
     const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const filename = file.name.split(".")[0];
+
     const parsingOptions = {dataFormat:"asNumber", eventsToRead:-1};
     const parsedFcs = new FcsParser(parsingOptions, fileBuffer);
-    const fcsEvents = convertToFcsEventObjs(parsedFcs);
+    const fcsEvents = convertToFcsEventObjs(parsedFcs, filename);
     const parentContainer = document.getElementById("charts");
-
+    const fileFcsContainer = document.createElement("div");
+    fileFcsContainer.id = filename;
+    fileFcsContainer.className = "file-container";
     const canvasChartObj = createChartV2(fcsEvents, "SSC-A", "FSC-A", "scatter");
     const chartContainer = completeChart(canvasChartObj, 
         [
@@ -74,9 +79,9 @@ async function processFcsFile(file){
             createEnterGateButton(canvasChartObj),
             createMetaDataV2(fcsEvents, canvasChartObj),
         ])
-        
-    parentContainer.appendChild(chartContainer);
-
+    
+    fileFcsContainer.appendChild(chartContainer);
+    parentContainer.appendChild(fileFcsContainer);
 }
 
 /**
@@ -126,21 +131,28 @@ function createMetaDataV2(fcsEvents, canvasChartObj){
  * @param {Array<HTMLElement>} userInputsAndChartData
  */
 function completeChart(canvasChartObj, userInputsAndChartData){
-    const container = document.createElement("div");
-    container.className = "chart-container";
-    container.appendChild(canvasChartObj.canvas);
-    container.style.gridTemplateRows = userInputsAndChartData.length;
-    canvasChartObj.canvas.style.gridRow = `span ${userInputsAndChartData.length}`;
+    const chartContainer = document.createElement("div");
+    chartContainer.className = "chart-container";
+    chartContainer.id = `${canvasChartObj.canvas.id}-container`;
+    chartContainer.appendChild(canvasChartObj.canvas);
+    chartContainer.style.gridTemplateRows = userInputsAndChartData.length;
+    chartContainer.style.gridRow = `span ${userInputsAndChartData.length}`;
+    
+    const completeContainer = document.createElement("div");
+    completeContainer.id = `complete-${canvasChartObj.canvas.id}-container`;
+    completeContainer.className = "complete-container";
+    completeContainer.appendChild(chartContainer);
+    
     for(let i of userInputsAndChartData){
-        container.appendChild(i);    
+        completeContainer.appendChild(i);    
     }
-
+    
     canvasChartObj.canvas.addEventListener("click", function(e){
         const contextmenu = document.getElementById(`contextmenu-${canvasChartObj.canvas.id}`);
         if(contextmenu!==null) contextmenu.remove();
     })
-
-    return container;
+    
+    return completeContainer;
 }
 
 /**
@@ -296,6 +308,8 @@ function createScatterPlotOptionsV2(fcsEvents, xAxisTitle, yAxisTitle){
             ]
         },
         options:{
+            // responsive:false,
+            maintainAspectRatio:false,
             hover:{
                 mode:null,
             },
@@ -934,7 +948,8 @@ function createEnterGateButton(canvasChartObj){
             createEnterGateButton(gatedChart),
             createMetaDataV2(withinGateEvents, gatedChart),
         ])
-        const parentContainer = document.getElementById("charts");
+
+        const parentContainer = document.getElementById(eventPoints[0].self.filename);
         parentContainer.appendChild(completeGatedChart);
     })
 
@@ -968,15 +983,17 @@ function getParameterValues(parsedFcs, parameterName, numOfEvents = -1){
 
 /**
  * @param {FcsParser} parsedFcs
+ * @param {string} filename
  * @returns {FcsEvent[]}
  */
-function convertToFcsEventObjs(parsedFcs){
+function convertToFcsEventObjs(parsedFcs, filename){
     const allChannels = parsedFcs.get$PnX("N");
     const results = [];
     for(let i = 0; i < parsedFcs.dataAsNumbers.length; i++){
         const eventObj = {
             data:new Map(),
             identifier:i,
+            filename:filename
         }
         for(let j = 1; j < allChannels.length; j++){
             eventObj.data.set(allChannels[j], parsedFcs.dataAsNumbers[i][j-1]);

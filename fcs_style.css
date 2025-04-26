@@ -460,16 +460,19 @@ tr:hover{
     flex-direction: row;
     height: min-content;
 }
-.chart-container{
+
+.complete-container{
     display: grid;
     height: 100%;
-    width: 50%;
     grid-template-columns: auto 50%;
-    justify-self: center;
+    row-gap: 10px;
+}
+.chart-container{
+    height: 95%;
 }
 #charts{
     width: 100vw;
-    height: 50vh;
+    height: 100vh;
 }
 .metadata{
     display: flex;
@@ -481,8 +484,17 @@ tr:hover{
     z-index: 1;
 }
 .gate-button{
-    width: 50%;
-    height: 70%;
+    text-wrap: nowrap;
+    width: min-content;
+    height: min-content;
+}
+.file-container{
+    display: grid;
+    grid-template-columns: 50% 50%;
+    column-gap: 0px;
+    border:solid;
+    padding: 0px;
+    margin: 0px;
 }
 @media (max-width: 1500px){
     #chart-template-container{
