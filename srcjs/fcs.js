@@ -47,7 +47,6 @@ async function handleFileInput(e){
 
     for (let file of files){
         processFcsFile(file);
-        e.target.nextSibling.textContent+=file.name;
     };
 
 }
@@ -57,16 +56,23 @@ async function handleFileInput(e){
  * @returns {void}
  */
 async function processFcsFile(file){
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const filename = file.name.split(".")[0];
+    
+    //grab filename, each filename is assumed to be unique
+    const filename = file.name.slice(0, file.name.lastIndexOf("."));
 
+    //create buffer so that the parser library can parse the data
+    //read all events into memory
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
     const parsingOptions = {dataFormat:"asNumber", eventsToRead:-1};
     const parsedFcs = new FcsParser(parsingOptions, fileBuffer);
+
+    //create an array of object where each object represents an event
+    //and its associated flow data
     const fcsEvents = convertToFcsEventObjs(parsedFcs, filename);
+
+    //Create a container for each file that contains all the charts for it
     const parentContainer = document.getElementById("charts");
-    const fileFcsContainer = document.createElement("div");
-    fileFcsContainer.id = filename;
-    fileFcsContainer.className = "file-container";
+    const fileContainer = createFileContainer(filename);
     const canvasChartObj = createChartV2(fcsEvents, "SSC-A", "FSC-A", "scatter");
     const chartContainer = completeChart(canvasChartObj, 
         [
@@ -80,8 +86,30 @@ async function processFcsFile(file){
             createMetaDataV2(fcsEvents, canvasChartObj),
         ])
     
-    fileFcsContainer.appendChild(chartContainer);
-    parentContainer.appendChild(fileFcsContainer);
+    fileContainer.appendChild(chartContainer);
+    parentContainer.appendChild(fileContainer);
+}
+
+/**
+ * @param {string} filename
+ * @returns {HTMLDivElement}
+ */
+function createFileContainer(filename){
+    const container = document.createElement("div");
+    container.id = filename;
+    container.className = "file-container";
+
+    //Create header for the container that contains 
+    //all the charts associated with a specific file
+    const header = document.createElement("div");
+    header.className = "file-container-header";
+    const title = document.createElement("h3");
+    title.textContent = filename;
+    
+    header.appendChild(title);
+    container.appendChild(header);
+    
+    return container;
 }
 
 /**
@@ -131,6 +159,8 @@ function createMetaDataV2(fcsEvents, canvasChartObj){
  * @param {Array<HTMLElement>} userInputsAndChartData
  */
 function completeChart(canvasChartObj, userInputsAndChartData){
+    //Create a container exclusive to the chart to allow the chart to change size dynamically
+    //By setting relative height and width values on the container
     const chartContainer = document.createElement("div");
     chartContainer.className = "chart-container";
     chartContainer.id = `${canvasChartObj.canvas.id}-container`;
@@ -138,15 +168,15 @@ function completeChart(canvasChartObj, userInputsAndChartData){
     chartContainer.style.gridTemplateRows = userInputsAndChartData.length;
     chartContainer.style.gridRow = `span ${userInputsAndChartData.length}`;
     
+    //Create a container for the chart and its associated input/non-input elements
     const completeContainer = document.createElement("div");
     completeContainer.id = `complete-${canvasChartObj.canvas.id}-container`;
     completeContainer.className = "complete-container";
     completeContainer.appendChild(chartContainer);
-    
-    for(let i of userInputsAndChartData){
-        completeContainer.appendChild(i);    
-    }
-    
+    for(let i of userInputsAndChartData) completeContainer.appendChild(i);    
+
+    //Create an event listener for the canvas to allow for the removal of the contextmenu 
+    //via a click anywhere on the chart
     canvasChartObj.canvas.addEventListener("click", function(e){
         const contextmenu = document.getElementById(`contextmenu-${canvasChartObj.canvas.id}`);
         if(contextmenu!==null) contextmenu.remove();
@@ -526,7 +556,6 @@ function handleChartClick(e){
             borderColor:"black",
         }
         this.data.datasets.push(clickedPointsData);
-        
     }
     else{
         const firstPoint = this.getDatasetMeta(1).data[0];

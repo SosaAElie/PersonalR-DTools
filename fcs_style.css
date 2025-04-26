@@ -466,6 +466,7 @@ tr:hover{
     height: 100%;
     grid-template-columns: auto 50%;
     row-gap: 10px;
+    padding-top: 10px;
 }
 .chart-container{
     height: 95%;
@@ -492,10 +493,22 @@ tr:hover{
     display: grid;
     grid-template-columns: 50% 50%;
     column-gap: 0px;
-    border:solid;
-    padding: 0px;
-    margin: 0px;
+    border-bottom:solid;
+    border-width: 1px;
+    margin-top: 10px;
 }
+.file-container-header{
+    grid-column: span 2;
+    text-align: center;
+    border-bottom: solid;
+    border-width: 1px;
+}
+.file-container-header>h3{
+    text-decoration: none;
+    font-size: larger;
+    font-weight: normal;
+}
+
 @media (max-width: 1500px){
     #chart-template-container{
         display: flex;
