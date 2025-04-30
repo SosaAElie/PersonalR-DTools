@@ -125,7 +125,7 @@ function createMetaData(fcsData, canvasChartObj){
     const numberOfEventsEle = document.createElement("p");
     numberOfEventsEle.textContent = `Number of Events: ${fcsData.xValues.length}`;
     const numberOfGatedEventsEle = document.createElement("p");
-    numberOfGatedEventsEle.textContent = `Number of Gated Events: 0 Percent Gated: 0%`;
+    numberOfGatedEventsEle.textContent = `Number of Gated Events: 0, 0%`;
 
     metaDataContainer.appendChild(numberOfEventsEle);
     metaDataContainer.appendChild(numberOfGatedEventsEle);
@@ -144,12 +144,20 @@ function createMetaDataV2(fcsEvents, canvasChartObj){
     metaDataContainer.id = `${canvasChartObj.canvas.id}-metadata`;
 
     const numberOfEventsEle = document.createElement("p");
+    numberOfEventsEle.id = `${canvasChartObj.canvas.id}-eventpoints`
     numberOfEventsEle.textContent = `Number of Events: ${fcsEvents.length}`;
+    
+    const numberOfGatePointsEle = document.createElement("p");
+    numberOfGatePointsEle.textContent = "Number of Gate Points: 0";
+    numberOfGatePointsEle.id = `${canvasChartObj.canvas.id}-gatepoints`;
+    
     const numberOfGatedEventsEle = document.createElement("p");
-    numberOfGatedEventsEle.textContent = `Number of Gated Events: 0 Percent Gated: 0%`;
+    numberOfGatedEventsEle.id = `${canvasChartObj.canvas.id}-gatedpoints`
+    numberOfGatedEventsEle.textContent = `Number of Gated Events: 0, 0%`;
 
     metaDataContainer.appendChild(numberOfEventsEle);
     metaDataContainer.appendChild(numberOfGatedEventsEle);
+    metaDataContainer.appendChild(numberOfGatePointsEle);
 
     return metaDataContainer;
 }
@@ -333,7 +341,7 @@ function createScatterPlotOptionsV2(fcsEvents, xAxisTitle, yAxisTitle){
                     hoverRadius: 1,  // No size increase on hover
                     hitRadius: 1,    // Keeps click precision tight
                     hoverBorderWidth: 0,
-                    borderWidth: 1
+                    // borderWidth: 1
                 },
             ]
         },
@@ -408,25 +416,30 @@ function createScatterPlotOptionsV2(fcsEvents, xAxisTitle, yAxisTitle){
             animation:{
                 duration:0,
                 onComplete: function(e){
-                    if(this.data.datasets.length <= 1){
-                        console.log("No gate points present in chart dataset");
-                        return;
-                    }
                     
-                    if(this.data.datasets[1].relativePositions.length === 1){
-                        console.log("only one point available");
-                        return;
-                    }
+                    //If there is no second dataset for the chart then no gate points are present on it
+                    if(this.data.datasets.length <= 1) return;
 
-                    this.ctx.beginPath();
+                    //Grab the gate points dataset array
+                    const gatePointsDataset = this.data.datasets[1];
                     const gatePoints = this.getDatasetMeta(1).data;
+                    const numberOfGatePoints = document.getElementById(`${this.canvas.id}-gatepoints`);
+                    numberOfGatePoints.textContent = "Number of Gate Points: " + gatePoints.length;
+
+                    //If there is only 1 gate point present don't draw any lines
+                    if(this.data.datasets[1].relativePositions.length === 1) return;
+                    
+                    //If there are more than 1 gate point present, draw the lines
+                    this.ctx.beginPath();
                     const startingPoint = gatePoints[0];
                     this.ctx.moveTo(startingPoint.x, startingPoint.y);
                     for(let i = 1; i < gatePoints.length; i++){
                         const {x,y} = gatePoints[i];
                         this.ctx.lineTo(x,y);
-                        this.ctx.stroke();
                     }
+                    if(gatePointsDataset.gated) this.ctx.lineTo(startingPoint.x, startingPoint.y);
+                    this.ctx.stroke();
+                    
                 }
             },
             plugins:{
@@ -559,7 +572,7 @@ function handleChartClick(e){
     }
     else{
         const firstPoint = this.getDatasetMeta(1).data[0];
-        //Check first if the points overlap enough to considered the same point
+        //Check first if the points overlaps enough to considered the same point, within 5px area of the first point
         if((x <= firstPoint.x+5 && x >= firstPoint.x-5 ) && (y <= firstPoint.y+5 && y >= firstPoint.y-5)){
             console.log("latest point is within a 5pixel area of the first point, closing gate.");
             this.data.datasets[1].gated = true;
@@ -596,13 +609,15 @@ function handleChartClick(e){
                     } 
                     document.getElementById(contextmenuId).remove();
                     this.options.onClick = handleChartClick;
-                    document.getElementById(`${this.canvas.id}-metadata`).lastChild.textContent = `Number of Gated Events: 0 Percent Gated: 0%`;
+                    document.getElementById(`${this.canvas.id}-gatedpoints`).textContent = `Number of Gated Events: 0, 0%`;
+                    document.getElementById(`${this.canvas.id}-gatepoints`).textContent = `Number of Gate Points: 0`;
                 })
                 menuContainer.appendChild(button);
                 document.body.appendChild(menuContainer);
                 return;
             });
-
+            this.update();
+            return;
         }
 
         //Add a new a point if the points do not overlap
@@ -940,7 +955,6 @@ function createEnterGateButton(canvasChartObj){
         const gatedPoints = gatedPointsDataset.data;
         const eventPoints = canvasChartObj.chart.data.datasets[0].data;
         
-        console.log("Gate is closed and ready to be entered!");
         const numOfVertices = gatedPoints.length;
         const withinGateEvents = [];
         for(let eventPoint of eventPoints){
@@ -964,7 +978,7 @@ function createEnterGateButton(canvasChartObj){
             }
             if(inside) withinGateEvents.push(self);
         }
-        document.getElementById(`${canvasChartObj.canvas.id}-metadata`).lastChild.textContent = "Number of Gated Events: " + withinGateEvents.length + " Percent Gated: " + Math.round(withinGateEvents.length/eventPoints.length*100) + "%";
+        document.getElementById(`${canvasChartObj.canvas.id}-gatedpoints`).textContent = "Number of Gated Events: " + withinGateEvents.length + ", " + Math.round(withinGateEvents.length/eventPoints.length*100) + "%";
 
         const gatedChart = createChartV2(withinGateEvents, "SSC-A", "FSC-A", "scatter");
         const completeGatedChart = completeChart(gatedChart, [

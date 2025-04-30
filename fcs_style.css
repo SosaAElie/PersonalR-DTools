@@ -465,19 +465,28 @@ tr:hover{
     display: grid;
     height: 100%;
     grid-template-columns: auto 50%;
-    row-gap: 10px;
+    row-gap: 5px;
     padding-top: 10px;
+    border-style:dashed;
+    border-top: 0px;
 }
 .chart-container{
     height: 95%;
 }
 #charts{
+    display: flex;
+    flex-direction: column;
+    row-gap: 10px;
     width: 100vw;
     height: 100vh;
+
 }
 .metadata{
     display: flex;
     flex-direction: column;
+}
+.metadata>p{
+    margin: 10px;
 }
 .contextmenu{
     position: absolute;
@@ -493,7 +502,7 @@ tr:hover{
     display: grid;
     grid-template-columns: 50% 50%;
     column-gap: 0px;
-    border-bottom:solid;
+    /* border-bottom:solid; */
     border-width: 1px;
     margin-top: 10px;
 }

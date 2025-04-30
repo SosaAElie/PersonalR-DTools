@@ -49,6 +49,17 @@ let BARGRAPH = null;
  * @property {function} appendAt
  */
 
+/**
+ * @typedef {Object} UserInputs
+ * @property {File} rawdataFile
+ * @property {File} templateFile
+ * @property {string} regressionType
+ * @property {string} xScale
+ * @property {boolean} extrapolated
+ * @property {string} targetUnits
+ * @property {number} dilutionFactor
+ */
+
 
 function main(){
     document.getElementById("process-button").addEventListener("click", handleProcess);
@@ -63,6 +74,9 @@ function main(){
             .forEach(element=>element.addEventListener("change", handleXScale));
         });
     document.getElementById("hideExtrapolated").addEventListener("change", handleHideExtrapolated);
+
+    //Initiate test data
+    handleProcess(null, true)
 }
 /**
  * @param {Event} e
@@ -254,37 +268,69 @@ async function merge(rawdataFile, templateFile){
 }
 
 /**
- * @param {Event} e
- * @returns {null}
+ * @param {boolean} isDummy
+ * @returns {UserInputs}
  */
-function handleProcess(e){
+function grabUserInput(isDummy){
     const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
+    const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
+    const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
+    const extrapolated = document.getElementById("hideExtrapolated").checked;
+    const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
+    const targetUnits = document.getElementById("units-conversion").value;
+
+    return isDummy?{
+        rawdataFile: new File([["##BLOCKS= 1\n"],["Plate:	Plate1	1.3	PlateFormat	Endpoint	Absorbance	Reduced	FALSE	1						1	562 	1	12	96	1	8			\n"],["		1	2	3	4	5	6	7	8	9	10	11	12	\n"],["		1.8638	0.0763	0.69	0.032	0.032	0.0463	0.0322	0.0318	0.0319	0.0331	0.0321	0.0321	\n"],["		1.3156	0.6192	0.5265	0.0332	0.0322	0.0324	0.0322	0.0325	0.0326	0.0333	0.0326	0.0322	\n"],["		0.9785	0.7019	0.6062	0.0324	0.0327	0.0325	0.0322	0.0339	0.0322	0.0325	0.0322	0.0323	\n"],["		0.8191	0.658	0.4605	0.0324	0.0327	0.0325	0.0323	0.0327	0.032	0.0325	0.0323	0.0326	\n"],["		0.5741	0.444	0.8629	0.0329	0.0325	0.0323	0.0324	0.0328	0.0321	0.0324	0.0319	0.0319	\n"],["		0.3422	0.5583	0.032	0.0328	0.032	0.0321	0.0332	0.0338	0.032	0.0344	0.0318	0.0317	\n"],["		0.2275	0.5316	0.0326	0.0327	0.0321	0.0328	0.0328	0.0325	0.0326	0.0321	0.0317	0.0317	\n"],["		0.126	0.5515	0.0329	0.0318	0.0266	0.0322	0.0319	0.0319	0.0315	0.0318	0.0318	0.0319	\n"],["~End\n"],["Original Filename: 20240715 BCA Assay Cell Lysates CDKn2a New Antibody Preliminary Test; Date Last Saved: 7/15/2024 4:03:58 PM\n"]], "ExampleData.csv"),
+        templateFile: new File([["THIS,IS,THE,EMPTY,96,WELL,PLATE,TEMPLATE.,PLEASE,EDIT,WITH,YOUR,LAYOUT.\n"],[",1,2,3,4,5,6,7,8,9,10,11,12\n"],["A,Standard-2000ug/mL,Standard-0ug/mL,Sample-8,None,None,None,None,None,None,None,None,None\n"],["B,Standard-1500ug/mL,Sample-1,Sample-9,None,None,None,None,None,None,None,None,None\n"],["C,Standard-1000ug/mL,Sample-2,Sample-10,None,None,None,None,None,None,None,None,None\n"],["D,Standard-750ug/mL,Sample-3,Sample-11,None,None,None,None,None,None,None,None,None\n"],["E,Standard-500ng/mL,Sample-4,Sample-12,None,None,None,None,None,None,None,None,None\n"],["F,Standard-250ug/mL,Sample-5,None,None,None,None,None,None,None,None,None,None\n"],["G,Standard-125ug/mL,Sample-6,None,None,None,None,None,None,None,None,None,None\n"],["H,Standard-25ug/mL,Sample-7,None,None,None,None,None,None,None,None,None,None\n"],[",,,,,,,,,,,,\n"],['"KEY: Please Prefix all items in the plate with any of the below prefixes, using a dash ""-"" to separate the prefix from the rest of the name",,,,,,,,,,,,\n'],["None,No sample is in the well,,,,,,,,,,,\n"],["Sample,Refers to any sample on the plate that is not a standard or a control,,,,,,,,,,,\n"],["Standard,Refers to the standard used for regression analysis,,,,,,,,,,,\n"],["Control,Refers to the positive or negative control on the plate,,,,,,,,,,,\n"]], "ExampleTemplate.txt"),
+        regressionType:"linear",
+        xScale:"linear",
+        extrapolated:false,
+        dilutionFactor:10,
+        targetUnits:"ug/uL",
+    }:
+    {
+        rawdataFile,
+        templateFile,
+        regressionType,
+        xScale,
+        extrapolated,
+        dilutionFactor,
+        targetUnits
+    }
+
+}
+
+/**
+ * @param {Event} e
+ * @param {boolean} isDummy
+ * @returns {null}
+ */
+function handleProcess(e, isDummy = false){
+    const {rawdataFile, templateFile, regressionType, extrapolated, xScale, targetUnits, dilutionFactor } = grabUserInput(isDummy);
+    // const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
+    // const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
     //If there is no template or raw data file selected return
     if(!rawdataFile || !templateFile) return;
-    
     //If there is no selected regression type return
-    const regressionInputs = document.getElementById("regression-inputs");
-    const regressionType = getSelectedRadioButton(regressionInputs);
+    // const regressionInputs = document.getElementById("regression-inputs");
+    // const regressionType = getSelectedRadioButton(regressionInputs);
     if(regressionType === null)return;
-
+    
     //Get user inputs for x-scale type and regression type
-    const xScaleInputs = document.getElementById("x-scale");
-    const xScale = getSelectedRadioButton(xScaleInputs);
+    // const xScaleInputs = document.getElementById("x-scale");
+    // const xScale = getSelectedRadioButton(xScaleInputs);
     if(xScale === null) return;
 
     //Get whether or not to show extrapolated results
-    /**
-     * @type {boolean}
-     */
-    const extrapolated = document.getElementById("hideExtrapolated").checked;
+    // const extrapolated = document.getElementById("hideExtrapolated").checked;
 
+    // const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
+    // const targetUnits = document.getElementById("units-conversion").value;
     
     const excelDownloadButton = document.getElementById("download-button");
     const chartCanvas = document.getElementById("regression-chart");
     const tableContainer = document.getElementById("table-container");
-    const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
-    const targetUnits = document.getElementById("units-conversion").value;
     const diagramContainer = document.getElementById("template-diagram");
     const gelTableContainer = document.getElementById("gel-table-container");
     const proteinBarChart = document.getElementById("protein-bar-chart");
