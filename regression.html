@@ -81,7 +81,7 @@
                     <h3 class = "subtitle">Regression Model</h3>
                     <div class = "radio card clicked-card">
                         <h6 class = "card-title" for = "linear">Linear Regression</h6>
-                        <input id = "linear" type = "radio" name = "regression" value = "linear">
+                        <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
                         <img class = "card-images" src = "Images/LinearRegressionImage.jpg">
                         <p class = "desc">
                             Most accurate when the dependent variable changes 
@@ -98,12 +98,21 @@
                         </p>
                     </div>
                     <div class = "radio card">
-                        <h6 class = "card-title" for = "4pl">4-Parameter Hill Equation</h6>
+                        <h6 class = "card-title" for = "4pl">4-Parameter Logistic Equation</h6>
                         <input id = "4pl" type = "radio" name = "regression" value="4pl">
                         <img class = "card-images" src = "Images/4PLRegressionImage.jpg">
                         <p class = "desc">
-                            Most accurate when the data presents upper and lower
+                            Accurate when data presents upper and lower
                             asymptotes in a sigmodial shape.
+                        </p>
+                    </div>
+                    <div class = "radio card">
+                        <h6 class = "card-title" for = "5pl">5-Parameter Logistic Equation</h6>
+                        <input id = "5pl" type = "radio" name = "regression" value="5pl">
+                        <img class = "card-images" src = "Images/4PLRegressionImage.jpg">
+                        <p class = "desc">
+                            Accurate when data presents upper and lower
+                            asymptotes in a sigmodial shape. When g = 1, reverts to 4PL.
                         </p>
                     </div>
                 </div>
@@ -112,7 +121,7 @@
                     <div id = "x-scale">
                         <div class="radio card clicked-card">
                             <h6 class = "card-title" for = "linear-scale">Linear X-Scale</h6>
-                            <input id = "linear-scale" value="linear" type = "radio" name = "scale">
+                            <input id = "linear-scale" value="linear" type = "radio" name = "scale" checked>
                             <img class = "card-images" src = "Images/LinearXScaleImage.jpg">
                             <p class = "desc">
                                 X-axis is set assuming the x-values are close together.

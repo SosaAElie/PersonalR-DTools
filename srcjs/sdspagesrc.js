@@ -3,6 +3,7 @@ const chartjs = require("chart.js/auto");
 const xlsx = require("xlsx");
 const helpers = require("../utils/helpers");
 const classes = require("../classes/classes");
+const mlm = require("ml-levenberg-marquardt");
 
 //Global variable to store the reference to the created chart & chart image for excel
 let LINEGRAPH = null;
@@ -282,7 +283,7 @@ function grabUserInput(isDummy){
 
     return isDummy?{
         rawdataFile: new File([["##BLOCKS= 1\n"],["Plate:	Plate1	1.3	PlateFormat	Endpoint	Absorbance	Reduced	FALSE	1						1	562 	1	12	96	1	8			\n"],["		1	2	3	4	5	6	7	8	9	10	11	12	\n"],["		1.8638	0.0763	0.69	0.032	0.032	0.0463	0.0322	0.0318	0.0319	0.0331	0.0321	0.0321	\n"],["		1.3156	0.6192	0.5265	0.0332	0.0322	0.0324	0.0322	0.0325	0.0326	0.0333	0.0326	0.0322	\n"],["		0.9785	0.7019	0.6062	0.0324	0.0327	0.0325	0.0322	0.0339	0.0322	0.0325	0.0322	0.0323	\n"],["		0.8191	0.658	0.4605	0.0324	0.0327	0.0325	0.0323	0.0327	0.032	0.0325	0.0323	0.0326	\n"],["		0.5741	0.444	0.8629	0.0329	0.0325	0.0323	0.0324	0.0328	0.0321	0.0324	0.0319	0.0319	\n"],["		0.3422	0.5583	0.032	0.0328	0.032	0.0321	0.0332	0.0338	0.032	0.0344	0.0318	0.0317	\n"],["		0.2275	0.5316	0.0326	0.0327	0.0321	0.0328	0.0328	0.0325	0.0326	0.0321	0.0317	0.0317	\n"],["		0.126	0.5515	0.0329	0.0318	0.0266	0.0322	0.0319	0.0319	0.0315	0.0318	0.0318	0.0319	\n"],["~End\n"],["Original Filename: 20240715 BCA Assay Cell Lysates CDKn2a New Antibody Preliminary Test; Date Last Saved: 7/15/2024 4:03:58 PM\n"]], "ExampleData.csv"),
-        templateFile: new File([["THIS,IS,THE,EMPTY,96,WELL,PLATE,TEMPLATE.,PLEASE,EDIT,WITH,YOUR,LAYOUT.\n"],[",1,2,3,4,5,6,7,8,9,10,11,12\n"],["A,Standard-2000ug/mL,Standard-0ug/mL,Sample-8,None,None,None,None,None,None,None,None,None\n"],["B,Standard-1500ug/mL,Sample-1,Sample-9,None,None,None,None,None,None,None,None,None\n"],["C,Standard-1000ug/mL,Sample-2,Sample-10,None,None,None,None,None,None,None,None,None\n"],["D,Standard-750ug/mL,Sample-3,Sample-11,None,None,None,None,None,None,None,None,None\n"],["E,Standard-500ng/mL,Sample-4,Sample-12,None,None,None,None,None,None,None,None,None\n"],["F,Standard-250ug/mL,Sample-5,None,None,None,None,None,None,None,None,None,None\n"],["G,Standard-125ug/mL,Sample-6,None,None,None,None,None,None,None,None,None,None\n"],["H,Standard-25ug/mL,Sample-7,None,None,None,None,None,None,None,None,None,None\n"],[",,,,,,,,,,,,\n"],['"KEY: Please Prefix all items in the plate with any of the below prefixes, using a dash ""-"" to separate the prefix from the rest of the name",,,,,,,,,,,,\n'],["None,No sample is in the well,,,,,,,,,,,\n"],["Sample,Refers to any sample on the plate that is not a standard or a control,,,,,,,,,,,\n"],["Standard,Refers to the standard used for regression analysis,,,,,,,,,,,\n"],["Control,Refers to the positive or negative control on the plate,,,,,,,,,,,\n"]], "ExampleTemplate.txt"),
+        templateFile: new File([["THIS,IS,THE,EMPTY,96,WELL,PLATE,TEMPLATE.,PLEASE,EDIT,WITH,YOUR,LAYOUT.\n"],[",1,2,3,4,5,6,7,8,9,10,11,12\n"],["A,Standard-2000ug/mL,Standard-0ug/mL,Sample-8,None,None,None,None,None,None,None,None,None\n"],["B,Standard-1500ug/mL,Sample-1,Sample-9,None,None,None,None,None,None,None,None,None\n"],["C,Standard-1000ug/mL,Sample-2,Sample-10,None,None,None,None,None,None,None,None,None\n"],["D,Standard-750ug/mL,Sample-3,Sample-11,None,None,None,None,None,None,None,None,None\n"],["E,Standard-500ug/mL,Sample-4,Sample-12,None,None,None,None,None,None,None,None,None\n"],["F,Standard-250ug/mL,Sample-5,None,None,None,None,None,None,None,None,None,None\n"],["G,Standard-125ug/mL,Sample-6,None,None,None,None,None,None,None,None,None,None\n"],["H,Standard-25ug/mL,Sample-7,None,None,None,None,None,None,None,None,None,None\n"],[",,,,,,,,,,,,\n"],['"KEY: Please Prefix all items in the plate with any of the below prefixes, using a dash ""-"" to separate the prefix from the rest of the name",,,,,,,,,,,,\n'],["None,No sample is in the well,,,,,,,,,,,\n"],["Sample,Refers to any sample on the plate that is not a standard or a control,,,,,,,,,,,\n"],["Standard,Refers to the standard used for regression analysis,,,,,,,,,,,\n"],["Control,Refers to the positive or negative control on the plate,,,,,,,,,,,\n"]], "ExampleTemplate.txt"),
         regressionType:"linear",
         xScale:"linear",
         extrapolated:false,
@@ -363,7 +364,8 @@ function handleProcess(e, isDummy = false){
         //Obtain the parameters of best fit using selected regression type
         if(regressionType === "log") regressionObject = getLogRegression(xAndYStandards);
         else if(regressionType === "linear") regressionObject = getLinearRegression(xAndYStandards);
-        else regressionObject = get4ParameterHillRegression(xAndYStandards);
+        else if (regressionType === "4pl") regressionObject = getFourParameterHillRegression(xAndYStandards);
+        else if (regressionType === "5pl") regressionObject = getFiveParameterHillRegression(xAndYStandards);
         const {parameters, rSquared, eq, invEq} = regressionObject;
 
         //Sort standards from highest to lowest according to the average Y
@@ -617,8 +619,8 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
     const maxY = ss.max(standardYs);
     const minY = ss.min(standardYs);
 
-    //Give regression model line a smooth curve if regression type is 4PL
-    if(regressionType === "4pl"){
+    //Give regression model line a smooth curve if regression type is 4PL or 5PL
+    if(regressionType === "4pl" || regressionType === "5pl"){
         const standardXs = standards.map(standard => standard.x);
         const minX = ss.min(standardXs);
         const maxX = ss.max(standardXs);
@@ -647,7 +649,7 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
                     label:"Standards",
                     data:standards.map(standard => {return {x:standard.x.toFixed(2), y:standard.averageY.toFixed(2)}}),
                     pointBackgroundColor:"#D6EFD8",
-                    pointBorderColor:"black"
+                    pointBorderColor:"black",
                 },
                 {
                     labels:unknowns.map(unknown => unknown.name),
@@ -659,12 +661,14 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
                 {
                     labels:standards.map(standard => standard.name),
                     label:`Regression Model: R-Squared: ${rSquared.toFixed(2)}`,
-                    data: regressionType === "4pl"?mockData:standards.map(standard => {return {x:standard.interpolatedX.toFixed(2), y:standard.averageY.toFixed(2)}}),
+                    data: regressionType === "4pl"||regressionType === "5pl"?mockData:standards.map(standard => {return {x:standard.interpolatedX.toFixed(2), y:standard.averageY.toFixed(2)}}),
                     showLine:true,
                     // pointBorderColor: "black",
                     // pointBackgroundColor:"#F2B949",
                     // borderColor:"#F2B949",
-                    pointRadius:regressionType === "4pl"?0:3,
+                    pointRadius:regressionType === "4pl" || regressionType === "5pl"?0:3,
+                    tension:0.4,
+                    pointHitRadius: 0, 
                 },
             ]
         },
@@ -1447,7 +1451,7 @@ function getLogRegression(xyValues){
  * @param {number[][]} xyValues
  * @returns {RegressionObject}
  */
-function get4ParameterHillRegression(xyValues){
+function getFourParameterHillRegression(xyValues){
     //Pass in the inital guesses for the paratemers of best fit as follows, a,b,c,d
     //a is minimum response at x = 0
     //b is the hill slope of the curve at c
@@ -1468,6 +1472,112 @@ function get4ParameterHillRegression(xyValues){
         invEq: y => C*((((A-D)/(y-D))-1)**(1/B)),
     }
 }
+
+/**
+ * @param {number[][]} xyValues
+ * @returns {RegressionObject}
+ */
+function getFiveParameterHillRegression(xyValues){
+    /**
+     * 
+     * @param {number[]} param0 
+     * @returns {function(x):x}
+     */
+    function fivePl([a,b,c,d,e]){
+        //a lower asymptote
+        //b slope
+        //c EC50
+        //d upper asymptote
+        //e asymmetry parameter
+        return (x)=>(d+((a-d)/((1+(x/c)**b))**e))
+    }
+    const xValues = xyValues.map(xyValue => xyValue[0]);
+    const yValues = xyValues.map(xyValue => xyValue[1]);
+    const initialParams = [0, 1, ss.median(xValues), ss.max(yValues), 1];
+    const result = mlm.levenbergMarquardt({x:xValues, y:yValues}, fivePl, {initialValues:initialParams,maxIterations:10000});
+    const optimizedFivePl = fivePl(result.parameterValues);
+    return{
+        parameters:result.parameterValues,
+        rSquared:NaN,
+        eq:optimizedFivePl,
+        invEq:(y)=>interpolateX(y,optimizedFivePl,xyValues)
+    }
+}
+
+/**
+ * 
+ * @param {number} targetY 
+ * @param {function(x):x} func 
+ * @param {Array<Array<number>>} standards 
+ * @returns 
+ */
+function interpolateX(targetY, func, standards){
+    //Attempts to find the x value that gives the smallest difference between the predicated y and the target y
+    let closestX = null;
+    let closestY = null;
+    let diff = null;
+    for(let i = 0; i < standards.length; i++){
+
+        const x = standards[i][0];
+        const y = standards[i][1];
+        //If the largest experimental Y value is smaller than the target Y value (targetY) then return empty string
+        if(i === 0 && y < targetY) return ["", ""];
+
+        //Find closest experimental Y value and experimental X value       
+        const innerDiff = Math.abs(targetY - y);        
+
+        if(diff === null){
+            closestX = x;
+            closestY = y;
+            diff = innerDiff;
+        }
+        else if(diff > innerDiff){
+            closestX = x;
+            diff = innerDiff;
+            closestY = y;
+        }       
+        
+    }
+
+    //If couldn't find any experimental values of x and y that are close to the target y then return an empty string
+    if(closestX === null || diff === null) return ["", ""];
+        
+    let closerX = closestX;
+    let smallestDiff = diff;
+    let closerY = closestY;
+    
+    //Attempt to find a value of x that has the closest interpolated value of y to the target Y (up to to 2 sigfigs)
+    for(let i = 1; i < 3; i++){
+        const sigfigs = Number(`1e${-i}`);
+        let newX = closerX;
+    
+        for(let j = 0; j < 10; j++){
+            
+            //Find the difference between the values 
+            //and use the (+) or (-) sign of the difference to determine whether to add or subtract the sigfigs
+            const predictedY = func(newX);            
+            const innerDiff = targetY - predictedY;
+            const absDiff = Math.abs(innerDiff);
+
+            if(innerDiff > 0){
+                newX+=sigfigs;
+            }
+            else{
+                newX-=sigfigs;
+            }
+
+            if(smallestDiff > absDiff){
+                closerX = newX;
+                smallestDiff = absDiff;
+                closerY = predictedY; 
+            } 
+            
+        }      
+    }    
+    
+    return closerX;
+}
+
 
 function fminsearch(fun,Parm0,x,y,Opt){
     //Github source: https://github.com/jonasalmeida/fminsearch/blob/gh-pages/fminsearch.js
@@ -1513,7 +1623,7 @@ function fminsearch(fun,Parm0,x,y,Opt){
 				step[j]=-(0.5*step[j]); // otherwiese reverse and go slower
 			}	
 		}
-		if(Opt.display){if(i>(Opt.maxIter-10)){console.log(i+1,funParm(P0),P0)}}
+		if(Opt.display){if(i>(Opt.maxIter-10)){}}//console.log(i+1,funParm(P0),P0)}}
 	}
 	if (!!document.getElementById('plot')){ // if there is then use it
 		fminsearch.plot(x,y,fun(x,P0),P0);
