@@ -1496,11 +1496,12 @@ function getFiveParameterHillRegression(xyValues){
     const initialParams = [0, 1, ss.median(xValues), ss.max(yValues), 1];
     const result = mlm.levenbergMarquardt({x:xValues, y:yValues}, fivePl, {initialValues:initialParams,maxIterations:10000});
     const optimizedFivePl = fivePl(result.parameterValues);
+    const [a,b,c,d,e] = result.parameterValues;
     return{
-        parameters:result.parameterValues,
+        parameters:new Map([["A",a], ["B", b], ["C", d], ["D", d], ["E", e]]),
         rSquared:NaN,
         eq:optimizedFivePl,
-        invEq:(y)=>interpolateX(y,optimizedFivePl,xyValues)
+        invEq: (y)=>c*(((((a-d)/(y-d))**(1/e))-1)**(1/b)),
     }
 }
 
@@ -1517,13 +1518,12 @@ function interpolateX(targetY, func, standards){
     let closestY = null;
     let diff = null;
     for(let i = 0; i < standards.length; i++){
-
         const x = standards[i][0];
         const y = standards[i][1];
-        //If the largest experimental Y value is smaller than the target Y value (targetY) then return empty string
-        if(i === 0 && y < targetY) return ["", ""];
+        //If the largest standard Y value is smaller than the target Y value (targetY) then return NaN, couldn't find the value
+        if(i === 0 && y < targetY) return NaN;
 
-        //Find closest experimental Y value and experimental X value       
+        //Find closest standard Y value and experimental X value       
         const innerDiff = Math.abs(targetY - y);        
 
         if(diff === null){
@@ -1536,48 +1536,60 @@ function interpolateX(targetY, func, standards){
             diff = innerDiff;
             closestY = y;
         }       
-        
+        console.log("Target Y:",targetY, " Closest Standard X:", closestX," Closest Standard Y:", closestY)
     }
 
-    //If couldn't find any experimental values of x and y that are close to the target y then return an empty string
-    if(closestX === null || diff === null) return ["", ""];
+    //If couldn't find any standard values of x and y that are close to the target y then return NaN
+    if(closestX === null || diff === null) return NaN;
         
     let closerX = closestX;
     let smallestDiff = diff;
     let closerY = closestY;
     
-    //Attempt to find a value of x that has the closest interpolated value of y to the target Y (up to to 2 sigfigs)
-    for(let i = 1; i < 3; i++){
-        const sigfigs = Number(`1e${-i}`);
+    //Attempt to find a value of x that has the closest interpolated value of y to the target Y (up to to 3 sigfigs)
+    const currentSigFigs = getInitialSigFigs(closerX); 
+    for(let i = 0; i < 10; i++){
+        //Determine by how many sigfigs I should start with depending on the number of sig figs in the closest x
+        const sigfigs = Number(`1e${currentSigFigs-i}`);
         let newX = closerX;
     
         for(let j = 0; j < 10; j++){
             
             //Find the difference between the values 
             //and use the (+) or (-) sign of the difference to determine whether to add or subtract the sigfigs
-            const predictedY = func(newX);            
+            var predictedY = func(newX);
             const innerDiff = targetY - predictedY;
             const absDiff = Math.abs(innerDiff);
-
+            
             if(innerDiff > 0){
                 newX+=sigfigs;
             }
             else{
                 newX-=sigfigs;
             }
-
+            
             if(smallestDiff > absDiff){
                 closerX = newX;
                 smallestDiff = absDiff;
                 closerY = predictedY; 
             } 
-            
         }      
+        console.log("Interpolated Y:", predictedY, "New X: ", newX);
     }    
     
     return closerX;
 }
 
+/**
+ * @param {number} num
+ * @returns {number}
+ */
+function getInitialSigFigs(num){
+    const numString = num.toString();
+    const indexOfDecimalPoint = numString.indexOf(".");
+    if(indexOfDecimalPoint < 0) return numString.length-1;
+    return numString.length - numString.slice(indexOfDecimalPoint)-1;
+}
 
 function fminsearch(fun,Parm0,x,y,Opt){
     //Github source: https://github.com/jonasalmeida/fminsearch/blob/gh-pages/fminsearch.js
