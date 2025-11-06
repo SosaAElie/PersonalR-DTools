@@ -109,12 +109,17 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
     }
 
     /**
+     * @param {boolean} sdspage
+     * @param {number} sigfigs
      * @returns {string[]}
      */
-    function getExcelData(){
-        return [
-            this.name, this.type, this.ys.map(y => y.toFixed(2)).join(","), `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`, 
-            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2), ...this.sdspageValues.getGelData(all = true)
+    function getExcelData(sdspage, sigfigs){
+        return sdspage ? [
+            this.name, this.type, this.ys.map(y => y.toFixed(2)).join(","), `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`, 
+            this.interpolatedX.toFixed(sigfigs), this.undilutedX.toFixed(sigfigs), this.convertedX.toFixed(sigfigs), ...this.sdspageValues.getGelData(all = true)
+        ]:[
+            this.name, this.type, this.ys.map(y => y.toFixed(sigfigs)).join(","), `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`, 
+            this.interpolatedX.toFixed(sigfigs),this.undilutedX.toFixed(sigfigs), this.convertedX.toFixed(sigfigs),
         ]
     }
 

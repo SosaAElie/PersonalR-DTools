@@ -66,6 +66,7 @@ function main(){
     document.getElementById("process-button").addEventListener("click", handleProcess);
     document.getElementById("dilution-factor").addEventListener("input", handleNumericalInput);
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
+    document.getElementById("sds-page").addEventListener("change", updateSdsPageLabel);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
     document.getElementById("template-input").addEventListener("input", updateLabel);
     document.querySelectorAll(".card").forEach(element => element.addEventListener("click", clickedCard))
@@ -120,6 +121,16 @@ function updateLabel(e){
     const selectedFiles = this.files;
     if(selectedFiles.length > 0) this.nextElementSibling.textContent = selectedFiles[0].name;
     else this.nextElementSibling.textContent = "None";
+    return null
+}
+
+/**
+ * @param {Event} e
+ */
+function updateSdsPageLabel(e){
+    const className = "clicked-label";
+    const sdsPageLabel = this.previousElementSibling;
+    sdsPageLabel.classList.contains(className)?sdsPageLabel.classList.remove(className):sdsPageLabel.classList.add(className);
     return null
 }
 
@@ -280,6 +291,7 @@ function grabUserInput(isDummy){
     const extrapolated = document.getElementById("hideExtrapolated").checked;
     const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
     const targetUnits = document.getElementById("units-conversion").value;
+    const sdsPage = document.getElementById("sds-page").checked;
 
     return isDummy?{
         rawdataFile: new File([["##BLOCKS= 1\n"],["Plate:	Plate1	1.3	PlateFormat	Endpoint	Absorbance	Reduced	FALSE	1						1	562 	1	12	96	1	8			\n"],["		1	2	3	4	5	6	7	8	9	10	11	12	\n"],["		1.8638	0.0763	0.69	0.032	0.032	0.0463	0.0322	0.0318	0.0319	0.0331	0.0321	0.0321	\n"],["		1.3156	0.6192	0.5265	0.0332	0.0322	0.0324	0.0322	0.0325	0.0326	0.0333	0.0326	0.0322	\n"],["		0.9785	0.7019	0.6062	0.0324	0.0327	0.0325	0.0322	0.0339	0.0322	0.0325	0.0322	0.0323	\n"],["		0.8191	0.658	0.4605	0.0324	0.0327	0.0325	0.0323	0.0327	0.032	0.0325	0.0323	0.0326	\n"],["		0.5741	0.444	0.8629	0.0329	0.0325	0.0323	0.0324	0.0328	0.0321	0.0324	0.0319	0.0319	\n"],["		0.3422	0.5583	0.032	0.0328	0.032	0.0321	0.0332	0.0338	0.032	0.0344	0.0318	0.0317	\n"],["		0.2275	0.5316	0.0326	0.0327	0.0321	0.0328	0.0328	0.0325	0.0326	0.0321	0.0317	0.0317	\n"],["		0.126	0.5515	0.0329	0.0318	0.0266	0.0322	0.0319	0.0319	0.0315	0.0318	0.0318	0.0319	\n"],["~End\n"],["Original Filename: 20240715 BCA Assay Cell Lysates CDKn2a New Antibody Preliminary Test; Date Last Saved: 7/15/2024 4:03:58 PM\n"]], "ExampleData.csv"),
@@ -289,6 +301,7 @@ function grabUserInput(isDummy){
         extrapolated:false,
         dilutionFactor:10,
         targetUnits:"ug/uL",
+        sdsPage:true,
     }:
     {
         rawdataFile,
@@ -297,7 +310,8 @@ function grabUserInput(isDummy){
         xScale,
         extrapolated,
         dilutionFactor,
-        targetUnits
+        targetUnits,
+        sdsPage,
     }
 
 }
@@ -308,7 +322,7 @@ function grabUserInput(isDummy){
  * @returns {null}
  */
 function handleProcess(e, isDummy = false){
-    const {rawdataFile, templateFile, regressionType, extrapolated, xScale, targetUnits, dilutionFactor } = grabUserInput(isDummy);
+    const {rawdataFile, templateFile, regressionType, extrapolated, xScale, targetUnits, dilutionFactor, sdsPage} = grabUserInput(isDummy);
     // const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     // const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
     //If there is no template or raw data file selected return
@@ -338,13 +352,16 @@ function handleProcess(e, isDummy = false){
     
     //Delete current UI elements
     if(LINEGRAPH !== null){
-        LINEGRAPH.destroy();
-        BARGRAPH.destroy();
+        LINEGRAPH.destroy()
         deleteTable(tableContainer, "results-table");
-        deleteTable(gelTableContainer, "protein-loading-table");
         excelDownloadButton.replaceWith(excelDownloadButton.cloneNode(true));
         diagramContainer.innerHTML = "";
-    } 
+    };
+    //UI elements below only appear only if the SDS-PAGE checkbox is checked
+    if(BARGRAPH !== null){
+        BARGRAPH.destroy()
+        deleteTable(gelTableContainer, "protein-loading-table");
+    }; 
     
     merge(rawdataFile, templateFile)
     .then(parsedData =>{
@@ -396,15 +413,17 @@ function handleProcess(e, isDummy = false){
         LINEGRAPH = new chartjs.Chart(chartCanvas,createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, parsedData.filename, eq, regressionType, extrapolated));
         BARGRAPH = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns, parsedData.filename));
         createRegressionResultsTable(unknowns,standards,tableContainer, unit, targetUnits, dilutionFactor);
-        createProteinGelLoadingTable(unknowns, gelTableContainer);
+        
+        if(sdsPage) createProteinGelLoadingTable(unknowns, gelTableContainer);
         
         //Add functionality to the excel button
-        excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e,parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, parameters, rSquared));
+        excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e, sdsPage, parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, parameters, rSquared));
 
     })
 }
 /**
  * @param {Event} e
+ * @param {boolean} sdspage
  * @param {ParsedData} parsedData
  * @param {Sample[]} standards
  * @param {Sample[]} unknowns
@@ -414,7 +433,7 @@ function handleProcess(e, isDummy = false){
  * @param {Map<string, number>} parameters
  * @param {number} rSquared
  */
-function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor, unit, targetUnit, parameters, rSquared){
+function handleExcelDownload(e, sdspage, parsedData, standards, unknowns, dilutionFactor, unit, targetUnit, parameters, rSquared){
     //Create pseudoExcels in memory in order to write to excel and create downloadable link
     const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
     psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
@@ -422,7 +441,7 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
     
     //Add headers
     const [mass, vol] = targetUnit.split("/");
-    const headers = [
+    const headers = sdspage ? [
         "Name", 
         "Type", 
         "Replicate Well Values", 
@@ -440,10 +459,18 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
         `Replicate Protein Vol[${vol}]/Well`,
         `Replicate 4X Laemmli Vol[${vol}]/Well`,
         `Replicate H2O Vol[${vol}]/Well`,
+    ] : [
+        "Name", 
+        "Type", 
+        "Replicate Well Values", 
+        "Average(Stdev)",
+        `Concentration [${unit}]`,
+        `${dilutionFactor}X Concentration [${unit}]`,
+        `${dilutionFactor}X Concentration [${targetUnit}]`,
     ]
     psuedoExcel.appendAt(0, psuedoExcel.columns, true, headers);
-    standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
-    unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
+    standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData(sdspage, 3)));
+    unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData(sdspage, 3)));
 
     //Add regression model parameters of best fit to pseudoExcel
     psuedoExcel.appendCol(psuedoExcel.columns, [""]);
