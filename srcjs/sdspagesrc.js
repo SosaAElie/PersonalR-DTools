@@ -394,7 +394,8 @@ function handleProcess(e, isDummy = false){
         
         //Interpolate the concentration of all the samples using the regression model generated
         for(let sample of samples){
-            sample.interpolatedX = invEq(sample.averageY);
+            sample.ys.forEach(y=>sample.interpolatedXs.push(invEq(y)));
+            sample.interpolatedX = ss.mean(sample.interpolatedXs);
             sample.dilutionFactor = dilutionFactor;
             sample.undilutedX = sample.interpolatedX*dilutionFactor;
             sample.unit = unit;
@@ -446,6 +447,7 @@ function handleExcelDownload(e, sdspage, parsedData, standards, unknowns, diluti
         "Type", 
         "Replicate Well Values", 
         "Average(Stdev)",
+        `Interpolations [${unit}]`,
         `Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${targetUnit}]`,
@@ -464,6 +466,7 @@ function handleExcelDownload(e, sdspage, parsedData, standards, unknowns, diluti
         "Type", 
         "Replicate Well Values", 
         "Average(Stdev)",
+        `Interpolations [${unit}]`,
         `Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${targetUnit}]`,
@@ -1563,7 +1566,7 @@ function interpolateX(targetY, func, standards){
             diff = innerDiff;
             closestY = y;
         }       
-        console.log("Target Y:",targetY, " Closest Standard X:", closestX," Closest Standard Y:", closestY)
+        // console.log("Target Y:",targetY, " Closest Standard X:", closestX," Closest Standard Y:", closestY)
     }
 
     //If couldn't find any standard values of x and y that are close to the target y then return NaN
@@ -1601,7 +1604,7 @@ function interpolateX(targetY, func, standards){
                 closerY = predictedY; 
             } 
         }      
-        console.log("Interpolated Y:", predictedY, "New X: ", newX);
+        // console.log("Interpolated Y:", predictedY, "New X: ", newX);
     }    
     
     return closerX;

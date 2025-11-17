@@ -9,7 +9,8 @@
  * @property {string} unit - The units of x i.e ug/mL, ng/mL, ug/uL, etc.
  * @property {string[]} wellPositions - The wells the sample was loaded in i.e A1, B1, C1, etc.
  * @property {number[]} wellNumbers - The well numbers the sample was loaded in i.e 1 2,3,4, etc.
- * @property {number} interpolatedX - The interpolated concentration obtained from the regression model
+ * @property {number} interpolatedX - The average interpolated concentration
+ * @property {number[]} interpolatedXs - The interpolated concentrations obtained from the regression model and each y
  * @property {number} undilutedX - The interpolated concentration times the dilution factor
  * @property {number} convertedX - The undiluted concentration converted to the target unit
  * @property {number} dilutionFactor - The dilution factor used to dilute the unknown, i.e 25 for 1:25, 10 for 1:10, etc.
@@ -115,16 +116,35 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
      */
     function getExcelData(sdspage, sigfigs){
         return sdspage ? [
-            this.name, this.type, this.ys.map(y => y.toFixed(2)).join(","), `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`, 
+            this.name, this.type, this.ys.map(y => y.toFixed(sigfigs)).join(","), `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`,this.interpolatedXs.map(x => x.toFixed(sigfigs)).join(","),
             this.interpolatedX.toFixed(sigfigs), this.undilutedX.toFixed(sigfigs), this.convertedX.toFixed(sigfigs), ...this.sdspageValues.getGelData(all = true)
         ]:[
-            this.name, this.type, this.ys.map(y => y.toFixed(sigfigs)).join(","), `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`, 
+            this.name, this.type, this.ys.map(y => y.toFixed(sigfigs)).join(","), `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`, this.interpolatedXs.map(x => x.toFixed(sigfigs)).join(","),
             this.interpolatedX.toFixed(sigfigs),this.undilutedX.toFixed(sigfigs), this.convertedX.toFixed(sigfigs),
         ]
     }
 
 
-    return {name, type, unit, wellPositions, wellNumbers, x, ys, sdspageValues:createSdsPageValues(), getTableData, getExcelData};
+    return {
+        name, 
+        type,
+        ys,
+        averageY:NaN,
+        stdev:NaN,
+        x,
+        unit, 
+        wellPositions, 
+        wellNumbers, 
+        interpolatedX:NaN,
+        interpolatedXs:[],
+        undilutedX:NaN, 
+        convertedX:NaN, 
+        dilutionFactor:NaN,
+        targetUnit:unit,
+        sdspageValues:createSdsPageValues(), 
+        getTableData, 
+        getExcelData
+    };
 }
 
 /**

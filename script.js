@@ -49038,8 +49038,9 @@
           return sdspage ? [
             this.name,
             this.type,
-            this.ys.map((y) => y.toFixed(2)).join(","),
+            this.ys.map((y) => y.toFixed(sigfigs)).join(","),
             `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`,
+            this.interpolatedXs.map((x2) => x2.toFixed(sigfigs)).join(","),
             this.interpolatedX.toFixed(sigfigs),
             this.undilutedX.toFixed(sigfigs),
             this.convertedX.toFixed(sigfigs),
@@ -49049,12 +49050,32 @@
             this.type,
             this.ys.map((y) => y.toFixed(sigfigs)).join(","),
             `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`,
+            this.interpolatedXs.map((x2) => x2.toFixed(sigfigs)).join(","),
             this.interpolatedX.toFixed(sigfigs),
             this.undilutedX.toFixed(sigfigs),
             this.convertedX.toFixed(sigfigs)
           ];
         }
-        return { name, type, unit, wellPositions, wellNumbers, x, ys, sdspageValues: createSdsPageValues(), getTableData, getExcelData };
+        return {
+          name,
+          type,
+          ys,
+          averageY: NaN,
+          stdev: NaN,
+          x,
+          unit,
+          wellPositions,
+          wellNumbers,
+          interpolatedX: NaN,
+          interpolatedXs: [],
+          undilutedX: NaN,
+          convertedX: NaN,
+          dilutionFactor: NaN,
+          targetUnit: unit,
+          sdspageValues: createSdsPageValues(),
+          getTableData,
+          getExcelData
+        };
       }
       function createSdsPageValues() {
         function getGelData(all2 = false) {
@@ -54655,7 +54676,8 @@ ${indentData}`);
       unknowns.sort((first, second) => first.averageY - second.averageY);
       const unit = standards[0].unit;
       for (let sample of samples) {
-        sample.interpolatedX = invEq(sample.averageY);
+        sample.ys.forEach((y) => sample.interpolatedXs.push(invEq(y)));
+        sample.interpolatedX = ss.mean(sample.interpolatedXs);
         sample.dilutionFactor = dilutionFactor;
         sample.undilutedX = sample.interpolatedX * dilutionFactor;
         sample.unit = unit;
@@ -54686,6 +54708,7 @@ ${indentData}`);
       "Type",
       "Replicate Well Values",
       "Average(Stdev)",
+      `Interpolations [${unit}]`,
       `Concentration [${unit}]`,
       `${dilutionFactor}X Concentration [${unit}]`,
       `${dilutionFactor}X Concentration [${targetUnit}]`,
@@ -54704,6 +54727,7 @@ ${indentData}`);
       "Type",
       "Replicate Well Values",
       "Average(Stdev)",
+      `Interpolations [${unit}]`,
       `Concentration [${unit}]`,
       `${dilutionFactor}X Concentration [${unit}]`,
       `${dilutionFactor}X Concentration [${targetUnit}]`
