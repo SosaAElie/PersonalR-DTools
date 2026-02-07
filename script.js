@@ -18496,9 +18496,9 @@
     }
   });
 
-  // (disabled):stream
+  // (disabled):node_modules/stream/index.js
   var require_stream = __commonJS({
-    "(disabled):stream"() {
+    "(disabled):node_modules/stream/index.js"() {
     }
   });
 
@@ -49034,19 +49034,48 @@
             ["convertedX", this.convertedX.toFixed(2)]
           ]);
         }
-        function getExcelData() {
-          return [
+        function getExcelData(sdspage, sigfigs) {
+          return sdspage ? [
             this.name,
             this.type,
-            this.ys.map((y) => y.toFixed(2)).join(","),
-            `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`,
-            this.interpolatedX.toFixed(2),
-            this.undilutedX.toFixed(2),
-            this.convertedX.toFixed(2),
+            this.ys.map((y) => y.toFixed(sigfigs)).join(","),
+            `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`,
+            this.interpolatedXs.map((x2) => x2.toFixed(sigfigs)).join(","),
+            this.interpolatedX.toFixed(sigfigs),
+            this.undilutedX.toFixed(sigfigs),
+            this.convertedX.toFixed(sigfigs),
             ...this.sdspageValues.getGelData(all = true)
+          ] : [
+            this.name,
+            this.type,
+            this.ys.map((y) => y.toFixed(sigfigs)).join(","),
+            `${this.averageY.toFixed(sigfigs)} (${this.stdev.toFixed(sigfigs)})`,
+            this.interpolatedXs.map((x2) => x2.toFixed(sigfigs)).join(","),
+            this.interpolatedX.toFixed(sigfigs),
+            this.undilutedX.toFixed(sigfigs),
+            this.convertedX.toFixed(sigfigs)
           ];
         }
-        return { name, type, unit, wellPositions, wellNumbers, x, ys, sdspageValues: createSdsPageValues(), getTableData, getExcelData };
+        return {
+          name,
+          type,
+          ys,
+          averageY: NaN,
+          stdev: NaN,
+          x,
+          unit,
+          wellPositions,
+          wellNumbers,
+          interpolatedX: NaN,
+          interpolatedXs: [],
+          undilutedX: NaN,
+          convertedX: NaN,
+          dilutionFactor: NaN,
+          targetUnit: unit,
+          sdspageValues: createSdsPageValues(),
+          getTableData,
+          getExcelData
+        };
       }
       function createSdsPageValues() {
         function getGelData(all2 = false) {
@@ -54446,6 +54475,7 @@ ${indentData}`);
     document.getElementById("process-button").addEventListener("click", handleProcess);
     document.getElementById("dilution-factor").addEventListener("input", handleNumericalInput);
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
+    document.getElementById("sds-page").addEventListener("change", updateSdsPageLabel);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
     document.getElementById("template-input").addEventListener("input", updateLabel);
     document.querySelectorAll(".card").forEach((element) => element.addEventListener("click", clickedCard));
@@ -54477,6 +54507,12 @@ ${indentData}`);
     const selectedFiles = this.files;
     if (selectedFiles.length > 0) this.nextElementSibling.textContent = selectedFiles[0].name;
     else this.nextElementSibling.textContent = "None";
+    return null;
+  }
+  function updateSdsPageLabel(e) {
+    const className = "clicked-label";
+    const sdsPageLabel = this.previousElementSibling;
+    sdsPageLabel.classList.contains(className) ? sdsPageLabel.classList.remove(className) : sdsPageLabel.classList.add(className);
     return null;
   }
   function handleHideExtrapolated(e) {
@@ -54579,6 +54615,7 @@ ${indentData}`);
     const extrapolated = document.getElementById("hideExtrapolated").checked;
     const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
     const targetUnits = document.getElementById("units-conversion").value;
+    const sdsPage = document.getElementById("sds-page").checked;
     return isDummy ? {
       rawdataFile: new File([["##BLOCKS= 1\n"], ["Plate:	Plate1	1.3	PlateFormat	Endpoint	Absorbance	Reduced	FALSE	1						1	562 	1	12	96	1	8			\n"], ["		1	2	3	4	5	6	7	8	9	10	11	12	\n"], ["		1.8638	0.0763	0.69	0.032	0.032	0.0463	0.0322	0.0318	0.0319	0.0331	0.0321	0.0321	\n"], ["		1.3156	0.6192	0.5265	0.0332	0.0322	0.0324	0.0322	0.0325	0.0326	0.0333	0.0326	0.0322	\n"], ["		0.9785	0.7019	0.6062	0.0324	0.0327	0.0325	0.0322	0.0339	0.0322	0.0325	0.0322	0.0323	\n"], ["		0.8191	0.658	0.4605	0.0324	0.0327	0.0325	0.0323	0.0327	0.032	0.0325	0.0323	0.0326	\n"], ["		0.5741	0.444	0.8629	0.0329	0.0325	0.0323	0.0324	0.0328	0.0321	0.0324	0.0319	0.0319	\n"], ["		0.3422	0.5583	0.032	0.0328	0.032	0.0321	0.0332	0.0338	0.032	0.0344	0.0318	0.0317	\n"], ["		0.2275	0.5316	0.0326	0.0327	0.0321	0.0328	0.0328	0.0325	0.0326	0.0321	0.0317	0.0317	\n"], ["		0.126	0.5515	0.0329	0.0318	0.0266	0.0322	0.0319	0.0319	0.0315	0.0318	0.0318	0.0319	\n"], ["~End\n"], ["Original Filename: 20240715 BCA Assay Cell Lysates CDKn2a New Antibody Preliminary Test; Date Last Saved: 7/15/2024 4:03:58 PM\n"]], "ExampleData.csv"),
       templateFile: new File([["THIS,IS,THE,EMPTY,96,WELL,PLATE,TEMPLATE.,PLEASE,EDIT,WITH,YOUR,LAYOUT.\n"], [",1,2,3,4,5,6,7,8,9,10,11,12\n"], ["A,Standard-2000ug/mL,Standard-0ug/mL,Sample-8,None,None,None,None,None,None,None,None,None\n"], ["B,Standard-1500ug/mL,Sample-1,Sample-9,None,None,None,None,None,None,None,None,None\n"], ["C,Standard-1000ug/mL,Sample-2,Sample-10,None,None,None,None,None,None,None,None,None\n"], ["D,Standard-750ug/mL,Sample-3,Sample-11,None,None,None,None,None,None,None,None,None\n"], ["E,Standard-500ug/mL,Sample-4,Sample-12,None,None,None,None,None,None,None,None,None\n"], ["F,Standard-250ug/mL,Sample-5,None,None,None,None,None,None,None,None,None,None\n"], ["G,Standard-125ug/mL,Sample-6,None,None,None,None,None,None,None,None,None,None\n"], ["H,Standard-25ug/mL,Sample-7,None,None,None,None,None,None,None,None,None,None\n"], [",,,,,,,,,,,,\n"], ['"KEY: Please Prefix all items in the plate with any of the below prefixes, using a dash ""-"" to separate the prefix from the rest of the name",,,,,,,,,,,,\n'], ["None,No sample is in the well,,,,,,,,,,,\n"], ["Sample,Refers to any sample on the plate that is not a standard or a control,,,,,,,,,,,\n"], ["Standard,Refers to the standard used for regression analysis,,,,,,,,,,,\n"], ["Control,Refers to the positive or negative control on the plate,,,,,,,,,,,\n"]], "ExampleTemplate.txt"),
@@ -54586,7 +54623,8 @@ ${indentData}`);
       xScale: "linear",
       extrapolated: false,
       dilutionFactor: 10,
-      targetUnits: "ug/uL"
+      targetUnits: "ug/uL",
+      sdsPage: true
     } : {
       rawdataFile,
       templateFile,
@@ -54594,11 +54632,12 @@ ${indentData}`);
       xScale,
       extrapolated,
       dilutionFactor,
-      targetUnits
+      targetUnits,
+      sdsPage
     };
   }
   function handleProcess(e, isDummy = false) {
-    const { rawdataFile, templateFile, regressionType, extrapolated, xScale, targetUnits, dilutionFactor } = grabUserInput(isDummy);
+    const { rawdataFile, templateFile, regressionType, extrapolated, xScale, targetUnits, dilutionFactor, sdsPage } = grabUserInput(isDummy);
     if (!rawdataFile || !templateFile) return;
     if (regressionType === null) return;
     if (xScale === null) return;
@@ -54610,12 +54649,16 @@ ${indentData}`);
     const proteinBarChart = document.getElementById("protein-bar-chart");
     if (LINEGRAPH !== null) {
       LINEGRAPH.destroy();
-      BARGRAPH.destroy();
       deleteTable(tableContainer, "results-table");
-      deleteTable(gelTableContainer, "protein-loading-table");
       excelDownloadButton.replaceWith(excelDownloadButton.cloneNode(true));
       diagramContainer.innerHTML = "";
     }
+    ;
+    if (BARGRAPH !== null) {
+      BARGRAPH.destroy();
+      deleteTable(gelTableContainer, "protein-loading-table");
+    }
+    ;
     merge(rawdataFile, templateFile).then((parsedData) => {
       const excelDownloadButton2 = document.getElementById("download-button");
       const samples = Array.from(parsedData.samples.values());
@@ -54633,7 +54676,8 @@ ${indentData}`);
       unknowns.sort((first, second) => first.averageY - second.averageY);
       const unit = standards[0].unit;
       for (let sample of samples) {
-        sample.interpolatedX = invEq(sample.averageY);
+        sample.ys.forEach((y) => sample.interpolatedXs.push(invEq(y)));
+        sample.interpolatedX = ss.mean(sample.interpolatedXs);
         sample.dilutionFactor = dilutionFactor;
         sample.undilutedX = sample.interpolatedX * dilutionFactor;
         sample.unit = unit;
@@ -54650,20 +54694,21 @@ ${indentData}`);
       LINEGRAPH = new chartjs.Chart(chartCanvas, createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, parsedData.filename, eq, regressionType, extrapolated));
       BARGRAPH = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns, parsedData.filename));
       createRegressionResultsTable(unknowns, standards, tableContainer, unit, targetUnits, dilutionFactor);
-      createProteinGelLoadingTable(unknowns, gelTableContainer);
-      excelDownloadButton2.addEventListener("click", (e2) => handleExcelDownload(e2, parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, parameters, rSquared));
+      if (sdsPage) createProteinGelLoadingTable(unknowns, gelTableContainer);
+      excelDownloadButton2.addEventListener("click", (e2) => handleExcelDownload(e2, sdsPage, parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, parameters, rSquared));
     });
   }
-  function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor, unit, targetUnit, parameters, rSquared) {
+  function handleExcelDownload(e, sdspage, parsedData, standards, unknowns, dilutionFactor, unit, targetUnit, parameters, rSquared) {
     const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
     psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
     const startingCol = psuedoExcel.columns;
     const [mass, vol] = targetUnit.split("/");
-    const headers = [
+    const headers = sdspage ? [
       "Name",
       "Type",
       "Replicate Well Values",
       "Average(Stdev)",
+      `Interpolations [${unit}]`,
       `Concentration [${unit}]`,
       `${dilutionFactor}X Concentration [${unit}]`,
       `${dilutionFactor}X Concentration [${targetUnit}]`,
@@ -54677,10 +54722,19 @@ ${indentData}`);
       `Replicate Protein Vol[${vol}]/Well`,
       `Replicate 4X Laemmli Vol[${vol}]/Well`,
       `Replicate H2O Vol[${vol}]/Well`
+    ] : [
+      "Name",
+      "Type",
+      "Replicate Well Values",
+      "Average(Stdev)",
+      `Interpolations [${unit}]`,
+      `Concentration [${unit}]`,
+      `${dilutionFactor}X Concentration [${unit}]`,
+      `${dilutionFactor}X Concentration [${targetUnit}]`
     ];
     psuedoExcel.appendAt(0, psuedoExcel.columns, true, headers);
-    standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i + 1, startingCol, true, standard.getExcelData()));
-    unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length + i + 1, startingCol, true, unknown.getExcelData()));
+    standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i + 1, startingCol, true, standard.getExcelData(sdspage, 3)));
+    unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length + i + 1, startingCol, true, unknown.getExcelData(sdspage, 3)));
     psuedoExcel.appendCol(psuedoExcel.columns, [""]);
     psuedoExcel.appendCol(psuedoExcel.columns, ["R-Squared", ...Array.from(parameters.keys()), "Dilution Factor"]);
     psuedoExcel.appendCol(psuedoExcel.columns, [rSquared, ...Array.from(parameters.values()), dilutionFactor]);

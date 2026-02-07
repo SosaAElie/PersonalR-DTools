@@ -103,6 +103,7 @@ input[type = "radio"], input[type = "checkbox"]{
 .clicked-card:hover{
     background-color: #be9033;
 }
+
 .card-title{
     font-size: 28px;
     font-weight: bold;
@@ -222,16 +223,21 @@ td>input{
     width: 100px;
     justify-self: center;
 }
-#file-inputs>label{
+#file-inputs>.label{
     box-shadow: 2px 2px;
     border-radius: 10px;
     border-width: 1px;
     border-style: solid;
 }
-#file-inputs>label:hover{
+#file-inputs>.label:hover{
     background-color: #F2B949;
 }
-
+#file-inputs>.clicked-label{
+    background-color: #F2B949;
+}
+#file-inputs>.clicked-label:hover{
+    background-color: #be9033;
+}
 .well{ 
     font-weight: bold;
     font-size: small;

@@ -65,16 +65,18 @@
         <div id = "regression-section"> 
             <br>
             <div id = file-inputs>
-                <label for = "rawdata-input">SoftMaxPro Raw Data</label>
+                <label class = "label" for = "rawdata-input">SoftMaxPro Raw Data</label>
                 <input id = "rawdata-input" type="file" accept=".txt,.tsv" required>
                 <p class = "filenames" ></p>
-                <label for = "template-input" >96-Well Plate Template</label>
+                <label class = "label" for = "template-input" >96-Well Plate Template</label>
                 <input id = "template-input" type="file" accept=".csv" required> 
                 <p class = "filenames" ></p>
-                <label for = "dilution-factor" >Dilution Factor of Your Unknowns</label>
+                <label class = "label" for = "dilution-factor" >Dilution Factor of Your Unknowns</label>
                 <input id = "dilution-factor" type = "number" min="1" value="10">
-                <label for = "units-conversion" >Unit To Convert To</label>
+                <label class = "label" for = "units-conversion" >Unit To Convert To</label>
                 <input id = "units-conversion" type = "text" value="ug/uL">
+                <label class = "label clicked-label" for = "sds-page">SDS-PAGE</label>
+                <input id = "sds-page" type = "checkbox" checked>
             </div>
             <div id = "chart-inputs">
                 <div id = "regression-inputs">
