@@ -13,10 +13,12 @@ body{
     line-height: 2rem;
     row-gap: 1rem;
     column-gap: 1rem;
-    align-self: center;
+    /* align-self: center; */
+    justify-self: center;
     justify-content: space-around;
     text-align: center;
 }
+
 
 .steps{
     text-align: center;
@@ -103,7 +105,6 @@ input[type = "radio"], input[type = "checkbox"]{
 .clicked-card:hover{
     background-color: #be9033;
 }
-
 .card-title{
     font-size: 28px;
     font-weight: bold;
@@ -223,21 +224,16 @@ td>input{
     width: 100px;
     justify-self: center;
 }
-#file-inputs>.label{
+#file-inputs>label{
     box-shadow: 2px 2px;
     border-radius: 10px;
     border-width: 1px;
     border-style: solid;
 }
-#file-inputs>.label:hover{
+#file-inputs>label:hover{
     background-color: #F2B949;
 }
-#file-inputs>.clicked-label{
-    background-color: #F2B949;
-}
-#file-inputs>.clicked-label:hover{
-    background-color: #be9033;
-}
+
 .well{ 
     font-weight: bold;
     font-size: small;
@@ -292,10 +288,15 @@ td>input{
 
 select{
     background-color: inherit;
-    color:inherit;
-    border-style: none;
+    text-align: center;
+    border-style: solid;
+    border-radius: 10px;
+    border-width: 1px;
+    box-shadow: 2px 2px;
+    border-color: black;
     font-size: large;
 }
+
 option{
     background-color: white
 }
@@ -390,7 +391,7 @@ ol>li::marker{
     justify-content: center;
 }
 
-#buttons > button{
+button{
     font-size: large;
     border-style:solid;
     border-radius: 20px;
@@ -401,10 +402,11 @@ ol>li::marker{
     padding: 10px;
     background-color: #F2B949;
     box-shadow: 1px 1px;
-}
-#buttons > button:hover{
+}   
+button:hover{
     background-color: #be9033;
 }
+
 td{
     width: 5%;
     text-align: center;
@@ -423,7 +425,6 @@ td,th{
 }
 
 input[type="number"], input[type="text"]  {
-    width:60px;
     text-align: center;
     border-style: solid;
     border-radius: 10px;
@@ -432,7 +433,7 @@ input[type="number"], input[type="text"]  {
     border-color: black;
 }
 
-input[type="number"]:hover, input[type="text"]:hover{
+input[type="number"]:hover, input[type="text"]:hover, select:hover{
     background-color: #F2B949;
 }
 td:nth-child(1){
@@ -454,6 +455,69 @@ tr:hover{
     display: block;
     justify-self: center;
 }
+.axis{
+    display: flex;
+    flex-direction: row;
+    height: min-content;
+}
+
+.complete-container{
+    display: grid;
+    height: 100%;
+    grid-template-columns: auto 50%;
+    row-gap: 5px;
+    padding-top: 10px;
+    border-style:dashed;
+    border-top: 0px;
+}
+.chart-container{
+    height: 95%;
+}
+#charts{
+    display: flex;
+    flex-direction: column;
+    row-gap: 10px;
+    width: 100vw;
+    height: 100vh;
+
+}
+.metadata{
+    display: flex;
+    flex-direction: column;
+}
+.metadata>p{
+    margin: 10px;
+}
+.contextmenu{
+    position: absolute;
+    display: none;
+    z-index: 1;
+}
+.gate-button{
+    text-wrap: nowrap;
+    width: min-content;
+    height: min-content;
+}
+.file-container{
+    display: grid;
+    grid-template-columns: 50% 50%;
+    column-gap: 0px;
+    /* border-bottom:solid; */
+    border-width: 1px;
+    margin-top: 10px;
+}
+.file-container-header{
+    grid-column: span 2;
+    text-align: center;
+    border-bottom: solid;
+    border-width: 1px;
+}
+.file-container-header>h3{
+    text-decoration: none;
+    font-size: larger;
+    font-weight: normal;
+}
+
 @media (max-width: 1500px){
     #chart-template-container{
         display: flex;

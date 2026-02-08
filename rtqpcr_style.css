@@ -4,9 +4,6 @@ body{
     font-style: normal;
     accent-color: black;
     font-size: larger;
-    background-image: linear-gradient(to bottom, rgba(199, 198, 198, 0.592), white);
-    background-repeat: no-repeat;
-    background-attachment: fixed;
 }
 #file-inputs{
     display: grid;
@@ -44,17 +41,26 @@ input[type = "file"]{
     display: none;
 }
 label:hover{
-    background-color: rgba(204, 219, 224, 0.404);
+    background-color:#F2B949;
+}
+label{
+    box-shadow: 2px 2px;
+    border-radius: 10px;
+    border-style: solid;
+    border-width: 1px;
+    padding: 3px;
 }
 input{
     background-color: inherit;
-    border-style: none;
+    border-style: solid;
+    box-shadow: 1px 1px;
+    border-width: 1px;
+    border-radius: 10px;
     font-size: medium;
     font-family: "Roboto", sans-serif;
     font-weight: 500;
     font-style: italic;
 }
-
 
 #diagram384{
     display: grid;
@@ -84,6 +90,7 @@ input{
     border-style:solid;
     border-width: 2px;
     border-radius: 50%;
+    box-shadow: 1px 1px;
 }
 .well .hovertext{
     visibility: hidden;
@@ -92,7 +99,7 @@ input{
     color: #fff;
     text-align: center;
     border-radius: 6px;
-    font-weight: lighter;
+    font-weight: normal;
     
     /* Position the tooltip */
     position: absolute;
@@ -120,11 +127,14 @@ input{
 select{
     background-color: inherit;
     color:inherit;
-    border-style: none;
+    border-style: solid;
+    border-radius: 10px;
+    box-shadow: 1px 1px;
+    border-width: 1px;
     font-size: large;
 }
 tr:hover{
-    background-color: rgba(157, 224, 145, 0.7);
+    background-color: #F2B949;
 }
 
 .container{
@@ -177,11 +187,11 @@ button{
     border-width: 2px;
     font-family: "Roboto", sans-serif;
     font-weight: normal;
-    background-color: inherit;
+    background-color: #F2B949;
     padding: 10px;
 }
 button:hover{
-    background-color: rgba(157, 224, 145, 0.7);
+    background-color: #be9033;
 }
 
 
@@ -189,6 +199,11 @@ button:hover{
     display: block;
     overflow-y: scroll;
     height: 65vh;
+}
+.subtitle{
+    grid-column: span 3;
+    font-size: xx-large;
+    text-decoration: none;
 }
 
 #tables{
@@ -201,17 +216,14 @@ button:hover{
 #download-excel{
     grid-column: span 2;
 }
-td:nth-child(1){
-    font-weight: bold;
-    background-color: #c0bcbc83;
-}
+
 .hidden{
     display: none;
 }
-table, th, td{
+th, tr, td{
     border: 1px solid black;
-    border-collapse: collapse;
     text-align: center;
+    width: 75vw;
 }
 caption{
     position: sticky;
@@ -221,14 +233,19 @@ caption{
     font-weight: bold;
     border: inherit;
 }
+
 table{
-    overflow-y: auto;
+    width: 75vw;
     display: block;
+    overflow-y: auto;
+    border: 1px solid black;
+    border-collapse: collapse;
 }
 thead{
     position: sticky;
     top:46px;
     background-color: rgb(221, 219, 219);
+    /* border-style: solid; */
 }
 .header-targets{
     height: 50px;
@@ -254,11 +271,13 @@ canvas{
     flex-direction: column;
     line-height: 3rem;
 }
+.steps>ol{
+    display: grid;
+    grid-template-columns: 40vw 40vw;
+    column-gap: 5vw;
+}
 li{
     width: 40vw;
-}
-.steps>h3{
-    text-decoration: underline;
 }
 .sub-list{
     list-style-type:lower-roman;
@@ -276,4 +295,41 @@ ol>li::marker{
 }
 .green-text{
     color: green;
+}
+input:focus, select:focus{
+    outline: none;
+}
+td:nth-child(1){
+    font-weight: bold;
+    background-color: #c0bcbc83;
+}
+th>select, th>div{
+    display: block;
+    justify-self: center;
+}
+@media (max-width: 450px) {
+    li{
+        width: auto;
+    }
+    .steps>ol{
+        display: flex;
+        flex-direction: column;
+        /* width: 95vw; */
+    }
+    
+    #diagram384{
+        grid-template-columns: repeat(6, auto);
+        width: 100%;
+        margin-bottom: 5%;
+    }
+    #diagram-title{
+        grid-column: span 6;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        text-wrap: nowrap;
+        width: 100%;
+    }
+    table{
+        width: 100vw;
+    }
 }

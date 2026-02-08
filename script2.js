@@ -230,14 +230,14 @@ process.umask = function() { return 0; };
  * @property {Map<string, Target>} targets - The target genes
  * @property {number[]} wells - The well numbers the sample was loaded in i.e 1,2,3...384
  * @property {string[]} wellPositions - The well positions the sample was loaded in i.e A1, B1, C1, etc.
- * @property {Target|null} hkg - House Keeping Gene
- * @property {Target|null} goi - Gene of Interest
+ * @property {Target|null} hkg - The current House Keeping Gene
+ * @property {Target|null} goi - The current Gene of Interest
  * @property {boolean} isRefSample - returns true if this sample is selected to the be the reference sample
  * @property {number} refSampleCount - The number of samples that this sample is a reference sample for
  * @property {Function} getTableData - returns an array containing data to display on a table
  * @property {Function} getResultsSummaryTableData - returns an array containing data to display on a table
- * @property {Function} getExcelData - returns an array containing data to write to an excel file
- * @property {Function} getTargetFromPosition - returns target based off the well position passed in
+ * @property {Function} getExcelData - returns an array containing target relative gene expression data to write to an excel file
+ * @property {Function} getTargetsFromPosition - returns target based off the well position passed in
  * @property {RtqpcrSample} refSample - The reference sample that is used to calculate the ΔΔCt for this sample
  * @property {string} color - The color that the bar in the bar graph will be to represent this sample
  * @property {boolean} isHidden - Whether this sample is hidden on the RGE results table UI
@@ -251,6 +251,7 @@ process.umask = function() { return 0; };
  * @property {string[]} wellPositions - The wells that this target is associated with, i.e A1, B2, etc.
  * @property {string} reporter - The associated fluorescent reporter
  * @property {number[]} cqs - The associated Ct/Cq values
+ * @property {number[]} validCqs - All Cqs that are not NaN
  * @property {number[]} bestDuplicates - The best duplicates out of the total replicates in a run
  * @property {number} average - The average of all cqs
  * @property {number} bestAverage - The average of the best duplicates
@@ -263,6 +264,8 @@ process.umask = function() { return 0; };
  * @property {number} averageRge - Average Relative Gene Expression, 2^-ΔCt
  * @property {number[]} percentKds - The amount of knockdown relative to the reference sample expressed as a percentage
  * @property {number} pcrEfficiency - The PCR efficiency of the target gene, default is 1
+ * @property {number} numberNaN - The number of NaN cts that the Target has
+ * @property {Target} hkg - The house keeping gene used to calculate the values stored in the this target
  * @property {Function} getResultsTableData - Returns a list of values that relate to the target to display in an HTML table
  */
 
@@ -279,13 +282,19 @@ process.umask = function() { return 0; };
  */
 function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x, ys){
     /**
-     * @returns {string[]} 
+     * @returns {Map<string,string>} 
      */
     function getTableData(){
-        return [
-            this.name, this.type, this.wellPositions.join(", "), this.ys.map(y => y.toFixed(2)).join(", "), this.averageY.toFixed(2), this.stdev.toFixed(2), 
-            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2)
-        ];
+        return new Map([
+            ["name", this.name],
+            ["type", this.type],
+            ["wellPositions", this.wellPositions.join(", ")],
+            ["ys", this.ys.map(y => y.toFixed(2)).join(", ")],
+            ["averageAndStDev", `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`],
+            ["interpolatedX", this.interpolatedX.toFixed(2)],
+            ["undilutedX", this.undilutedX.toFixed(2)],
+            ["convertedX", this.convertedX.toFixed(2)]
+        ])
     }
 
     /**
@@ -294,7 +303,7 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
     function getExcelData(){
         return [
             this.name, this.type, this.ys.map(y => y.toFixed(2)).join(","), `${this.averageY.toFixed(2)} (${this.stdev.toFixed(2)})`, 
-            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2), ...this.sdspageValues.getGelData()
+            this.interpolatedX.toFixed(2), this.undilutedX.toFixed(2), this.convertedX.toFixed(2), ...this.sdspageValues.getGelData(all = true)
         ]
     }
 
@@ -307,10 +316,14 @@ function createRegressionSample(name, type, unit, wellPositions, wellNumbers, x,
  */
 function createSdsPageValues(){
     /**
+     * @param {boolean} all
      * @returns {string[]}
      */
-    function getGelData(){
-        return Array.from(Object.values(this)).filter((val, i, arr) => typeof val === "number").map(prop => prop.toFixed(2));
+    function getGelData(all = false){
+        return all ?
+        Array.from(Object.values(this)).filter((val, i, arr) => typeof val === "number").map(val => val.toFixed(2))
+        : 
+        Array.from(Object.entries(this)).filter((kAndv, i, arr) => typeof kAndv[1] === "number" && (i < 2 || i >=5)).map(kAndv => kAndv[1].toFixed(2))
     }
 
     return{
@@ -341,48 +354,51 @@ function createRtqpcrSample(name, target, well, wellPosition){
         targets:new Map([[target.name, target]]),
         wells:[well],
         wellPositions:[wellPosition],
-        hkg:null,
-        goi:null,
+        _hkg:null,
+        _goi:null,
         isRefSample:false,
         refSample:null,
         isHidden:false,
         refSampleCount:0,
         color:"rgba(255, 105, 105, 1)",
         /**
-         * @returns {string[]}
+         * @param {string} targetName
+         * @returns {string[]|null}
          */
-        getExcelData(){
+        getExcelData(targetName){
             const precision = 2;
+            const target = this.targets.get(targetName);
             return (
-                this.goi === null || this.hkg === null?[this.name, new Array(14).fill("")]:
+                target === undefined || target.hkg === null ? null:
                 [
                     this.name,
                     this.isRefSample,
-                    this.goi.name,
-                    this.goi.cqs.map(cq => cq.toFixed(precision)).join(", "),
-                    this.goi.average.toFixed(precision),
-                    this.goi.stdev.toFixed(precision),
-                    this.hkg.name,
-                    this.hkg.cqs.map(cq => cq.toFixed(precision)).join(", "),
-                    this.hkg.average.toFixed(precision),
-                    this.hkg.stdev.toFixed(precision),
-                    this.goi.deltaCts.map(cq => cq.toFixed(precision)).join(", "),
-                    this.goi.rges.map(cq => cq.toFixed(precision)).join(", "),
+                    target.name,
+                    target.cqs.map(cq => cq.toFixed(precision)).join(", "),
+                    target.average.toFixed(precision),
+                    target.stdev.toFixed(precision),
+                    target.hkg.name,
+                    target.hkg.cqs.map(cq => cq.toFixed(precision)).join(", "),
+                    target.hkg.average.toFixed(precision),
+                    target.hkg.stdev.toFixed(precision),
+                    target.deltaCts.map(cq => cq.toFixed(precision)).join(", "),
+                    target.rges.map(cq => cq.toFixed(precision)).join(", "),
                     this.refSample === null?"":this.refSample.name,
-                    this.goi.deltadeltaCts.map(cq => cq.toFixed(precision)).join(", "),
-                    this.goi.percentKds.map(cq => cq.toFixed(precision)).join(", "),
+                    target.deltadeltaCts.map(cq => cq.toFixed(precision)).join(", "),
+                    target.percentKds.map(cq => cq.toFixed(precision)).join(", "),
                 ]
             )
         },
         /**
          * @param {string} wellPos
-         * @returns {Target|null}
+         * @returns {Target[]|null[]}
          */
-        getTargetFromPosition(wellPos){
+        getTargetsFromPosition(wellPos){
+            const targets = []
             for(let target of this.targets.values()){
-                if(target.wellPositions.includes(wellPos)) return target;
+                if(target.wellPositions.includes(wellPos)) targets.push(target);
             }
-            return null;
+            return targets;
         },
         /**
          * 
@@ -412,7 +428,43 @@ function createRtqpcrSample(name, target, well, wellPosition){
                 this.name,
                 ...data,
             ]
-        }
+        },
+        /**
+         * @param {Target} target
+         */
+        set hkg(target){
+            this._hkg = target;
+            if(this.goi){
+                //Calculate the delta ct of the GOI based off of the AVERAGE of the HKG
+                this.goi.deltaCts = this.goi.cqs.map(cq => cq - target.average);
+                this.goi.rges = this.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+                this.goi.averageRge = this.goi.rges.reduce((prev, curr) => prev + curr)/(this.goi.rges.length - this.goi.numberNaN);
+            }
+        },
+        /**
+         * @returns {Target}
+         */
+        get hkg(){
+            return this._hkg;
+        },
+        /**
+         * @param {Target} target
+        */
+       set goi(target){
+            this._goi = target;
+            if(this.hkg){
+                //Calculate the delta ct of the GOI based off of the AVERAGE of the HKG
+                this.goi.deltaCts = this.goi.cqs.map(cq => cq - this.hkg.average);
+                this.goi.rges = this.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+                this.goi.averageRge = this.goi.rges.reduce((prev, curr) => isNaN(curr)?prev:prev + curr)/(this.goi.rges.length - this.goi.numberNaN);
+            }
+        },
+        /**
+         * @returns {Target}
+        */
+       get goi(){
+            return this._goi;
+        },
     }
 }
 
@@ -432,17 +484,22 @@ function createTarget(name, reporter, cq, wellNum, wellPos, color){
         wellPositions:[wellPos],
         reporter,
         cqs:[cq],
+        validCqs:[],
         bestDuplicates:[],
         average:NaN,
         bestAverage:NaN,
         stdev:NaN,
+        bestStdev:NaN,
+        averageRge:NaN,
         deltaCts:[],
         deltadeltaCts:[],
         averageddCt:NaN,
         rges:[],
+        numberNaN:0,
         color:color,
         pcrEfficiency:1,
         percentKds:[],
+        hkg:null,
         getResultsTableData(){
             return [
                 this.wellPositions.join(", "),
@@ -41510,8 +41567,8 @@ let CHART = null;
  * @property {string} wellPosition - The well position the sample was loaded in
  * @property {number} wellNumber - The well number the same was loaded in
  * @property {string} name - The name of the sample
- * @property {string} color - The color of the target
- * @property {string} targetName - The name of the target
+ * @property {string[]} colors - The color of the target
+ * @property {string[]} targetNames - The name of the target
  */
 
 
@@ -41604,7 +41661,7 @@ function createRgeTable(samples, targets, title, container){
         "Gene of Interest",
         "House Keeping Gene",
         "GOI Cts",
-        "HKG Cts",
+        "HGK Average",
         "ΔCts",
         "2^-ΔCts",
         "Reference Sample",
@@ -41632,7 +41689,7 @@ function createRgeTable(samples, targets, title, container){
                 th.appendChild(selectEle);
             } 
             else{
-                const selectEle = createSampleSelect(samples);
+                const selectEle = createDataListSampleEle(samples);
                 selectEle.id = "refsample-select-all";
                 selectEle.addEventListener("change", handleReferenceSampleChangeAll);
                 th.appendChild(selectEle);
@@ -41645,7 +41702,7 @@ function createRgeTable(samples, targets, title, container){
     table.appendChild(tableHeaders);
 
 
-    const selectRefSampleEle = createSelectRefSampleEle(samples);
+    const selectRefSampleEle = createDataListSampleEle(samples);
     for(let sample of samples){
         const row = document.createElement("tr");
         row.className = "rge-sample";
@@ -41658,7 +41715,7 @@ function createRgeTable(samples, targets, title, container){
                 const selectEle = selectRefSampleEle.cloneNode(true);
                 selectEle.className = "refsample-select";
                 selectEle.id = `${sample.name}-${header}`;
-                selectEle.addEventListener("change", handleReferenceSampleChange);
+                selectEle.firstChild.addEventListener("change", handleReferenceSampleChange);
                 td.appendChild(selectEle);
             }
             else{
@@ -41718,19 +41775,34 @@ function createTargetSelect(targets){
 function handleReferenceSampleChangeAll(e){
     const refsampleSelects = document.getElementsByClassName("refsample-select");
     for(let refsampleSelect of refsampleSelects) {
-        refsampleSelect.value = e.target.value;
-        refsampleSelect.dispatchEvent(new CustomEvent("change", {target:{value:e.target.value}}));
+        refsampleSelect.firstChild.value = e.target.value;
+        refsampleSelect.firstChild.dispatchEvent(new CustomEvent("change", {target:{value:e.target.value}}));
     };
+}
+
+/**
+ * @param {HTMLInputElement} element
+ * @param {string} message
+ * @param {classes.RtqpcrSample} sample
+ */
+function displayError(element, message, sample){
+    element.setCustomValidity(message);
+    element.reportValidity();
+    element.value = sample.refSample !==  null?sample.refSample.name:"";
+    return;
 }
 
 /**
  * @param {Event} e
  */
 function handleReferenceSampleChange(e){
+    
+    //This grabs the row element from where the event originated from
     /**
      * @type {HTMLTableRowElementElement}
      */
-    const sampleEle = e.target.parentElement.parentElement;
+    const sampleEle = e.target.parentElement.parentElement.parentElement;
+    
     if(sampleEle.classList.contains("hidden")) return;
     const userSelectedRefSample = e.target.value;
     
@@ -41741,10 +41813,27 @@ function handleReferenceSampleChange(e){
     const sample = sampleEle.sample;
 
     if(userSelectedRefSample === "None" || sample.hkg === null || sample.goi === null) return;
+    
+    /**
+     * @type {HTMLTableRowElement|null}
+     */
+    const refSampleEle = document.getElementById(userSelectedRefSample);
+    if(refSampleEle === null){
+        displayError(this, "Sample does not exist.", sample);
+        return;
+    }
+    
     /**
      * @type {classes.RtqpcrSample}
-     */
-    const refSample = document.getElementById(userSelectedRefSample).sample;
+    */
+   const refSample = refSampleEle.sample;
+
+   if(refSample.isHidden){
+       displayError(this, "Sample was not probed for the selected target gene.", sample);
+       return;
+    }
+
+    this.setCustomValidity("");
     refSample.isRefSample = true;
     refSample.color = "#E7F0DC"
     refSample.refSampleCount++;
@@ -41839,18 +41928,28 @@ function createResultsTable(samples, targetNames, targetColors, title, container
 
 /**
  * @param {Sample[]} samples
+ * @returns {HTMLElement}
  */
-function createSelectRefSampleEle(samples){
-    const selectEle = document.createElement("select");
+function createDataListSampleEle(samples){
+    // const selectEle = document.createElement("select");
+    const container = document.createElement("div");
+    const textInputEle = document.createElement("input");
+    const id = helpers.getRandomColor();
+    const datalistEle = document.createElement("datalist");
     const noneOptionEle = document.createElement("option");
     noneOptionEle.textContent = "None";
-    selectEle.appendChild(noneOptionEle);
+    datalistEle.appendChild(noneOptionEle);
     for(let sample of samples){
         const optionEle = document.createElement("option");
         optionEle.textContent = sample.name;
-        selectEle.appendChild(optionEle);
+        datalistEle.appendChild(optionEle);
     }
-    return selectEle;
+    textInputEle.setAttribute("list", id);
+    textInputEle.defaultValue = "None";
+    datalistEle.id = id;
+    container.appendChild(textInputEle);
+    container.appendChild(datalistEle);
+    return container;
 }
 
 /**
@@ -41863,19 +41962,24 @@ function createLightWeightSamples(samples){
     for(let i = 1; i < 385; i++){
         let wellPositionNumber = i%24;
         if(wellPositionNumber === 0) wellPositionNumber = 24;
-        lws.set(i, {name:"None", wellPosition:`${wellPositionLetter}${wellPositionNumber}`, wellNumber:i});
+        lws.set(i, {name:"none", wellPosition:`${wellPositionLetter}${wellPositionNumber}`, wellNumber:i, colors:[]});
         if(i%24 === 0) wellPositionLetter = String.fromCharCode((wellPositionLetter.charCodeAt(0)+1));
     }
     for(let sample of samples){
         for(let i = 0; i < sample.wellPositions.length; i++){
-            const target = sample.getTargetFromPosition(sample.wellPositions[i]);
+            /**
+             * @type {classes.Target[]}
+             */
+            const targetsInWell = sample.getTargetsFromPosition(sample.wellPositions[i]);
+            // console.log(sample.name, i, target.cqs.length, i%target.cqs.length);
             lws.set(sample.wells[i], 
                 {
                     name:sample.name,
                     wellPosition:sample.wellPositions[i],
                     wellNumber:sample.wells[i],
-                    targetName:target.name,
-                    color:target.color,
+                    targetNames:targetsInWell.map(target => target.name),
+                    colors:targetsInWell.map(target => target.color),
+                    cqs:targetsInWell.map(target => target.cqs[i%target.cqs.length].toFixed(2)),
                 });
         }
     }
@@ -41965,24 +42069,72 @@ function createRgeBarGraphOptions(samples, title){
  * @param {Event} e
  */
 function handleDownloadExcelClick(e){
+    //If there are no samples present then return immediately
     const sampleElements = document.getElementsByClassName("results-sample");
     if(sampleElements.length <= 0) return;
 
-    const excelData = [
-        ["Sample Name","isReferenceSample?", "Gene of Interest", "GOI Replicates", "GOI Average", "GOI Stdev","House-Keeping Gene","HKG Replicates", "HKG Average", "HKG Stdev","ΔCts","2^-ΔCts", "Reference Sample", "ΔΔCts", "%KDs"],
-    ];
+    //Grab the name of all targets via the goi-select or hkg-select elements
+    //Removes the first string since it should be "None"
+    const targetNames = Array.from(document.getElementById("goi-select").children)
+                            .map(optionEle => optionEle.textContent)
+                            .slice(1);
+
+
+    /**
+     * @type {classes.RtqpcrSample[]}
+     */
+    const samples = [];
     const filename = document.getElementById("filename").textContent;
+    const headers = ["Sample",];
+    for(let targetName of targetNames){
+        headers.push(`${targetName}:Wells`);
+        headers.push(`${targetName}:Cqs`);
+        headers.push(`${targetName}:Cq Average (StDev)`);
+    }
+
+    const cqResults = [
+        headers,
+    ];
+
     for(let sampleEle of sampleElements){
         /**
          * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
-
-        excelData.push(sample.getExcelData());
+        samples.push(sample);
+        cqResults.push(sample.getResultsSummaryTableData(targetNames));
     }
 
     //Create excel object in memory
-    const wkbk = createWkbk(excelData, "results");
+    const wkbk = createWkbk(cqResults, "Cq Results");
+
+    for (let targetName of targetNames){
+        const rgeExcelData = [
+            ["Sample",
+            "isReferenceSample?",
+            "Gene of Interest",
+            "GOI Cqs",
+            "GOI Average",
+            "GOI Stdev",
+            "House-Keeping Gene",
+            "HKG Cqs",
+            "HKG Average",
+            "HKG Stdev",
+            "ΔCts",
+            "2^-ΔCts",
+            "Reference Sample",
+            "ΔΔCts",
+            "%KDs",
+            ],
+        ];
+        for (let sample of samples){
+            const excelData = sample.getExcelData(targetName);
+            if(excelData === null) continue;
+            rgeExcelData.push(excelData);
+        }
+        appendWorksheet(wkbk, rgeExcelData, targetName);
+    }
+        
     const binaryData = xlsx.write(wkbk, {bookType:"xlsx", type:"buffer"});
     const blob = new Blob([binaryData], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 
@@ -41990,10 +42142,10 @@ function handleDownloadExcelClick(e){
     const link = window.URL.createObjectURL(blob);
     const anchorElem = document.createElement("a");
     anchorElem.href = link;
-    anchorElem.download = filename.replace(".csv", ".xlsx");
+    anchorElem.download = filename.replace(".csv", "_Results.xlsx");
 
     //Prevent the bubbling of the click event that is initiated when the parent button element is clicked
-    anchorElem.addEventListener("click", e => e.stopPropagation())
+    anchorElem.addEventListener("click", e => e.stopPropagation());
     anchorElem.click();
 
     //Clean up
@@ -42039,11 +42191,11 @@ function handleHkgChange(e){
         sample.hkg = hkg;
         if(goiName !== "None"){
             sample.goi = sample.targets.get(goiName);
-            
-            //Assumes that the number of replicates for all targets are the same
-            sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
-            sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
-            sample.goi.averageRge = ss.mean(sample.goi.rges);
+            sample.goi.hkg = hkg;
+            // Assumes that the number of replicates for all targets are the same
+            // sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
+            // sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+            // sample.goi.averageRge = ss.mean(sample.goi.rges);
             document.getElementById(`${sample.name}-Gene of Interest`).textContent = goiName;
             document.getElementById(`${sample.name}-GOI Cts`).textContent = sample.goi.cqs.map(cq => cq.toFixed(2)).join(", ");
             document.getElementById(`${sample.name}-ΔCts`).textContent = sample.goi.deltaCts.map(deltaCt => deltaCt.toFixed(2)).join(", ");
@@ -42052,13 +42204,14 @@ function handleHkgChange(e){
         if(sampleEle.classList.contains("hidden")) sampleEle.classList.remove("hidden");
         numOfNonHiddenSampleEles+=1;
         document.getElementById(`${sample.name}-House Keeping Gene`).textContent = hkg.name;
-        document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
+        // document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
+        document.getElementById(`${sample.name}-HGK Average`).textContent = sample.hkg.average.toFixed(2);
     }
     //Send the change event to the reference sample select element AFTER the hkg & gois have been updated
     for(let sampleEle of sampleEles){
         if(sampleEle.classList.contains("hidden")) continue;
         const sample = sampleEle.sample;
-        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
+        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`).firstChild;;
         refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
     }
 
@@ -42090,11 +42243,13 @@ function handleGoiChange(e){
          * @type {classes.RtqpcrSample}
          */
         const sample = sampleEle.sample;
+        //This condition filters the samples when only the GOI has been selected, but no HKG has been selected yet
         if(hkgName === "None" && !sample.targets.has(goiName)) {
             sampleEle.classList.add("hidden");
             sample.isHidden = true;
             continue;
         }
+        //If a HKG has been selected then filter samples based on whether they have the GOI or the HKG
         else if(hkgName !== "None" && (!sample.targets.has(goiName) || !sample.targets.has(hkgName))){
             sampleEle.classList.add("hidden");
             sample.isHidden = true;
@@ -42106,11 +42261,12 @@ function handleGoiChange(e){
         sample.goi = goi;
         if(hkgName !== "None"){
             sample.hkg = sample.targets.get(hkgName);
-            sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
-            sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
-            sample.goi.averageRge = ss.mean(sample.goi.rges);
+            goi.hkg = sample.hkg;
+            // sample.goi.deltaCts = sample.goi.cqs.map( (cq, i, arr) => cq - sample.hkg.cqs[i]);
+            // sample.goi.rges = sample.goi.deltaCts.map(deltaCt => 2**(-deltaCt));
+            // sample.goi.averageRge = ss.mean(sample.goi.rges);
             document.getElementById(`${sample.name}-House Keeping Gene`).textContent = hkgName;
-            document.getElementById(`${sample.name}-HKG Cts`).textContent = sample.hkg.cqs.map(cq => cq.toFixed(2)).join(", ");
+            document.getElementById(`${sample.name}-HGK Average`).textContent = sample.hkg.average.toFixed(2);
             document.getElementById(`${sample.name}-ΔCts`).textContent = sample.goi.deltaCts.map(deltaCt => deltaCt.toFixed(2)).join(", ");
             document.getElementById(`${sample.name}-2^-ΔCts`).textContent = sample.goi.rges.map(rge => rge.toFixed(2)).join(", ");
         } 
@@ -42125,7 +42281,7 @@ function handleGoiChange(e){
     for(let sampleEle of sampleEles){
         if(sampleEle.classList.contains("hidden")) continue;
         const sample = sampleEle.sample;
-        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`);
+        const refSampleSelectEle = document.getElementById(`${sample.name}-Reference Sample`).firstChild;
         refSampleSelectEle.dispatchEvent(new CustomEvent("change", {target:{value:refSampleSelectEle.value}}));
     }
 
@@ -42139,15 +42295,29 @@ function handleGoiChange(e){
  * @return {null}
  */
 function updateSampleAverageStdev(samples){
-    //Mutates the sample objects in the sample map by updating the average, stdev, bestDuplicates properties of the Target object property of the Sample
+    //Mutates the sample objects in the sample map by updating
+    //the average, stdev, bestDuplicates properties of the Target object property of the Sample
     for(let sample of samples){
         for(let target of sample.targets.values()){
-            target.bestDuplicates = getBestDuplicates(target.cqs);
-            target.bestAverage = ss.mean(target.bestDuplicates);
-            target.average = ss.mean(target.cqs);
-            if(target.cqs.length > 1) target.bestStdev = ss.sampleStandardDeviation(target.bestDuplicates);
-            if(target.cqs.length > 1) target.stdev = ss.sampleStandardDeviation(target.cqs);
-            else target.stdev = NaN;
+            const validCqs = target.cqs.filter( cq => !isNaN(cq));
+            target.validCqs = validCqs;
+            if(validCqs.length === 0){
+                continue;
+            }
+            else if(validCqs.length === 1){
+                target.bestDuplicates = validCqs;
+                target.bestAverage = validCqs[0];
+                target.bestStdev = NaN;
+                target.average = validCqs[0];
+                target.stdev = NaN;
+            }
+            else{
+                target.bestDuplicates = getBestDuplicates(target.validCqs);
+                target.bestAverage = ss.mean(target.bestDuplicates);
+                target.bestStdev = ss.sampleStandardDeviation(target.bestDuplicates);
+                target.average = ss.mean(target.validCqs);
+                target.stdev = ss.sampleStandardDeviation(target.validCqs);
+            }
         }
     }
     return null
@@ -42210,28 +42380,32 @@ function createSamplesAndTargets(rawdata){
         //If Sample and Target exists append well & well position to Sample (if necessary) & Cq to Target cqs
         if(arr.length > minLength && foundHeaders){
             const sampleData = [];
+            
+            //Collect all the relavent data from the row
             for(let i = 0; i < headerIndices.length; i++){
-                if(importantHeaders[i] === "Well" || importantHeaders[i] === "Cq" ){
-                    sampleData.push(parseFloat(arr[headerIndices[i]]));
-                }
-                else{
-                    sampleData.push(arr[headerIndices[i]]);
-                }
+                if(importantHeaders[i] === "Well" || importantHeaders[i] === "Cq" ) sampleData.push(parseFloat(arr[headerIndices[i]]));
+                else sampleData.push(arr[headerIndices[i]]);
             };
+
+            //TODO: Continue determing the number of NaNs here in order to calculate
+            //Cq average when there is at least 1 NaN value present
             const [sampleName, targetName, wellNumber, wellPosition, reporter, cq] = sampleData;
-            let color = helpers.getRandomColor(0.3);
+            if (sampleName.trim() === "") continue;
+            let color = helpers.getRandomColor(0.45);
+            if(targets.has(targetName)) color = targets.get(targetName);
+            else targets.set(targetName, color)
+
             if(!samples.has(sampleName)){
-                if(targets.has(targetName)) color = targets.get(targetName);
-                else targets.set(targetName, color)
                 const target = classes.createTarget(targetName, reporter, cq, wellNumber, wellPosition, color);
+                if(isNaN(cq)) target.numberNaN++;
                 const sample = classes.createRtqpcrSample(sampleName, target, wellNumber, wellPosition);
                 samples.set(sample.name, sample);
             }
             else{
                 const sample = samples.get(sampleName);
                 if(!sample.targets.has(targetName)){
-                    if(targets.has(targetName)) color = targets.get(targetName);
-                    else targets.set(targetName, color)
+                    // if(targets.has(targetName)) color = targets.get(targetName);
+                    // else targets.set(targetName, color)
                     const target = classes.createTarget(targetName, reporter, cq, wellNumber, wellPosition, color);
                     targets.has(target.name)?"":targets.set(target.name, target.name)
                     sample.targets.set(target.name, target);                    
@@ -42245,6 +42419,9 @@ function createSamplesAndTargets(rawdata){
                     sample.wells.push(wellNumber);
                     sample.wellPositions.push(wellPosition);
                 }
+                //After creating or updating the target
+                //update the targets number of NaNs property
+                if(isNaN(cq)) sample.targets.get(targetName).numberNaN++;
             }
         }
     }
@@ -42267,7 +42444,6 @@ function createWkbk(data, sheetname = "sheet1"){
  * @param {LightweightSample[]} lightSamples
  * @param {Element} parent
  * @param {string} diagramTitle
- * @returns {void}
 **/
 function diagram384Well(lightSamples, parent, diagramTitle){
     const title = document.createElement("h3");
@@ -42275,18 +42451,95 @@ function diagram384Well(lightSamples, parent, diagramTitle){
     title.textContent = diagramTitle;
     parent.appendChild(title);
     for(let sample of lightSamples){
-        const circularDiv = document.createElement("div");
-        const wellPosition = document.createElement("p");
-        wellPosition.textContent = sample.wellPosition;
-        const hoverText = document.createElement("span");
-        hoverText.textContent = sample.name;
-        hoverText.className = "hovertext"
-        circularDiv.className = "well";
-        circularDiv.appendChild(hoverText);
-        circularDiv.appendChild(wellPosition)
-        if(sample.name.toUpperCase()!=="NONE") circularDiv.style.backgroundColor = sample.color;
-        parent.appendChild(circularDiv);
+        const well = createWell(sample);
+        parent.appendChild(well);
     }
+}
+
+/**
+ * @param {LightweightSample} lws
+ * @returns {HTMLDivElement}
+ */
+function createWell(lws){
+    //Create HTML elements
+    const well = document.createElement("div");
+    const wellPosition = document.createElement("p");
+    const hoverContainer = document.createElement("div");
+
+    //Add text content
+    wellPosition.textContent = lws.wellPosition;
+
+    //Add class names
+    hoverContainer.className = "hovertext"
+    well.className = `well ${lws.wellPosition}`;
+    well.appendChild(hoverContainer);
+    well.appendChild(wellPosition);
+    
+    //Create the on-hover element for each well with the sample name
+    const hoverName = document.createElement("div");
+    hoverName.textContent = lws.name;
+    hoverContainer.appendChild(hoverName);
+
+    if(lws.name.toLowerCase() === "none" || lws.name.toLowerCase() === "empty") return well;
+
+    //If there is only 1 color, then there is only 1 target being probed for in the well, set the color of the well to the only color in the array
+    //else determine the starting and end points of each color of each target based off of their index and the length of the array and set the well to those colors
+    if(lws.colors.length === 1){
+        well.style.backgroundColor = lws.colors[0];
+        const hoverTarget = document.createElement("div");
+        hoverTarget.textContent = `${lws.targetNames[0]}:${lws.cqs[0]}`;
+        hoverContainer.appendChild(hoverTarget);
+    } 
+    else{
+        /**
+         * @type {string[]}
+         */
+        const colors = [];
+        let start = 0;
+        const numberOfColors = lws.colors.length;
+        let step = 1/numberOfColors;
+        for (let i = 0; i < numberOfColors; i++){
+            const currentColor = lws.colors[i];
+            const end = ((i+1)/numberOfColors)*100;
+            colors.push(`${currentColor} ${start}% ${end}%`);
+            start+=step;
+        }
+        well.style.background = `repeating-linear-gradient(to right, ${colors.join(",")})`;
+        for(let i = 0; i < lws.targetNames.length; i++){
+            const hoverTarget = document.createElement("div");
+            hoverTarget.textContent = `${lws.targetNames[i]}:${lws.cqs[i]}`;
+            hoverContainer.appendChild(hoverTarget);
+        }
+    } 
+    return well;
+}
+/**
+ * @param {xlsx.WorkBook} wkbk
+ * @param {string[][]} data
+ * @param {string} wkstName
+ * @param {string} image
+ * @returns {null}
+ */
+function appendWorksheet(wkbk, data, wkstName, image = null){
+    if(image !== null){
+        wkbk.Sheets["graph"]["!images"] = [
+            {
+                name: 'image1.jpg',
+                data: image,
+                opts: { base64: true },
+                position: {
+                    type: 'twoCellAnchor',
+                    attrs: { editAs: 'oneCell' },
+                    from: { col: 2, row : 2 },
+                    to: { col: 6, row: 5 }
+                }
+            }
+        ]
+        return null;
+    }
+    const wkst = xlsx.utils.aoa_to_sheet(data);
+    xlsx.utils.book_append_sheet(wkbk, wkst, wkstName);
+    return null;
 }
 
 main()

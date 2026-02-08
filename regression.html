@@ -6,20 +6,16 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">        
         <link rel="stylesheet" href="regression_style.css">
         <title>BioTech R&D Tools</title>
     </head>
     <body>
         <div id = "header">
             <h1 class="roboto-bold"><a href="index.html">BioTech <b>R&D</b> Tools</a></h1>
-            <p id = "description">
-                <b>Purpose: </b>
-                Interpolation of unknowns using a standard curve on a 96 well plate & expediate SDS-PAGE loading.
-            </p>
         </div>
         <div class = "steps">
-            <h3>Follow the Steps Below</h3>
+            <h3 class = "subtitle2">Follow the Steps Below</h3>
             <ol>
                 <li>
                     Edit your 96 Well Template.
@@ -61,64 +57,97 @@
                 <li>
                     Interpolate data and download the produced excel file.
                 </li>
-                <li>
+                <!-- <li>
                     (Optional) Enter the unit that you wish to convert the results of the interpolation to if you wish.
-                </li>
+                </li> -->
             </ol>
         </div>
         <div id = "regression-section"> 
             <br>
             <div id = file-inputs>
-                <label for = "rawdata-input">SoftMaxPro Raw Data</label>
-                <input id = "rawdata-input" type="file" accept=".txt" required>
-                <p class = "filenames" >None</p>
-                <label for = "template-input" >96-Well Plate Template</label>
+                <label class = "label" for = "rawdata-input">SoftMaxPro Raw Data</label>
+                <input id = "rawdata-input" type="file" accept=".txt,.tsv" required>
+                <p class = "filenames" ></p>
+                <label class = "label" for = "template-input" >96-Well Plate Template</label>
                 <input id = "template-input" type="file" accept=".csv" required> 
-                <p class = "filenames" >None</p>
-                <label for = "dilution-factor" >Dilution Factor of Your Unknowns</label>
+                <p class = "filenames" ></p>
+                <label class = "label" for = "dilution-factor" >Dilution Factor of Your Unknowns</label>
                 <input id = "dilution-factor" type = "number" min="1" value="10">
-                <label for = "units-conversion" >Unit To Convert To</label>
+                <label class = "label" for = "units-conversion" >Unit To Convert To</label>
                 <input id = "units-conversion" type = "text" value="ug/uL">
+                <label class = "label clicked-label" for = "sds-page">SDS-PAGE</label>
+                <input id = "sds-page" type = "checkbox" checked>
             </div>
             <div id = "chart-inputs">
                 <div id = "regression-inputs">
-                    <h3>Regression Model</h3>
-                    <div class = "radio">
-                        <label for = "linear">Linear Regression</label>
+                    <h3 class = "subtitle">Regression Model</h3>
+                    <div class = "radio card clicked-card">
+                        <h6 class = "card-title" for = "linear">Linear Regression</h6>
                         <input id = "linear" type = "radio" name = "regression" value = "linear" checked>
+                        <img class = "card-images" src = "Images/LinearRegressionImage.jpg">
+                        <p class = "desc">
+                            Most accurate when the dependent variable changes 
+                            at a constant rate alongside the independent variable. 
+                        </p>
                     </div>
-                    <div class = "radio">
-                        <label for = "log">Logarithmic Regression</label>
+                    <div class = "radio card">
+                        <h6 class = "card-title" for = "log">Logarithmic Regression</h6>
                         <input id = "log" type = "radio" name = "regression" value="log">
+                        <img class = "card-images" src = "Images/LogRegressionImage.jpg">
+                        <p class = "desc">
+                            Most accurate when the dependent variable changes 
+                            at a slow rate relative to the independent variable.
+                        </p>
                     </div>
-                    <div class = "radio">
-                        <label for = "4pl">4-Parameter Hill Equation</label>
+                    <div class = "radio card">
+                        <h6 class = "card-title" for = "4pl">4-Parameter Logistic Equation</h6>
                         <input id = "4pl" type = "radio" name = "regression" value="4pl">
+                        <img class = "card-images" src = "Images/4PLRegressionImage.jpg">
+                        <p class = "desc">
+                            Accurate when data presents upper and lower
+                            asymptotes in a sigmodial shape.
+                        </p>
                     </div>
-                    <div class = "radio">
-                        <label for ="subtract-blank">Subtract Blank?</label>
-                        <input id = "subtract-blank"type="checkbox">
+                    <div class = "radio card">
+                        <h6 class = "card-title" for = "5pl">5-Parameter Logistic Equation</h6>
+                        <input id = "5pl" type = "radio" name = "regression" value="5pl">
+                        <img class = "card-images" src = "Images/4PLRegressionImage.jpg">
+                        <p class = "desc">
+                            Accurate when data presents upper and lower
+                            asymptotes in a sigmodial shape. When g = 1, reverts to 4PL.
+                        </p>
                     </div>
                 </div>
                 <div id = "chart-settings">
-                    <h3>Chart Settings</h3>
+                    <h3 class = "subtitle2">Chart Settings</h3>
                     <div id = "x-scale">
-                        <div class="radio">
-                            <label for = "linear-scale">Linear X-Scale</label>
+                        <div class="radio card clicked-card">
+                            <h6 class = "card-title" for = "linear-scale">Linear X-Scale</h6>
                             <input id = "linear-scale" value="linear" type = "radio" name = "scale" checked>
+                            <img class = "card-images" src = "Images/LinearXScaleImage.jpg">
+                            <p class = "desc">
+                                X-axis is set assuming the x-values are close together.
+                            </p>
                         </div>
-                        <div class="radio">
-                            <label for = "logarithmic-scale">Logarithmic X-Scale</label>
+                        <div class="radio card">
+                            <h6 class = "card-title" for = "logarithmic-scale">Logarithmic X-Scale</h6>
                             <input id = "logarithmic-scale" value="logarithmic" type = "radio" name = "scale"> 
+                            <img class = "card-images" src = "Images/LogXScaleImage.jpg">
+                            <p class = "desc">
+                                X-axis is set assuming the x-values are far apart.
+                            </p>
                         </div>
                     </div>
                     <div id = "extrapolated">
-                        <div class="radio">
-                            <label for = "hideExtrapolated">Hide Extrapolated Unknowns?</label>
+                        <div class="radio card">
+                            <h6 class = "card-title" for = "hideExtrapolated">Hide Extrapolated?</h6>
                             <input id = "hideExtrapolated" type="checkbox">
+                            <img class = "card-images" src = "Images/ExtrapolatedValuesImage.jpg">
+                            <p class = "desc">
+                                Removes the unknowns that are outside the standard curve.
+                            </p>
                         </div>
                     </div>
-                    
                 </div>
                 <div id = "buttons">
                     <button id = "process-button" type = "button">Interpolate Data</button>

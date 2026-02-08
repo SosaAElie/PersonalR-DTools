@@ -3,6 +3,7 @@ const chartjs = require("chart.js/auto");
 const xlsx = require("xlsx");
 const helpers = require("../utils/helpers");
 const classes = require("../classes/classes");
+const mlm = require("ml-levenberg-marquardt");
 
 //Global variable to store the reference to the created chart & chart image for excel
 let LINEGRAPH = null;
@@ -13,7 +14,9 @@ let BARGRAPH = null;
  * @property {string} wellPosition - The well position the sample was loaded in
  * @property {number} wellNumber - The well number the same was loaded in
  * @property {string} name - The name of the sample
+ * @property {number} absorbance - The absorbance value of the sample in the well
  * @property {string} type - The type of the sample
+ * @property {string|undefined} unit - The unit of the sample if it is a standard
  */
 
 /**
@@ -47,20 +50,68 @@ let BARGRAPH = null;
  * @property {function} appendAt
  */
 
+/**
+ * @typedef {Object} UserInputs
+ * @property {File} rawdataFile
+ * @property {File} templateFile
+ * @property {string} regressionType
+ * @property {string} xScale
+ * @property {boolean} extrapolated
+ * @property {string} targetUnits
+ * @property {number} dilutionFactor
+ */
+
 
 function main(){
-    document.getElementById("process-button").addEventListener("click", handleClick);
+    document.getElementById("process-button").addEventListener("click", handleProcess);
     document.getElementById("dilution-factor").addEventListener("input", handleNumericalInput);
     document.getElementById("units-conversion").addEventListener("input", handleConversionInput);
+    document.getElementById("sds-page").addEventListener("change", updateSdsPageLabel);
     document.getElementById("rawdata-input").addEventListener("input", updateLabel);
     document.getElementById("template-input").addEventListener("input", updateLabel);
-
+    document.querySelectorAll(".card").forEach(element => element.addEventListener("click", clickedCard))
     Array.from(document.getElementById("x-scale").children)
         .forEach(div=>{
             Array.from(div.children).filter(element=>element.tagName === "INPUT")
             .forEach(element=>element.addEventListener("change", handleXScale));
         });
     document.getElementById("hideExtrapolated").addEventListener("change", handleHideExtrapolated);
+
+    //Initiate test data
+    handleProcess(null, true)
+}
+/**
+ * @param {Event} e
+ */
+function clickedCard(e){
+    if(e.target.nodeName === "INPUT") return;
+    const className = "clicked-card";
+    /**
+     * @type {HTMLElement}
+    */
+   const newlySelectedCard = e.currentTarget;
+   
+   //Assumes that the 2nd element in the card is the input element (radio or checkbox)
+   const inputElement = newlySelectedCard.children.item(1);
+   const attr = inputElement.attributes.getNamedItem("name");
+   
+   
+   //This applies to the checkbox for removing extrapolated values from the scatter plot
+   if(attr === null){
+        inputElement.click();
+        newlySelectedCard.classList.contains(className)?newlySelectedCard.classList.remove(className):newlySelectedCard.classList.add(className);
+    }
+    //This applies to everything else
+    else{
+        const type = attr.value;
+
+        const currentlySelectedCards = Array.from(document.querySelectorAll("." + className));
+        const currentlySelectedCard = currentlySelectedCards.filter(currentlySelectedCard => currentlySelectedCard.querySelector(`input[name="${type}"]`))[0];
+        
+        if(currentlySelectedCard !== undefined) currentlySelectedCard.classList.remove(className);
+        newlySelectedCard.classList.add(className);
+        inputElement.click();
+    }
 }
 
 /**
@@ -70,6 +121,16 @@ function updateLabel(e){
     const selectedFiles = this.files;
     if(selectedFiles.length > 0) this.nextElementSibling.textContent = selectedFiles[0].name;
     else this.nextElementSibling.textContent = "None";
+    return null
+}
+
+/**
+ * @param {Event} e
+ */
+function updateSdsPageLabel(e){
+    const className = "clicked-label";
+    const sdsPageLabel = this.previousElementSibling;
+    sdsPageLabel.classList.contains(className)?sdsPageLabel.classList.remove(className):sdsPageLabel.classList.add(className);
     return null
 }
 
@@ -100,14 +161,15 @@ function handleXScale(e){
  * @param {InputEvent} e
 */
 function handleNumericalInput(e){
-    if(parseInt(e.target.value) < 1){
+    const value = parseInt(e.target.value);
+    if(value < 1 || isNaN(value)){
         this.setCustomValidity("The Value Has To Be Greater Than or Equal to 1");
         this.reportValidity();
-        document.getElementById("process-button").removeEventListener("click", handleClick);
+        document.getElementById("process-button").removeEventListener("click", handleProcess);
     }
     else{        
         this.setCustomValidity("");
-        document.getElementById("process-button").addEventListener("click", handleClick);
+        document.getElementById("process-button").addEventListener("click", handleProcess);
     }
 }
 
@@ -119,7 +181,7 @@ function handleConversionInput(e){
     const volumes = ["L", "mL", "uL", "nL", "fL"];
     const unit = e.target.value;
     if(unit.indexOf("/") < 0){
-        document.getElementById("process-button").removeEventListener("click", handleClick);
+        document.getElementById("process-button").removeEventListener("click", handleProcess);
         this.setCustomValidity("Enter the units in the correct format, i.e. mass/volume");
         this.reportValidity();
     }
@@ -127,17 +189,17 @@ function handleConversionInput(e){
         this.setCustomValidity("");
         const [mass, volume] = unit.split("/");
         if(masses.indexOf(mass) < 0){
-            document.getElementById("process-button").removeEventListener("click", handleClick);
+            document.getElementById("process-button").removeEventListener("click", handleProcess);
             this.setCustomValidity("Not a Supported Unit of Mass, i.e. g, mg, ug, ng, fg");
             this.reportValidity();
         }
         else if(volumes.indexOf(volume) < 0){
-            document.getElementById("process-button").removeEventListener("click", handleClick);
+            document.getElementById("process-button").removeEventListener("click", handleProcess);
             this.setCustomValidity("Not a Supported Unit of Volume, i.e. L, mL, uL, nL, fL");
             this.reportValidity();            
         }
         else{
-            document.getElementById("process-button").addEventListener("click", handleClick);
+            document.getElementById("process-button").addEventListener("click", handleProcess);
             this.setCustomValidity("");            
         }
     }
@@ -187,7 +249,7 @@ async function merge(rawdataFile, templateFile){
             const type = parsedSample.get("type");
 
             //Create a light sample object for each item in the template
-            lightweightSamples.push({name, wellNumber, wellPosition, type});
+            lightweightSamples.push({name, wellNumber, wellPosition, type, absorbance:y, unit:parsedSample.get("unit")});
 
             //Skip over the samples labeled as none
             if(name === "none") continue;
@@ -218,35 +280,88 @@ async function merge(rawdataFile, templateFile){
 }
 
 /**
- * @param {Event} e
- * @returns {null}
+ * @param {boolean} isDummy
+ * @returns {UserInputs}
  */
-function handleClick(e){
+function grabUserInput(isDummy){
     const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
     const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
+    const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
+    const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
+    const extrapolated = document.getElementById("hideExtrapolated").checked;
+    const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
+    const targetUnits = document.getElementById("units-conversion").value;
+    const sdsPage = document.getElementById("sds-page").checked;
+
+    return isDummy?{
+        rawdataFile: new File([["##BLOCKS= 1\n"],["Plate:	Plate1	1.3	PlateFormat	Endpoint	Absorbance	Reduced	FALSE	1						1	562 	1	12	96	1	8			\n"],["		1	2	3	4	5	6	7	8	9	10	11	12	\n"],["		1.8638	0.0763	0.69	0.032	0.032	0.0463	0.0322	0.0318	0.0319	0.0331	0.0321	0.0321	\n"],["		1.3156	0.6192	0.5265	0.0332	0.0322	0.0324	0.0322	0.0325	0.0326	0.0333	0.0326	0.0322	\n"],["		0.9785	0.7019	0.6062	0.0324	0.0327	0.0325	0.0322	0.0339	0.0322	0.0325	0.0322	0.0323	\n"],["		0.8191	0.658	0.4605	0.0324	0.0327	0.0325	0.0323	0.0327	0.032	0.0325	0.0323	0.0326	\n"],["		0.5741	0.444	0.8629	0.0329	0.0325	0.0323	0.0324	0.0328	0.0321	0.0324	0.0319	0.0319	\n"],["		0.3422	0.5583	0.032	0.0328	0.032	0.0321	0.0332	0.0338	0.032	0.0344	0.0318	0.0317	\n"],["		0.2275	0.5316	0.0326	0.0327	0.0321	0.0328	0.0328	0.0325	0.0326	0.0321	0.0317	0.0317	\n"],["		0.126	0.5515	0.0329	0.0318	0.0266	0.0322	0.0319	0.0319	0.0315	0.0318	0.0318	0.0319	\n"],["~End\n"],["Original Filename: 20240715 BCA Assay Cell Lysates CDKn2a New Antibody Preliminary Test; Date Last Saved: 7/15/2024 4:03:58 PM\n"]], "ExampleData.csv"),
+        templateFile: new File([["THIS,IS,THE,EMPTY,96,WELL,PLATE,TEMPLATE.,PLEASE,EDIT,WITH,YOUR,LAYOUT.\n"],[",1,2,3,4,5,6,7,8,9,10,11,12\n"],["A,Standard-2000ug/mL,Standard-0ug/mL,Sample-8,None,None,None,None,None,None,None,None,None\n"],["B,Standard-1500ug/mL,Sample-1,Sample-9,None,None,None,None,None,None,None,None,None\n"],["C,Standard-1000ug/mL,Sample-2,Sample-10,None,None,None,None,None,None,None,None,None\n"],["D,Standard-750ug/mL,Sample-3,Sample-11,None,None,None,None,None,None,None,None,None\n"],["E,Standard-500ug/mL,Sample-4,Sample-12,None,None,None,None,None,None,None,None,None\n"],["F,Standard-250ug/mL,Sample-5,None,None,None,None,None,None,None,None,None,None\n"],["G,Standard-125ug/mL,Sample-6,None,None,None,None,None,None,None,None,None,None\n"],["H,Standard-25ug/mL,Sample-7,None,None,None,None,None,None,None,None,None,None\n"],[",,,,,,,,,,,,\n"],['"KEY: Please Prefix all items in the plate with any of the below prefixes, using a dash ""-"" to separate the prefix from the rest of the name",,,,,,,,,,,,\n'],["None,No sample is in the well,,,,,,,,,,,\n"],["Sample,Refers to any sample on the plate that is not a standard or a control,,,,,,,,,,,\n"],["Standard,Refers to the standard used for regression analysis,,,,,,,,,,,\n"],["Control,Refers to the positive or negative control on the plate,,,,,,,,,,,\n"]], "ExampleTemplate.txt"),
+        regressionType:"linear",
+        xScale:"linear",
+        extrapolated:false,
+        dilutionFactor:10,
+        targetUnits:"ug/uL",
+        sdsPage:true,
+    }:
+    {
+        rawdataFile,
+        templateFile,
+        regressionType,
+        xScale,
+        extrapolated,
+        dilutionFactor,
+        targetUnits,
+        sdsPage,
+    }
+
+}
+
+/**
+ * @param {Event} e
+ * @param {boolean} isDummy
+ * @returns {null}
+ */
+function handleProcess(e, isDummy = false){
+    const {rawdataFile, templateFile, regressionType, extrapolated, xScale, targetUnits, dilutionFactor, sdsPage} = grabUserInput(isDummy);
+    // const rawdataFile = document.getElementById("rawdata-input").files.length >= 0?document.getElementById("rawdata-input").files[0]:null;
+    // const templateFile = document.getElementById("template-input").files.length >= 0?document.getElementById("template-input").files[0]:null;
+    //If there is no template or raw data file selected return
+    if(!rawdataFile || !templateFile) return;
+    //If there is no selected regression type return
+    // const regressionInputs = document.getElementById("regression-inputs");
+    // const regressionType = getSelectedRadioButton(regressionInputs);
+    if(regressionType === null)return;
     
-    //If there is no template or raw data file selected return null
-    if(!rawdataFile || !templateFile) return null;
+    //Get user inputs for x-scale type and regression type
+    // const xScaleInputs = document.getElementById("x-scale");
+    // const xScale = getSelectedRadioButton(xScaleInputs);
+    if(xScale === null) return;
+
+    //Get whether or not to show extrapolated results
+    // const extrapolated = document.getElementById("hideExtrapolated").checked;
+
+    // const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
+    // const targetUnits = document.getElementById("units-conversion").value;
     
     const excelDownloadButton = document.getElementById("download-button");
     const chartCanvas = document.getElementById("regression-chart");
     const tableContainer = document.getElementById("table-container");
-    const dilutionFactor = parseInt(document.getElementById("dilution-factor").value);
-    const targetUnits = document.getElementById("units-conversion").value;
     const diagramContainer = document.getElementById("template-diagram");
     const gelTableContainer = document.getElementById("gel-table-container");
-    const subtractBlank = document.getElementById("subtract-blank").checked;
     const proteinBarChart = document.getElementById("protein-bar-chart");
     
     //Delete current UI elements
     if(LINEGRAPH !== null){
-        LINEGRAPH.destroy();
-        BARGRAPH.destroy();
+        LINEGRAPH.destroy()
         deleteTable(tableContainer, "results-table");
-        deleteTable(gelTableContainer, "protein-loading-table");
         excelDownloadButton.replaceWith(excelDownloadButton.cloneNode(true));
         diagramContainer.innerHTML = "";
-    } 
+    };
+    //UI elements below only appear only if the SDS-PAGE checkbox is checked
+    if(BARGRAPH !== null){
+        BARGRAPH.destroy()
+        deleteTable(gelTableContainer, "protein-loading-table");
+    }; 
     
     merge(rawdataFile, templateFile)
     .then(parsedData =>{
@@ -255,25 +370,19 @@ function handleClick(e){
         const samples = Array.from(parsedData.samples.values());
         const standards = samples.filter(sample => sample.type === "standard");
         const unknowns = samples.filter(sample => sample.type === "sample");
-
-        if(subtractBlank){
-            const blank = ss.min(standards.map(standard => standard.averageY));
-            samples.forEach(sample => sample.averageY-=blank)
-        }
+        
         const xAndYStandards = standards.map(standard => [standard.x, standard.averageY]);
         let regressionObject;
 
         //Create a 96 well diagram of the template on the UI
         diagram96Well(parsedData.lightweightSamples, diagramContainer, parsedData.templateFilename);
         
-        //Get user inputs for x-scale type and regression type
-        const xScale = getSelectedRadioButton(document.getElementById("x-scale"));
-        const regressionType = getSelectedRadioButton(document.getElementById("regression-inputs"));
 
         //Obtain the parameters of best fit using selected regression type
         if(regressionType === "log") regressionObject = getLogRegression(xAndYStandards);
         else if(regressionType === "linear") regressionObject = getLinearRegression(xAndYStandards);
-        else regressionObject = get4ParameterHillRegression(xAndYStandards);
+        else if (regressionType === "4pl") regressionObject = getFourParameterHillRegression(xAndYStandards);
+        else if (regressionType === "5pl") regressionObject = getFiveParameterHillRegression(xAndYStandards);
         const {parameters, rSquared, eq, invEq} = regressionObject;
 
         //Sort standards from highest to lowest according to the average Y
@@ -285,7 +394,8 @@ function handleClick(e){
         
         //Interpolate the concentration of all the samples using the regression model generated
         for(let sample of samples){
-            sample.interpolatedX = invEq(sample.averageY);
+            sample.ys.forEach(y=>sample.interpolatedXs.push(invEq(y)));
+            sample.interpolatedX = ss.mean(sample.interpolatedXs);
             sample.dilutionFactor = dilutionFactor;
             sample.undilutedX = sample.interpolatedX*dilutionFactor;
             sample.unit = unit;
@@ -301,29 +411,30 @@ function handleClick(e){
         regressionChartContainer.style.width = "48vw";
         barChartContainer.style.height = "60vh";
         barChartContainer.style.width = "98vw";
-        LINEGRAPH = new chartjs.Chart(chartCanvas,createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, parsedData.filename, eq, regressionType));
+        LINEGRAPH = new chartjs.Chart(chartCanvas,createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, parsedData.filename, eq, regressionType, extrapolated));
         BARGRAPH = new chartjs.Chart(proteinBarChart, createBarChartOptionsAndData(unknowns, parsedData.filename));
         createRegressionResultsTable(unknowns,standards,tableContainer, unit, targetUnits, dilutionFactor);
-        createProteinGelLoadingTable(unknowns, gelTableContainer);
+        
+        if(sdsPage) createProteinGelLoadingTable(unknowns, gelTableContainer);
         
         //Add functionality to the excel button
-        excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e,parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, subtractBlank, parameters, rSquared));
+        excelDownloadButton.addEventListener("click", (e)=>handleExcelDownload(e, sdsPage, parsedData, standards, unknowns, dilutionFactor, unit, targetUnits, parameters, rSquared));
 
     })
 }
 /**
  * @param {Event} e
+ * @param {boolean} sdspage
  * @param {ParsedData} parsedData
  * @param {Sample[]} standards
  * @param {Sample[]} unknowns
  * @param {number} dilutionFactor
  * @param {string} unit
  * @param {string} targetUnit
- * @param {boolean} subtractBlank
  * @param {Map<string, number>} parameters
  * @param {number} rSquared
  */
-function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor, unit, targetUnit, subtractBlank, parameters, rSquared){
+function handleExcelDownload(e, sdspage, parsedData, standards, unknowns, dilutionFactor, unit, targetUnit, parameters, rSquared){
     //Create pseudoExcels in memory in order to write to excel and create downloadable link
     const psuedoExcel = createPsuedoExcel(null, null, parsedData.rawdata);
     psuedoExcel.combine(createPsuedoExcel(null, null, parsedData.template), 3, 2, false);
@@ -331,12 +442,13 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
     
     //Add headers
     const [mass, vol] = targetUnit.split("/");
-    const headers = [
+    const headers = sdspage ? [
         "Name", 
         "Type", 
         "Replicate Well Values", 
-        subtractBlank?"Average(Stdev) Blank Subtracted":"Average(Stdev)",
-        `Interpolated Concentration [${unit}]`,
+        "Average(Stdev)",
+        `Interpolations [${unit}]`,
+        `Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${unit}]`,
         `${dilutionFactor}X Concentration [${targetUnit}]`,
         `Protein[${mass}]/Well`,
@@ -349,10 +461,19 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
         `Replicate Protein Vol[${vol}]/Well`,
         `Replicate 4X Laemmli Vol[${vol}]/Well`,
         `Replicate H2O Vol[${vol}]/Well`,
+    ] : [
+        "Name", 
+        "Type", 
+        "Replicate Well Values", 
+        "Average(Stdev)",
+        `Interpolations [${unit}]`,
+        `Concentration [${unit}]`,
+        `${dilutionFactor}X Concentration [${unit}]`,
+        `${dilutionFactor}X Concentration [${targetUnit}]`,
     ]
     psuedoExcel.appendAt(0, psuedoExcel.columns, true, headers);
-    standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData()));
-    unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData()));
+    standards.forEach((standard, i, arr) => psuedoExcel.appendAt(i+1, startingCol, true, standard.getExcelData(sdspage, 3)));
+    unknowns.forEach((unknown, i, arr) => psuedoExcel.appendAt(standards.length+i+1, startingCol, true, unknown.getExcelData(sdspage, 3)));
 
     //Add regression model parameters of best fit to pseudoExcel
     psuedoExcel.appendCol(psuedoExcel.columns, [""]);
@@ -385,19 +506,17 @@ function handleExcelDownload(e, parsedData, standards, unknowns, dilutionFactor,
 /**
  * @param {HTMLDivElement} container
  * @param {boolean} valueOnly
- * @returns {string}
+ * @returns {string|null}
  */
 function getSelectedRadioButton(container){
     const radioDivs = Array.from(container.querySelectorAll(".radio"));
-    // const selected = [];
     for(let radioDiv of radioDivs){
         for(let child of radioDiv.children){
             //Return as soon as the first checked radio button is found
             if(child.tagName === "INPUT" && child.checked === true) return child.defaultValue;
         }
-        // selected.push(...Array.from(radioDiv.children).filter(element=>element.tagName === "INPUT" && element.checked === true))
     }
-    // return valueOnly?selected[0].defaultValue:selected[0];
+    return null
 }
 
 /**
@@ -438,9 +557,8 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
         "Type",
         "Wells",
         "Individual Values",
-        "Average",
-        "StDev",
-        `Interpolated Concentration [${units}]`,
+        "Average (StDev)",
+        `Concentration [${units}]`,
         `${dilutionFactor}X Concentration [${units}]`,
         `${dilutionFactor}X Concentration [${convertedUnits}]`,
     ];
@@ -455,31 +573,54 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
     headerContainer.appendChild(headerRow);
 
     //Determine the lowest & highest standard in order to change the text to red if the sample is outside the standard curve 
-    const standardYs = standards.map(standard => standard.averageY);
-    const lowest = ss.min(standardYs)
-    const highest = ss.max(standardYs)
+    // const standardYs = standards.map(standard => standard.averageY);
+    // const lowest = ss.min(standardYs);
+    // const highest = ss.max(standardYs);
+
+    //The standards should've been sorted already in the outer function
+    const lowest = standards.at(-1).averageY;
+    const highest = standards.at(0).averageY;
     
     for(let standard of standards){        
         const row = document.createElement("tr");
-        for (let data of standard.getTableData()){
+        for (let [k, v] of standard.getTableData().entries()){
             const td = document.createElement("td");
-            td.textContent = data;
+            td.className = k
+            if(k === "type"){
+                const div = document.createElement("div");
+                div.className = `${v} bubble`;
+                div.textContent = v;
+                td.appendChild(div);
+            }
+            else{
+                td.textContent = v;
+            }
             row.appendChild(td);
         }
+        row.className = `${standard.name}`;
         body.appendChild(row);
     };
 
     for(let unknown of unknowns){       
         const row = document.createElement("tr");
         
-        //If unknown y value is outside the standard curve change text to red
-        if(unknown.averageY <= lowest || unknown.averageY >= highest) row.className = "outsideUnknown";
-
-        for (let data of unknown.getTableData()){
+        for (let [k, v] of unknown.getTableData().entries()){
             const td = document.createElement("td");
-            td.textContent = data;
+            td.className = k
+            if(k === "type"){
+                const div = document.createElement("div");
+                div.className = `${v} bubble`;
+                div.textContent = v;
+                td.appendChild(div);
+            }
+            else{
+                td.textContent = v;
+            }
             row.appendChild(td);
         }
+
+        //If unknown y value is outside the standard curve change text to red
+        row.className = (unknown.averageY <= lowest || unknown.averageY >= highest) ? `${unknown.name} extrapolated` : `${unknown.name}`
         body.appendChild(row);
     }
     
@@ -500,15 +641,16 @@ function createRegressionResultsTable(unknowns, standards, container, units, con
  * @param {string} title
  * @param {CallableFunction} eq
  * @param {string} regressionType
+ * @param {boolean} extrapolated
  * @returns {chartjs.ChartConfiguration}
  */
-function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, title, eq, regressionType){
+function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, title, eq, regressionType, extrapolated){
     const standardYs = standards.map(standard => standard.averageY);
     const maxY = ss.max(standardYs);
     const minY = ss.min(standardYs);
 
-    //Give regression model line a smooth curve if regression type is 4PL
-    if(regressionType === "4pl"){
+    //Give regression model line a smooth curve if regression type is 4PL or 5PL
+    if(regressionType === "4pl" || regressionType === "5pl"){
         const standardXs = standards.map(standard => standard.x);
         const minX = ss.min(standardXs);
         const maxX = ss.max(standardXs);
@@ -521,32 +663,42 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
             mockData.push({x:mockX, y:mockY});
         }
     }
-
+    const allUnknowns = unknowns.map(unknown => {return {x:unknown.interpolatedX.toFixed(), y:unknown.averageY.toFixed(2)}});
+    const filteredUnknowns = unknowns.map(unknown => {return unknown.averageY <= maxY && unknown.averageY >= minY ? {x:unknown.interpolatedX, y:unknown.averageY}:{x:null, y:null}});
     //Return the chart options object
     return {
         type:"scatter",
         data:{
             storage:{
-                allUnknowns: unknowns.map(unknown => {return {x:unknown.interpolatedX, y:unknown.averageY}}),
-                filteredUnknowns: unknowns.map(unknown => {return unknown.averageY <= maxY && unknown.averageY >= minY ? {x:unknown.interpolatedX, y:unknown.averageY}:{x:null, y:null}}),
+                allUnknowns: allUnknowns,
+                filteredUnknowns: filteredUnknowns,
             },
             datasets:[  
                 {
+                    labels:standards.map(standard => standard.name),
                     label:"Standards",
-                    data:standards.map(standard => {return {x:standard.x, y:standard.averageY}}),
+                    data:standards.map(standard => {return {x:standard.x.toFixed(2), y:standard.averageY.toFixed(2)}}),
                     pointBackgroundColor:"#D6EFD8",
-                    pointBorderColor:"black"
+                    pointBorderColor:"black",
                 },
                 {
+                    labels:unknowns.map(unknown => unknown.name),
                     label:"Unknowns",
-                    data: unknowns.map(sample => {return {x:sample.interpolatedX, y:sample.averageY}}),
-                    pointBorderColor:"black"
+                    data: extrapolated?filteredUnknowns:allUnknowns,
+                    pointBorderColor:"black",
+                    pointBackgroundColor:"#ff69695c",
                 },
                 {
+                    labels:standards.map(standard => standard.name),
                     label:`Regression Model: R-Squared: ${rSquared.toFixed(2)}`,
-                    data: regressionType === "4pl"?mockData:standards.map(standard => {return {x:standard.interpolatedX, y:standard.averageY}}),
+                    data: regressionType === "4pl"||regressionType === "5pl"?mockData:standards.map(standard => {return {x:standard.interpolatedX.toFixed(2), y:standard.averageY.toFixed(2)}}),
                     showLine:true,
-                    pointRadius:regressionType === "4pl"?0:3,
+                    // pointBorderColor: "black",
+                    // pointBackgroundColor:"#F2B949",
+                    // borderColor:"#F2B949",
+                    pointRadius:regressionType === "4pl" || regressionType === "5pl"?0:3,
+                    tension:0.4,
+                    pointHitRadius: 0, 
                 },
             ]
         },
@@ -611,8 +763,15 @@ function createChartOptionsAndData(unknowns, standards, rSquared, xScale, unit, 
                     labels:{
                         color:"black"
                     }
-                }
-                
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const label = ctx.dataset.labels[ctx.dataIndex];
+                            return label + " (" + ctx.parsed.x + ", " + ctx.parsed.y + ")";
+                        },
+                    },
+                },
             },
         }
     }
@@ -879,25 +1038,56 @@ function diagram96Well(lightSamples, parent, diagramTitle){
     title.textContent = diagramTitle;
     parent.appendChild(title);
     for(let lightSample of lightSamples){
-        const circularDiv = document.createElement("div");
-        const wellPosition = document.createElement("p");
-        wellPosition.textContent = lightSample.wellPosition;
-        const hoverText = document.createElement("span");
-        hoverText.textContent = lightSample.name;
-        hoverText.className = "hovertext"
-        circularDiv.className = "well";
-        circularDiv.appendChild(hoverText);
-        circularDiv.appendChild(wellPosition)
-        switch(lightSample.type){
-            case "sample":
-                circularDiv.className+= " sample";
-                break;
-                case "standard":
-                circularDiv.className+= " standard";
-                break;
-        }
-        parent.appendChild(circularDiv);
+        const well = createWell(lightSample);
+        parent.appendChild(well);
     }
+}
+
+/**
+ * @param {LightweightSample} lightSample
+ * @returns {HTMLDivElement}
+ */
+function createWell(lightSample){
+    //Create HTML Elements to add to DOM
+    const well = document.createElement("div");
+    const wellPosition = document.createElement("p");
+    const hoverContainer = document.createElement("div");
+
+    const hoverNameId = `well ${lightSample.wellPosition} name`;
+    const hoverNameLabel = document.createElement("span");
+    const hoverName = document.createElement("div");
+    hoverName.id = hoverNameId;
+    
+    const hoverAbsId = `well ${lightSample.wellPosition} absorbance`;
+    const hoverAbsLabel = document.createElement("span");
+    const hoverAbs = document.createElement("div");
+    hoverAbs.id = hoverAbsId;
+
+    //Add text content
+    hoverNameLabel.textContent = "Name:";
+    hoverAbsLabel.textContent = "Abs:";
+    hoverName.defaultValue = lightSample.name;
+    wellPosition.textContent = lightSample.wellPosition;
+    hoverName.textContent = lightSample.name;
+    hoverAbs.textContent = lightSample.absorbance.toFixed(2);
+
+    //Add class names
+    hoverContainer.className = "hovertext";
+    well.className = lightSample.type === "none" ? 
+                    `well ${lightSample.wellPosition}` 
+                    : 
+                    `well ${lightSample.type} ${lightSample.wellPosition} ${lightSample.name}`;
+
+    // Append to the well, div element
+    hoverContainer.appendChild(hoverNameLabel);
+    hoverContainer.appendChild(hoverName);
+    hoverContainer.appendChild(hoverAbsLabel);
+    hoverContainer.appendChild(hoverAbs);
+
+    well.appendChild(hoverContainer);
+    well.appendChild(wellPosition);
+
+    return well;
 }
 
 
@@ -906,8 +1096,10 @@ function diagram96Well(lightSamples, parent, diagramTitle){
  * @param {Element} parent
 **/
 function createProteinGelLoadingTable(unknowns, parent){
+    //Starting values, these are relatively arbitrary 
     const proteinPerWell = 20;
     const volPerWell = 12;
+
     const unit = unknowns[0].targetUnit;
     const [mass, vol] = unit.split("/");
     const dilutionFactor = unknowns[0].dilutionFactor;
@@ -930,9 +1122,9 @@ function createProteinGelLoadingTable(unknowns, parent){
     //Create input element and attach input event handler to update all replicates for samples simulatenously 
     replicatesInput.addEventListener("input", e=>{
         const replicates = parseFloat(e.target.value);
-        if(replicates < 0 || replicates === NaN) return;
+        if(replicates < 0 || isNaN(replicates)) return;
+
         for(let unknown of unknowns){
-            
             //Perform Calculations
             const replicateVol = unknown.sdspageValues.volPerWell * replicates;
             const replicateProteinVol = unknown.sdspageValues.proteinVolPerWell * replicates;
@@ -948,10 +1140,10 @@ function createProteinGelLoadingTable(unknowns, parent){
             
             //Update UI
             document.getElementById(`Replicates-${unknown.name}`).value = replicates;
-            document.getElementById(`Replicate Vol[${vol}]-${unknown.name}`).textContent = replicateVol.toFixed(2);
-            document.getElementById(`Replicate Protein Vol[${vol}]-${unknown.name}`).textContent = replicateProteinVol.toFixed(2);
-            document.getElementById(`Replicate 4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = replicateLaemmliVol.toFixed(2);
-            document.getElementById(`Replicate H2O Vol[${vol}]-${unknown.name}`).textContent = replicateBufferVol.toFixed(2);
+            document.getElementById(`Vol[${vol}]-${unknown.name}`).textContent = replicateVol.toFixed(2);
+            document.getElementById(`Protein Vol[${vol}]-${unknown.name}`).textContent = replicateProteinVol.toFixed(2);
+            document.getElementById(`4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = replicateLaemmliVol.toFixed(2);
+            document.getElementById(`H2O Vol[${vol}]-${unknown.name}`).textContent = replicateBufferVol.toFixed(2);
         }
         
     })
@@ -963,7 +1155,7 @@ function createProteinGelLoadingTable(unknowns, parent){
     proteinPerWellInput.defaultValue =  20;
     proteinPerWellInput.addEventListener("input", e => {
         const proteinPerWell = parseFloat(e.target.value);
-        if(proteinPerWell < 0 || proteinPerWell === NaN) return;
+        if(proteinPerWell < 0 || isNaN(proteinPerWell)) return;
         for(let unknown of unknowns){
 
             //Perform calculations
@@ -977,8 +1169,8 @@ function createProteinGelLoadingTable(unknowns, parent){
 
             //Update UI
             document.getElementById(`Protein[${mass}]/Well-${unknown.name}`).value = proteinPerWell;
-            document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVolPerWell.toFixed(2);
-            document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+            // document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVolPerWell.toFixed(2);
+            // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
             document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
         }
     })
@@ -990,7 +1182,7 @@ function createProteinGelLoadingTable(unknowns, parent){
     volPerWellInput.defaultValue = 12;
     volPerWellInput.addEventListener("input", e => {
         const volPerWell = parseFloat(e.target.value);
-        if(volPerWell < 0 || volPerWell === NaN) return;
+        if(volPerWell < 0 || isNaN(volPerWell)) return;
         for(let unknown of unknowns){
             //Perform calculations
             const laemmliVolPerWell = volPerWell/4;
@@ -1003,8 +1195,8 @@ function createProteinGelLoadingTable(unknowns, parent){
             
             //Update UI
             document.getElementById(`Vol[${vol}]/Well-${unknown.name}`).value = volPerWell;
-            document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
-            document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+            // document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
+            // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
             document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
         }
     })
@@ -1020,28 +1212,27 @@ function createProteinGelLoadingTable(unknowns, parent){
         `${dilutionFactor}X Concentration [${unit}]`,
         `Protein[${mass}]/Well`,
         `Vol[${vol}]/Well`,
-        `Protein Vol[${vol}]/Well`,
-        `4X Laemmli Vol[${vol}]/Well`,
-        `H2O[${vol}]/Well`,
         "Replicates",
-        `Replicate Vol[${vol}]`,
-        `Replicate Protein Vol[${vol}]`,
-        `Replicate 4X Laemmli Vol[${vol}]`,
-        `Replicate H2O Vol[${vol}]`,
+        `Vol[${vol}]`,
+        `Protein Vol[${vol}]`,
+        `4X Laemmli Vol[${vol}]`,
+        `H2O Vol[${vol}]`,
     ];
 
     for(let header of headers){
         const headerTitle = document.createElement("th");
         headerTitle.textContent = header;
         if(header === "Replicates"){
-            headerTitle.textContent+=": ";
             headerTitle.appendChild(replicatesInput);
+            headerTitle.className = "editable";
         }
         else if(header === `Protein[${mass}]/Well`){
             headerTitle.appendChild(proteinPerWellInput);
+            headerTitle.className = "editable";
         }
         else if(header === `Vol[${vol}]/Well`){
             headerTitle.appendChild(volPerWellInput);
+            headerTitle.className = "editable";
         }
         headerRow.appendChild(headerTitle);
     }
@@ -1052,6 +1243,7 @@ function createProteinGelLoadingTable(unknowns, parent){
     const body = document.createElement("tbody");
     for(let unknown of unknowns){        
         const row = document.createElement("tr");
+        row.className = `SDS-PAGE ${unknown.name}`;
         const gelData = [unknown.name, unknown.convertedX.toFixed(2), ...unknown.sdspageValues.getGelData()];
 
         //Ensure that both the headers array and the amount of values for each row are the same in length
@@ -1079,6 +1271,7 @@ function createProteinGelLoadingTable(unknowns, parent){
                 const input = document.createElement("input");
                 input.id = `${header}-${unknown.name}`;
                 input.value = volPerWell;
+                input.type = "number";
                 unknown.sdspageValues.volPerWell = volPerWell;
                 input.addEventListener("input", e => handleWellVolChange(e, unknown, vol));
                 input.addEventListener("click", handleInputClick);
@@ -1088,6 +1281,7 @@ function createProteinGelLoadingTable(unknowns, parent){
                 const input = document.createElement("input");
                 input.id = `${header}-${unknown.name}`;
                 input.value = replicates;
+                input.type = "number";
                 unknown.sdspageValues.replicates = replicates;
                 input.addEventListener("input", e => handleReplicateChange(e, unknown, vol, mass));
                 input.addEventListener("click", handleInputClick);
@@ -1141,13 +1335,13 @@ function createProteinGelLoadingTable(unknowns, parent){
         //Update the UI
         document.getElementById(`Protein[${mass}]/Well-${unknown.name}`).textContent = proteinPerWell.toFixed(2);
         document.getElementById(`Vol[${vol}]/Well-${unknown.name}`).textContent = volPerWell.toFixed(2);
-        document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVol.toFixed(2);
-        document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVol.toFixed(2);
-        document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVol.toFixed(2);
-        document.getElementById(`Replicate Vol[${vol}]-${unknown.name}`).textContent = replicateVol.toFixed(2);
-        document.getElementById(`Replicate Protein Vol[${vol}]-${unknown.name}`).textContent = replicateProteinVol.toFixed(2);
-        document.getElementById(`Replicate 4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = replicateLaemmliVol.toFixed(2);
-        document.getElementById(`Replicate H2O Vol[${vol}]-${unknown.name}`).textContent = replicateBufferVol.toFixed(2);
+        // document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVol.toFixed(2);
+        // document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVol.toFixed(2);
+        // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVol.toFixed(2);
+        document.getElementById(`Vol[${vol}]-${unknown.name}`).textContent = replicateVol.toFixed(2);
+        document.getElementById(`Protein Vol[${vol}]-${unknown.name}`).textContent = replicateProteinVol.toFixed(2);
+        document.getElementById(`4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = replicateLaemmliVol.toFixed(2);
+        document.getElementById(`H2O Vol[${vol}]-${unknown.name}`).textContent = replicateBufferVol.toFixed(2);
     }
     
 }
@@ -1164,7 +1358,7 @@ function handleTotalProteinChange(e, unknown, mass, vol){
     e.stopPropagation();
     e.preventDefault();
     const proteinPerWell = parseFloat(e.target.value);
-    if(proteinPerWell < 0 || proteinPerWell === undefined) return;
+    if(proteinPerWell < 0 || isNaN(proteinPerWell)) return;
 
     //Perform Calculations
     const proteinVolPerWell = proteinPerWell/unknown.convertedX;;
@@ -1178,9 +1372,9 @@ function handleTotalProteinChange(e, unknown, mass, vol){
     unknown.sdspageValues.bufferVolPerWell = bufferVolPerWell;
     
     //Update UI
-    document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVolPerWell.toFixed(2);
-    document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
-    document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+    // document.getElementById(`Protein Vol[${vol}]/Well-${unknown.name}`).textContent = proteinVolPerWell.toFixed(2);
+    // document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
+    // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
     document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
 }
 
@@ -1194,7 +1388,7 @@ function handleWellVolChange(e, unknown, vol){
     e.stopPropagation();
     e.preventDefault();
     const volPerWell = parseFloat(e.target.value);
-    if(volPerWell < 0 || volPerWell === undefined) return;
+    if(volPerWell < 0 || isNaN(volPerWell) ) return;
 
     //Perform Calculations
     const laemmliVolPerWell = volPerWell/4;
@@ -1206,9 +1400,9 @@ function handleWellVolChange(e, unknown, vol){
     unknown.sdspageValues.bufferVolPerWell = bufferVolPerWell;
 
     //Update UI
-    document.getElementById(`Vol[${vol}]/Well-${unknown.name}`).textContent = volPerWell.toFixed(2);
-    document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
-    document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
+    // document.getElementById(`Vol[${vol}]/Well-${unknown.name}`).textContent = volPerWell.toFixed(2);
+    // document.getElementById(`4X Laemmli Vol[${vol}]/Well-${unknown.name}`).textContent = laemmliVolPerWell.toFixed(2);
+    // document.getElementById(`H2O[${vol}]/Well-${unknown.name}`).textContent = bufferVolPerWell.toFixed(2);
     document.getElementById(`Replicates-${unknown.name}`).dispatchEvent(new InputEvent("input", {data:unknown.sdspageValues.replicates}));
 }
 /**
@@ -1230,7 +1424,7 @@ function handleReplicateChange(e, unknown, vol, mass){
     e.stopPropagation();
     e.preventDefault();
     const replicates = parseFloat(e.target.value);
-    if(replicates < 0 || replicates === NaN) return;
+    if(replicates < 0 || isNaN(replicates)) return;
     
     //Update the unknowns properties
     unknown.sdspageValues.replicates = replicates;
@@ -1241,10 +1435,10 @@ function handleReplicateChange(e, unknown, vol, mass){
 
     //Update the UI
     document.getElementById(`Replicates-${unknown.name}`).textContent = replicates.toString();
-    document.getElementById(`Replicate Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateVol.toFixed(2);
-    document.getElementById(`Replicate Protein Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateProteinVol.toFixed(2);
-    document.getElementById(`Replicate 4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateLaemmliVol.toFixed(2);
-    document.getElementById(`Replicate H2O Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateBufferVol.toFixed(2);
+    document.getElementById(`Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateVol.toFixed(2);
+    document.getElementById(`Protein Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateProteinVol.toFixed(2);
+    document.getElementById(`4X Laemmli Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateLaemmliVol.toFixed(2);
+    document.getElementById(`H2O Vol[${vol}]-${unknown.name}`).textContent = unknown.sdspageValues.replicateBufferVol.toFixed(2);
     
 }
 
@@ -1287,7 +1481,7 @@ function getLogRegression(xyValues){
  * @param {number[][]} xyValues
  * @returns {RegressionObject}
  */
-function get4ParameterHillRegression(xyValues){
+function getFourParameterHillRegression(xyValues){
     //Pass in the inital guesses for the paratemers of best fit as follows, a,b,c,d
     //a is minimum response at x = 0
     //b is the hill slope of the curve at c
@@ -1307,6 +1501,124 @@ function get4ParameterHillRegression(xyValues){
         eq: x=> D + ((A-D)/(1+((x/C)**B))),
         invEq: y => C*((((A-D)/(y-D))-1)**(1/B)),
     }
+}
+
+/**
+ * @param {number[][]} xyValues
+ * @returns {RegressionObject}
+ */
+function getFiveParameterHillRegression(xyValues){
+    /**
+     * 
+     * @param {number[]} param0 
+     * @returns {function(x):x}
+     */
+    function fivePl([a,b,c,d,e]){
+        //a lower asymptote
+        //b slope
+        //c EC50
+        //d upper asymptote
+        //e asymmetry parameter
+        return (x)=>(d+((a-d)/((1+(x/c)**b))**e))
+    }
+    const xValues = xyValues.map(xyValue => xyValue[0]);
+    const yValues = xyValues.map(xyValue => xyValue[1]);
+    const initialParams = [0, 1, ss.median(xValues), ss.max(yValues), 1];
+    const result = mlm.levenbergMarquardt({x:xValues, y:yValues}, fivePl, {initialValues:initialParams,maxIterations:10000});
+    const optimizedFivePl = fivePl(result.parameterValues);
+    const [a,b,c,d,e] = result.parameterValues;
+    return{
+        parameters:new Map([["A",a], ["B", b], ["C", d], ["D", d], ["E", e]]),
+        rSquared:NaN,
+        eq:optimizedFivePl,
+        invEq: (y)=>c*(((((a-d)/(y-d))**(1/e))-1)**(1/b)),
+    }
+}
+
+/**
+ * 
+ * @param {number} targetY 
+ * @param {function(x):x} func 
+ * @param {Array<Array<number>>} standards 
+ * @returns 
+ */
+function interpolateX(targetY, func, standards){
+    //Attempts to find the x value that gives the smallest difference between the predicated y and the target y
+    let closestX = null;
+    let closestY = null;
+    let diff = null;
+    for(let i = 0; i < standards.length; i++){
+        const x = standards[i][0];
+        const y = standards[i][1];
+        //If the largest standard Y value is smaller than the target Y value (targetY) then return NaN, couldn't find the value
+        if(i === 0 && y < targetY) return NaN;
+
+        //Find closest standard Y value and experimental X value       
+        const innerDiff = Math.abs(targetY - y);        
+
+        if(diff === null){
+            closestX = x;
+            closestY = y;
+            diff = innerDiff;
+        }
+        else if(diff > innerDiff){
+            closestX = x;
+            diff = innerDiff;
+            closestY = y;
+        }       
+        // console.log("Target Y:",targetY, " Closest Standard X:", closestX," Closest Standard Y:", closestY)
+    }
+
+    //If couldn't find any standard values of x and y that are close to the target y then return NaN
+    if(closestX === null || diff === null) return NaN;
+        
+    let closerX = closestX;
+    let smallestDiff = diff;
+    let closerY = closestY;
+    
+    //Attempt to find a value of x that has the closest interpolated value of y to the target Y (up to to 3 sigfigs)
+    const currentSigFigs = getInitialSigFigs(closerX); 
+    for(let i = 0; i < 10; i++){
+        //Determine by how many sigfigs I should start with depending on the number of sig figs in the closest x
+        const sigfigs = Number(`1e${currentSigFigs-i}`);
+        let newX = closerX;
+    
+        for(let j = 0; j < 10; j++){
+            
+            //Find the difference between the values 
+            //and use the (+) or (-) sign of the difference to determine whether to add or subtract the sigfigs
+            var predictedY = func(newX);
+            const innerDiff = targetY - predictedY;
+            const absDiff = Math.abs(innerDiff);
+            
+            if(innerDiff > 0){
+                newX+=sigfigs;
+            }
+            else{
+                newX-=sigfigs;
+            }
+            
+            if(smallestDiff > absDiff){
+                closerX = newX;
+                smallestDiff = absDiff;
+                closerY = predictedY; 
+            } 
+        }      
+        // console.log("Interpolated Y:", predictedY, "New X: ", newX);
+    }    
+    
+    return closerX;
+}
+
+/**
+ * @param {number} num
+ * @returns {number}
+ */
+function getInitialSigFigs(num){
+    const numString = num.toString();
+    const indexOfDecimalPoint = numString.indexOf(".");
+    if(indexOfDecimalPoint < 0) return numString.length-1;
+    return numString.length - numString.slice(indexOfDecimalPoint)-1;
 }
 
 function fminsearch(fun,Parm0,x,y,Opt){
@@ -1353,7 +1665,7 @@ function fminsearch(fun,Parm0,x,y,Opt){
 				step[j]=-(0.5*step[j]); // otherwiese reverse and go slower
 			}	
 		}
-		if(Opt.display){if(i>(Opt.maxIter-10)){console.log(i+1,funParm(P0),P0)}}
+		if(Opt.display){if(i>(Opt.maxIter-10)){}}//console.log(i+1,funParm(P0),P0)}}
 	}
 	if (!!document.getElementById('plot')){ // if there is then use it
 		fminsearch.plot(x,y,fun(x,P0),P0);

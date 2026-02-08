@@ -13,25 +13,40 @@
     <body>
         <div id = "header">
             <h1 id = "title"><a href="index.html">BioTech <b>R&D</b> Tools</a></h1>
-            <p>A set of personal R&D tools I use to automate my lab work.</p>
+            <p id = "slogan">Process your data faster.</p>
         </div>
         <div id = "figure-container">
-            <a class = "figures" href="regression.html">
-                <h3>Standard Curve (96 Well Plate)</h3>
-                <img src="Images/regression2.jpg">
+            <a class = "card" href="regression.html">
+                <h3 class="card-title">96-Well Standard Curve Assays</h3>
+                <img class = "card-images" src="Images/regression2.jpg">
+                <p class = "desc">
+                    Interpolate unknowns against a set of standards on a 96 well plate and expediate SDS-PAGE loading.
+                </p>
             </a>
-            <!-- <a class = "figures" href = "sdspage.html">
-                <h3>SDS-PAGE</h3>
-                <img src="Images/sds-page.jpeg">
-            </a> -->
-            <a class = "figures" href="rtqpcr.html">
-                <h3>Relative Gene Expression (RT-qPCR)</h3>
-                <img src="Images/qpcr.jpg">
+            <a class = "card" href="rtqpcr.html">
+                <h3 class="card-title">Relative Gene Expression</h3>
+                <img class = "card-images" src="Images/qPCRImage.jpg">
+                <p class = "desc">
+                    Calculates relative gene expression of samples to a reference sample on a 384 well plate. Supports: QS7Pro
+                </p>
             </a>
-            <!-- <a class = "figures" href="incucyte.html">
-                <h3>Cell Growth Assay (Incucyte)</h3>
-                <img src="Images/CellGrowth.jpeg">
+            <a class = "card" href="fcsModule.html">
+                <h3 class="card-title">Flow Cytometry</h3>
+                <img class = "card-images" src="Images/flowCytometry.jpg">
+                <p class = "desc">
+                    Visualize, gate and analyze your flow cytometry data.
+                </p>
+            </a>
+            <!-- <a class = "card" href="seqViewer.html">
+                <h3 class="card-title">SeqViewer</h3>
+                <img class = "card-images" src="Images/workinprogress.jpg">
+                <p class = "desc">
+                    Work in Progress.
+                </p>
             </a> -->
         </div>
     </body>
+    <footer>
+        <p><a id = "contact" href="contactform.html">Comments/Questions/Concerns?</a></p>
+    </footer>
 </html>
